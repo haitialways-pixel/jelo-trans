@@ -69,9 +69,39 @@ export async function advanceReservation(id: string, stage: Stage): Promise<Acti
     })
     if (error) return { ok: false, error: error.message }
 
+    // We need `res` (the reservation row returned by the RPC) for emails. Important
+    // ordering note for `complete`: chargeBalance() runs FIRST so the ride-complete
+    // email reflects the FINAL paid state (transaction id of the balance charge,
+    // 'Card on file' payment method, fresh payment_status). We then re-fetch the
+    // reservation so the email isn't stale.
+    let res = Array.isArray(data) ? data[0] : data
+
+    // Stripe: charge the remaining balance off-session when the ride completes.
+    // Gated + best-effort: a decline never blocks completion — the manager is alerted.
+    if (stage === 'complete' && isStripeConfigured()) {
+      try {
+        const charge = await chargeBalance(id)
+        if (!charge.ok) {
+          await notifyManagement({
+            title: '⚠️ Balance not charged',
+            message: `Reservation ${res?.booking_number ?? id} completed, but the balance charge failed: ${charge.reason}. Please follow up with the customer.`,
+          })
+        } else {
+          // Re-fetch so the receipt email reads the post-charge state.
+          const { data: fresh } = await supabase
+            .from('reservations')
+            .select('*')
+            .eq('id', id)
+            .maybeSingle()
+          if (fresh) res = fresh
+        }
+      } catch {
+        // never block completion on a payment error
+      }
+    }
+
     // Best-effort customer notifications — one email per lifecycle stage.
     // Must NEVER block or fail the action.
-    const res = Array.isArray(data) ? data[0] : data
     if (res?.customer_email) {
       // Pull the vehicle name (joined from fleet) so emails can show "Premium Executive"
       // rather than a bare UUID. Best-effort — undefined if the join fails.
@@ -139,22 +169,6 @@ export async function advanceReservation(id: string, stage: Stage): Promise<Acti
         }
       } catch {
         // swallow — the lifecycle transition already succeeded and is audited.
-      }
-    }
-
-    // Stripe: charge the remaining balance off-session when the ride completes.
-    // Gated + best-effort: a decline never blocks completion — the manager is alerted.
-    if (stage === 'complete' && isStripeConfigured()) {
-      try {
-        const charge = await chargeBalance(id)
-        if (!charge.ok) {
-          await notifyManagement({
-            title: '⚠️ Balance not charged',
-            message: `Reservation ${res?.booking_number ?? id} completed, but the balance charge failed: ${charge.reason}. Please follow up with the customer.`,
-          })
-        }
-      } catch {
-        // never block completion on a payment error
       }
     }
 

@@ -9,14 +9,21 @@ import type { NextConfig } from "next";
 //   - 'self'                          our own bundles / API routes
 //   - 'unsafe-inline' (script/style)  required by Next.js runtime + React inline styles
 //                                     (nonce-based CSP would need middleware — future hardening)
+//   - 'unsafe-eval' (DEV ONLY)        React + Turbopack HMR need eval() for hot-reload.
+//                                     STRIPPED in production builds.
 //   - js.stripe.com                   Stripe Elements (browser SDK)
 //   - hooks.stripe.com                Stripe 3DS confirmation iframe
 //   - api.stripe.com                  client-side fetch from the SDK
 //   - *.supabase.co (+ wss)           browser Supabase client (REST + Realtime)
 //   - data:, blob:, https:            images can be inlined or loaded from any HTTPS host
+const isDev = process.env.NODE_ENV !== 'production';
+const scriptSrc = isDev
+  ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com"
+  : "script-src 'self' 'unsafe-inline' https://js.stripe.com";
+
 const csp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://js.stripe.com",
+  scriptSrc,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
@@ -39,6 +46,9 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Hide the floating Next.js Dev Tools indicator (the small "N" bottom-left in dev).
+  // No effect on production. Set back to true if you want it back for debugging.
+  devIndicators: false,
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

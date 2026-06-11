@@ -106,8 +106,6 @@ function CheckoutForm({ depositAmount, balanceAmount, bookingNumber, onPaid }: P
         {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
         {loading ? 'Processing…' : `Pay $${depositAmount.toFixed(2)} deposit`}
       </button>
-
-      <p className="text-center text-[11px] text-[#71717a]">Secured by Stripe · PCI compliant</p>
     </form>
   )
 }
