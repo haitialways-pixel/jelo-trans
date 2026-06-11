@@ -46,7 +46,9 @@ All services are provided by licensed, professional chauffeurs operating fully i
 
 3.3 — Age Requirement. You must be at least 18 years of age to make a reservation. By booking, you represent and warrant that you meet this requirement.
 
-3.4 — Reservation Changes. Changes to reservations are subject to availability and must be requested at least 24 hours before the scheduled pickup. We will make commercially reasonable efforts to accommodate changes but cannot guarantee availability.`,
+3.4 — Reservation Changes. Changes to reservations are subject to availability and must be requested at least 24 hours before the scheduled pickup. We will make commercially reasonable efforts to accommodate changes but cannot guarantee availability.
+
+3.5 — Late Delay Notification. ⚠️ If you anticipate being delayed and are unable to be present at the scheduled pickup location at the confirmed time, you must notify ${COMPANY} as soon as possible by calling ${PHONE} or via your booking confirmation contact. Delay notifications received before the chauffeur departs for the pickup location will be taken into consideration and, at ${COMPANY}'s sole discretion, the pickup time may be adjusted subject to schedule availability. Notifications received after the chauffeur has already arrived or is en route to the pickup location are not guaranteed to be accommodated and may be subject to applicable wait-time charges or cancellation fees as described in Section 5. Failure to provide timely notice of a delay constitutes a no-show.`,
   },
   {
     id: 'payment',
