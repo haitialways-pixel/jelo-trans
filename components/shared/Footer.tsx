@@ -28,13 +28,25 @@ export function Footer() {
             <Link href="/about" className="block hover:text-white">Our Story</Link>
             <Link href="/book" className="block hover:text-white">Reserve Now</Link>
           </div>
+          <div className="font-medium tracking-widest text-xs text-[#c5a26f] mt-8 mb-4">LEGAL</div>
+          <div className="space-y-2 text-[#d1d5db]">
+            <Link href="/terms" className="block hover:text-white">Terms of Service</Link>
+            <Link href="/contact" className="block hover:text-white">Contact Us</Link>
+          </div>
         </div>
 
         <div className="md:col-span-4">
           <div className="font-medium tracking-widest text-xs text-[#c5a26f] mb-4">24/7 CONCIERGE</div>
           <p className="text-[#a1a1aa] mb-4">For immediate assistance or last-minute bookings, call or text us anytime.</p>
           <a href="tel:(678) 478-3506" className="inline-block btn-gold px-9 py-3 rounded-full text-sm tracking-[1.5px]">CALL (678) 478-3506</a>
-          <div className="mt-8 text-[10px] text-[#666] tracking-widest">© {new Date().getFullYear()} PHALO TRANSPORTATION, LLC</div>
+          <div className="mt-8 text-[10px] text-[#666] tracking-widest space-y-1">
+            <div>© {new Date().getFullYear()} PHALO TRANSPORTATION, LLC</div>
+            <div>
+              <Link href="/terms" className="hover:text-[#c5a26f] transition">Terms of Service</Link>
+              {' · '}
+              <Link href="/contact" className="hover:text-[#c5a26f] transition">Contact</Link>
+            </div>
+          </div>
         </div>
       </div>
     </footer>
