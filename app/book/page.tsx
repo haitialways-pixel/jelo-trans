@@ -3,6 +3,8 @@ import { Footer } from '@/components/shared/Footer'
 import { BookingWizard } from '@/components/booking/BookingWizard'
 import { createClient } from '@/lib/supabase/server'
 
+export const runtime = 'edge'
+
 export default async function BookPage() {
   const supabase = await createClient()
   const { data: vehicles } = await supabase

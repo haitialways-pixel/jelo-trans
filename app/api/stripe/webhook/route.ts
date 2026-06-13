@@ -9,7 +9,7 @@ import { getStripe, isStripeConfigured } from '@/lib/stripe/server'
 import { createAdminClient, isAdminConfigured } from '@/lib/supabase/admin'
 import { notifyManagement } from '@/lib/chatbot/notify'
 
-export const runtime = 'nodejs'
+export const runtime = 'edge'
 export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {

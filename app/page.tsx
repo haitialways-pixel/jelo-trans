@@ -10,6 +10,8 @@ const SERVICES = [
   { icon: PartyPopper, title: 'Special Events', desc: 'Arrive in style for weddings, galas, and exclusive events across Central Florida.' },
 ]
 
+export const runtime = 'edge'
+
 export default async function Home() {
   const featured = await getFeaturedFleet(6)
 

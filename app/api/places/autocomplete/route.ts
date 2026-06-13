@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
-import dns from 'dns'
 import { checkRateLimit, getClientIpFromRequest } from '@/lib/security/rateLimit'
 
-dns.setDefaultResultOrder('ipv4first')
+export const runtime = 'edge'
 
 export async function GET(request: Request) {
   // Rate-limit: 120 keystrokes/min/IP — generous for typing, but caps scraping.

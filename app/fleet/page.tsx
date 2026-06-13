@@ -9,6 +9,8 @@ const TIER_LABELS: Record<string, string> = {
   premium: 'Premium SUV',
 }
 
+export const runtime = 'edge'
+
 export default async function FleetPage() {
   const fleet = await getFleet()
 

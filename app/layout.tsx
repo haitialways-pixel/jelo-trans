@@ -35,6 +35,8 @@ export const metadata: Metadata = {
   icons: { icon: "/favicon.ico" },
 };
 
+export const runtime = 'edge'
+
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {

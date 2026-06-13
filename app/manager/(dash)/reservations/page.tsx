@@ -4,6 +4,7 @@ import { getReservations } from '@/lib/manager/data'
 import { StatusBadge } from '@/components/manager/StatusBadge'
 import { formatDateTime, formatMoney, STATUS_LABELS } from '@/lib/manager/format'
 
+export const runtime = 'edge'
 export const dynamic = 'force-dynamic'
 
 const FILTERS = [

@@ -6,6 +6,8 @@ import { getRecentNotifications } from '@/lib/manager/notifications'
 // after requireStaff() confirms an authenticated staff member — otherwise it
 // redirects to /manager/login before any content is produced. (The login page
 // lives outside this route group, so it is not affected.)
+export const runtime = 'edge'
+
 export default async function ManagerDashLayout({ children }: { children: React.ReactNode }) {
   const staff = await requireStaff()
   // Initial payload for the notification bell. Realtime takes over after first paint.

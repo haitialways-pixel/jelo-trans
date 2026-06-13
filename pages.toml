@@ -1,0 +1,11 @@
+# Cloudflare Pages configuration for the Phalo Transportation Next.js app.
+# Set the project name and organization ID in your Pages dashboard if needed.
+
+project_name = "phalo-transportation"
+
+[build]
+command = "npm run build:pages"
+directory = "."
+
+# If your Pages project uses a custom branch, add it here.
+# branch = "main"

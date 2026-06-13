@@ -4,6 +4,7 @@ import { getDashboardStats, getReservations, getSupportRequests } from '@/lib/ma
 import { StatusBadge } from '@/components/manager/StatusBadge'
 import { formatDateTime, formatMoney } from '@/lib/manager/format'
 
+export const runtime = 'edge'
 export const dynamic = 'force-dynamic'
 
 const ACTIVE = ['pending', 'confirmed', 'in_progress']
