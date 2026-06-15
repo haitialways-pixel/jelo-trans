@@ -43,3 +43,23 @@ yarn-error.log*
 # demo recordings (generated, not source)
 demo-output/
 next-env.d.ts
+.next
+node_modules
+.env*.local
+.vercel
+.wrangler
+dist
+.next
+node_modules
+.env*.local
+.vercel
+.wrangler
+dist
+.DS_Store
+.next
+node_modules
+.env*.local
+.vercel
+.wrangler
+dist
+.DS_Store

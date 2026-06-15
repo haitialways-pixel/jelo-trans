@@ -1,14 +1,13 @@
 // lib/supabase/server.ts
-import { createServerClient } from '@supabase/ssr'
+import { createServerClient as createSupabaseServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
-export function createServerClient() {
+export function createClient() {          // ← Changed to createClient
   const cookieStore = cookies()
 
-  return createServerClient(
-    // Use these instead of NEXT_PUBLIC_* on the server
+  return createSupabaseServerClient(
     process.env.SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,   // ← Stronger key for server
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
       cookies: {
         getAll() {
@@ -20,9 +19,7 @@ export function createServerClient() {
               cookieStore.set(name, value, options)
             )
           } catch {
-            // The `setAll` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
+            // Ignore cookie set errors in Server Components
           }
         },
       },

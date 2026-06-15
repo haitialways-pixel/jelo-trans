@@ -1,21 +1,28 @@
-/**
- * Server-only Stripe client. NEVER import this from a client component.
- *
- * Instantiated lazily so a missing STRIPE_SECRET_KEY never crashes the app at
- * import/build time — it only throws if a payment is actually attempted without
- * configuration. Mirrors how the email module degrades gracefully.
- */
-import Stripe from 'stripe'
+// lib/supabase/server.ts
+import { createServerClient as createSupabaseServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 
-let _stripe: Stripe | null = null
+export async function createClient() {
+  const cookieStore = await cookies()   // ← Important: await in Next.js 16+
 
-export function getStripe(): Stripe {
-  const key = process.env.STRIPE_SECRET_KEY
-  if (!key) throw new Error('STRIPE_SECRET_KEY is not set')
-  if (!_stripe) _stripe = new Stripe(key)
-  return _stripe
-}
-
-export function isStripeConfigured(): boolean {
-  return Boolean(process.env.STRIPE_SECRET_KEY)
+  return createSupabaseServerClient(
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll?.() || []
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options)
+            })
+          } catch {
+            // Ignore errors when cookies can't be set (Server Components, Edge, etc.)
+          }
+        },
+      },
+    }
+  )
 }
