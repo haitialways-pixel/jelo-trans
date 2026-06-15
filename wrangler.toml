@@ -2,8 +2,7 @@
 compatibility_date = "2026-06-15"
 compatibility_flags = ["nodejs_compat"]
 
-# For next-on-pages
+# Important for next-on-pages
 pages_build_output_dir = ".vercel/output/static"
 
-# Optional: Project name
 name = "phalo-transportation"
