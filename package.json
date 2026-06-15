@@ -2,20 +2,11 @@
   "name": "phalo-transportation",
   "version": "0.1.0",
   "private": true,
- {
-  "name": "phalo-transportation",
-  "version": "0.1.0",
-  "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "build:cf": "next-on-pages",
-    "preview": "wrangler pages dev .vercel/output/static --compatibility-flag nodejs_compat",
-    "deploy": "npm run build:cf && npx wrangler pages deploy .vercel/output/static"
-  },
-  "dependencies": {
-    ...
-}
+    "preview": "wrangler dev",
+    "deploy": "npm run build && npx @opennextjs/cloudflare deploy"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
@@ -39,6 +30,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@opennextjs/cloudflare": "latest",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -47,6 +39,7 @@
     "eslint-config-next": "16.2.6",
     "playwright": "^1.60.0",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wrangler": "latest"
   }
 }
