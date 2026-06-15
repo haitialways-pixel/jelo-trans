@@ -3,11 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "build:pages": "npm run build && npx @cloudflare/next-on-pages@latest",
-    "start": "next start",
-    "lint": "eslint"
+  "dev": "next dev",
+  "build": "next build",
+  "build:cf": "next-on-pages",
+  "preview": "wrangler pages dev .vercel/output/static --compatibility-flag nodejs_compat",
+  "deploy": "npm run build && npx wrangler pages deploy .vercel/output/static"
+}
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
