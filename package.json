@@ -2,12 +2,19 @@
   "name": "phalo-transportation",
   "version": "0.1.0",
   "private": true,
+ {
+  "name": "phalo-transportation",
+  "version": "0.1.0",
+  "private": true,
   "scripts": {
-  "dev": "next dev",
-  "build": "next build",
-  "build:cf": "next-on-pages",
-  "preview": "wrangler pages dev .vercel/output/static --compatibility-flag nodejs_compat",
-  "deploy": "npm run build && npx wrangler pages deploy .vercel/output/static"
+    "dev": "next dev",
+    "build": "next build",
+    "build:cf": "next-on-pages",
+    "preview": "wrangler pages dev .vercel/output/static --compatibility-flag nodejs_compat",
+    "deploy": "npm run build:cf && npx wrangler pages deploy .vercel/output/static"
+  },
+  "dependencies": {
+    ...
 }
   },
   "dependencies": {
