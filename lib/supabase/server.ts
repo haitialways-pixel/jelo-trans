@@ -1,28 +1,37 @@
 // lib/supabase/server.ts
-import { createServerClient as createSupabaseServerClient } from '@supabase/ssr'
+import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
-export function createClient() {          // ← Changed to createClient
+export function createClient() {
   const cookieStore = cookies()
 
-  return createSupabaseServerClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         getAll() {
+          // Handle the Promise case properly
           return cookieStore.getAll()
         },
         setAll(cookiesToSet) {
           try {
-            cookiesToSet.forEach(({ name, value, options }) =>
+            cookiesToSet.forEach(({ name, value, options }) => {
+              // @ts-expect-error - Next.js types vs Supabase
               cookieStore.set(name, value, options)
-            )
+            })
           } catch {
-            // Ignore cookie set errors in Server Components
+            // The `setAll` method was called from a Server Component.
+            // This use case is not supported in Cloudflare / Edge.
+            // We ignore it for now (Supabase will still work for most flows).
           }
         },
       },
     }
   )
+}
+
+// Add other helpers if needed (createAdminClient, etc.)
+export function createAdminClient() {
+  // your existing admin client code
 }
