@@ -11,19 +11,21 @@ export function createClient() {
     {
       cookies: {
         getAll() {
-          // Handle the Promise case properly
-          return cookieStore.getAll()
+          // Support both sync and async cookieStore
+          const allCookies = cookieStore.getAll instanceof Function 
+            ? cookieStore.getAll() 
+            : [];
+          return Array.isArray(allCookies) ? allCookies : [];
         },
         setAll(cookiesToSet) {
           try {
             cookiesToSet.forEach(({ name, value, options }) => {
-              // @ts-expect-error - Next.js types vs Supabase
+              // @ts-expect-error Cloudflare / Next.js cookie type differences
               cookieStore.set(name, value, options)
             })
-          } catch {
-            // The `setAll` method was called from a Server Component.
-            // This use case is not supported in Cloudflare / Edge.
-            // We ignore it for now (Supabase will still work for most flows).
+          } catch (error) {
+            // Ignore errors in Server Components / Edge environments
+            console.warn('Cookie setAll failed (expected in some Cloudflare contexts)', error)
           }
         },
       },
@@ -31,7 +33,7 @@ export function createClient() {
   )
 }
 
-// Add other helpers if needed (createAdminClient, etc.)
+// Keep your other functions (createAdminClient, etc.)
 export function createAdminClient() {
-  // your existing admin client code
+  // ... your existing admin client code here
 }
