@@ -12,7 +12,7 @@ export function getStripe(): Stripe {
     throw new Error('Stripe is not configured. Missing STRIPE_SECRET_KEY environment variable.');
   }
   return new Stripe(stripeSecretKey!, {
-    apiVersion: '2025-06-30.basil', // or your preferred version
+    apiVersion: '2026-05-27.dahlia',   // Current version in your environment
   });
 }
 
