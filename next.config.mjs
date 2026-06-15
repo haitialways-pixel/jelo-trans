@@ -9,9 +9,6 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,     // Temporary for Cloudflare deployment
   },
-  eslint: {
-    ignoreDuringBuilds: true,    // Temporary
-  },
 };
 
 export default nextConfig;

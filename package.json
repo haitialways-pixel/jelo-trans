@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npx @opennextjs/cloudflare build",
     "preview": "wrangler dev",
     "deploy": "npm run build && npx @opennextjs/cloudflare deploy"
   },
@@ -41,5 +41,14 @@
     "tailwindcss": "^4",
     "typescript": "^5",
     "wrangler": "latest"
+  },
+  "allowScripts": {
+    "esbuild@0.25.4": true,
+    "esbuild@0.27.3": true,
+    "fsevents@2.3.2": true,
+    "fsevents@2.3.3": true,
+    "sharp@0.34.5": true,
+    "unrs-resolver@1.12.2": true,
+    "workerd@1.20260611.1": true
   }
 }
