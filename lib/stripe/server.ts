@@ -1,22 +1,16 @@
 // lib/stripe/server.ts
 import Stripe from 'stripe';
 
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-
 export function isStripeConfigured(): boolean {
-  return !!stripeSecretKey;
+  return !!process.env.STRIPE_SECRET_KEY;
 }
 
 export function getStripe(): Stripe {
-  if (!isStripeConfigured()) {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) {
     throw new Error('Stripe is not configured. Missing STRIPE_SECRET_KEY environment variable.');
   }
-  return new Stripe(stripeSecretKey!, {
-    apiVersion: '2026-05-27.dahlia',   // Current version in your environment
+  return new Stripe(key, {
+    apiVersion: '2024-11-20.acacia', // Pinned recent stable version (update deliberately when needed)
   });
 }
-
-// You may already have this:
-export const createClient = () => {
-  // ... existing code if any
-};

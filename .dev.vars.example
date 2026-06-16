@@ -9,13 +9,13 @@
 # Server-only secrets (required for booking flow, emails, payments, etc.):
 GOOGLE_MAPS_API_KEY=your_google_server_api_key_here
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key_here
-STRIPE_SECRET_KEY=your_stripe_secret_key_here
+STRIPE_SECRET_KEY=sk_test_your_stripe_secret_here
 RESEND_API_KEY=your_resend_api_key_here
-STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_WEBHOOK_SECRET=whsec_your_webhook_signing_secret
 BOOKING_FROM_EMAIL=Phalo Transportation <bookings@example.com>
 SITE_URL=https://your-project.pages.dev
 
 # Public ones (if your preview build needs them at runtime):
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=ey...
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_...
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_here

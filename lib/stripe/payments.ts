@@ -42,6 +42,10 @@ export async function createDepositForBooking(bookingNumber: string): Promise<De
   const depositAmount = round2(total * DEPOSIT_RATE)
   const balanceAmount = round2(total - depositAmount)
 
+  if (depositAmount < 0.5) {
+    throw new Error(`Computed deposit (10%) is too small ($${depositAmount.toFixed(2)}) for a ${total.toFixed(2)} booking. Check fleet minimum_price or distance.`)
+  }
+
   // Reuse an existing customer if this booking already has one.
   let customerId: string = r.stripe_customer_id as string
   if (!customerId) {

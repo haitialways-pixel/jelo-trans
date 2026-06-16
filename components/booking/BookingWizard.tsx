@@ -168,6 +168,9 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
         } else {
           setEmailSent(Boolean(result.emailSent))
         }
+        if (result.error) {
+          setError(result.error)
+        }
       } else {
         setError(result.error || 'Failed to create booking')
       }

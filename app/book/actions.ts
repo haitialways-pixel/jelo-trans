@@ -100,9 +100,15 @@ export async function createReservation(formData: any) {
           depositAmount: dep.depositAmount,
           balanceAmount: dep.balanceAmount,
         }
-      } catch {
+      } catch (e) {
+        console.error(`[createReservation] createDepositForBooking failed for ${bookingNumber}:`, e)
+        // Reservation row exists (created by RPC). Return it so the customer has a reference number
+        // even though online deposit setup failed. Manager received the internal notification.
         return {
-          success: false,
+          success: true,
+          bookingNumber,
+          requiresPayment: false,
+          emailSent: false,
           error: 'Could not start the deposit payment. Please try again, or call us to book.',
         }
       }
