@@ -444,6 +444,7 @@ GRANT EXECUTE ON FUNCTION public.cancel_guest_reservation(text, text) TO anon, a
 
 -- Availability — UNIT-COUNT-AWARE. A model is free if its overlapping active
 -- bookings are fewer than its operational unit count.
+-- If no vehicle_units rows exist at all for the model, we conservatively allow 1.
 CREATE OR REPLACE FUNCTION public.check_vehicle_availability(
   p_vehicle_id uuid, p_start timestamptz, p_end timestamptz
 ) RETURNS boolean
@@ -455,10 +456,12 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
          AND r.pickup_time < p_end
          AND r.pickup_time + (r.duration_hours * interval '1 hour') > p_start)
     <
-    GREATEST(
-      (SELECT count(*) FROM public.vehicle_units u
-         WHERE u.model_id = p_vehicle_id AND u.status IN ('available', 'in_service')),
-      1)
+    CASE
+      WHEN EXISTS (SELECT 1 FROM public.vehicle_units u WHERE u.model_id = p_vehicle_id)
+        THEN (SELECT count(*) FROM public.vehicle_units u
+              WHERE u.model_id = p_vehicle_id AND u.status IN ('available', 'in_service'))
+      ELSE 1
+    END
   );
 $$;
 GRANT EXECUTE ON FUNCTION public.check_vehicle_availability(uuid, timestamptz, timestamptz) TO anon, authenticated;
@@ -510,9 +513,14 @@ BEGIN
 
   v_end := p_pickup_time + (v_duration * interval '1 hour');
 
+  -- Count only units that are ready for service. If the model has *no* vehicle_units rows defined at all,
+  -- fall back to allowing 1 (legacy / simple setups). Otherwise respect the actual ready count (may be 0).
   SELECT count(*) INTO v_units FROM public.vehicle_units
     WHERE model_id = p_vehicle_id AND status IN ('available', 'in_service');
-  IF v_units = 0 THEN v_units := 1; END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM public.vehicle_units WHERE model_id = p_vehicle_id) THEN
+    v_units := 1;
+  END IF;
 
   SELECT count(*) INTO v_booked FROM public.reservations r
     WHERE r.vehicle_id = p_vehicle_id

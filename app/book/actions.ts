@@ -12,6 +12,8 @@ import { recordOpsNotification } from '@/lib/manager/notifyOps'
 export async function calculatePrice(data: {
   vehicleId: string
   distanceMiles: number
+  pickupTime?: string
+  durationHours?: number
 }) {
   try {
     const supabase = await createClient()
@@ -32,6 +34,20 @@ export async function calculatePrice(data: {
 
     if (!vehicle.base_price || vehicle.base_price <= 0) {
       return { error: 'This vehicle does not have a valid rate configured' }
+    }
+
+    // Pre-check time slot availability using the unit-aware RPC (prevents reaching confirm with a blocked slot)
+    if (data.pickupTime && data.durationHours) {
+      const start = new Date(data.pickupTime)
+      const end = new Date(start.getTime() + (Number(data.durationHours) * 60 * 60 * 1000))
+      const { data: available } = await supabase.rpc('check_vehicle_availability', {
+        p_vehicle_id: data.vehicleId,
+        p_start: start.toISOString(),
+        p_end: end.toISOString(),
+      })
+      if (!available) {
+        return { error: 'This vehicle is no longer available for the selected time' }
+      }
     }
 
     const base = Math.round((Number(vehicle.base_price) + (data.distanceMiles * Number(vehicle.price_per_mile))) * 100) / 100

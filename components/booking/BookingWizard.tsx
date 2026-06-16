@@ -137,6 +137,8 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
       const result = await calculatePrice({
         vehicleId: formData.vehicleId,
         distanceMiles: Number(formData.distanceMiles || 0),
+        pickupTime: formData.pickupTime,
+        durationHours: Number(formData.durationHours),
       })
       setLoading(false)
 
