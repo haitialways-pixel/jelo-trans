@@ -72,8 +72,8 @@ npm run dev
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Payments | Same place (pk_test_... / pk_live_...) |
 | `STRIPE_WEBHOOK_SECRET` | Webhook (production) | Stripe Dashboard → Developers → Webhooks → Add endpoint → `<your-domain>/api/stripe/webhook` (whsec_...) |
 | `GOOGLE_MAPS_API_KEY` | Distance & autocomplete | Google Cloud Console — enable Distance Matrix API + Places API |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` | Email | Your email provider (Google Workspace, SES…). Use an **app password**, not your account password. |
-| `BOOKING_FROM_EMAIL` | Email | The display name + address shown as the sender |
+| `RESEND_API_KEY` | Email | Resend Dashboard → API Keys |
+| `BOOKING_FROM_EMAIL` | Email | The verified sender address for Resend |
 | `SITE_URL` | Email links | Your public URL (e.g. `https://phalotransportation.com`) |
 | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | Optional | @BotFather on Telegram, then `/getUpdates` to find chat id |
 | `MANAGEMENT_EMAIL` | Optional fallback | Recipient for ops alerts if Telegram isn't set |

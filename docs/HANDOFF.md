@@ -20,7 +20,7 @@ One page: what works, what's left, and the decisions we need from you.
 | 1 | **Payments** — pick a model (full / authorization hold / save-card-charge-later), then send us Stripe **test** keys | `docs/PAYMENTS.md` |
 | 2 | **Pricing** — approve the cost-based formula and fill in your real costs | `docs/PRICING_PROPOSAL.md` |
 | 3 | **Assistant knowledge** — tick the quick policy sheet (~15 min) so the assistant answers in *your* words | `docs/CHATBOT_QUESTIONNAIRE.md` |
-| 4 | **Email** — add your `phalotransportation.com` mailbox's SMTP **app password** so customers get confirmations (no third-party service, no domain verification) | `.env.example` |
+| 4 | **Email** — add your Resend API key and verified sender address so customer confirmations can be sent reliably | `.env.example` |
 | 5 | **Assistant approach** — it's built & live; approve as-is, or request the optional neural-engine upgrade | see below |
 
 ## 🔧 In progress / pending a decision

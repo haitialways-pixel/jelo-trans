@@ -1,4 +1,4 @@
-// Stripe webhook — SERVER ONLY, Node runtime (needs the raw body + Stripe SDK).
+// Stripe webhook — SERVER ONLY, Node runtime (needs raw body + Stripe SDK).
 //
 // Security: every request is verified against STRIPE_WEBHOOK_SECRET (rejects forged
 // calls). Idempotent: each event id is recorded once in stripe_events, so Stripe's
@@ -9,7 +9,7 @@ import { getStripe, isStripeConfigured } from '@/lib/stripe/server'
 import { createAdminClient, isAdminConfigured } from '@/lib/supabase/admin'
 import { notifyManagement } from '@/lib/chatbot/notify'
 
-export const runtime = 'edge'
+export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
