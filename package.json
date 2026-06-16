@@ -14,6 +14,7 @@
     "@hookform/resolvers": "^5.4.0",
     "@react-email/components": "^1.0.12",
     "@react-email/render": "^2.0.8",
+    "@react-google-maps/api": "^2.20.8",
     "@stripe/react-stripe-js": "^6.6.0",
     "@stripe/stripe-js": "^9.7.0",
     "@supabase/ssr": "^0.10.3",
