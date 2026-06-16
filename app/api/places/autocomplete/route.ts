@@ -18,7 +18,7 @@ export async function GET(request: Request) {
   const q = searchParams.get('q')
 
   if (!q) {
-    return NextResponse.json({ predictions: [] })
+    return NextResponse.json({ suggestions: [] })
   }
 
   const apiKey = process.env.GOOGLE_MAPS_API_KEY
@@ -43,7 +43,11 @@ export async function GET(request: Request) {
     }
 
     // Map Google API format to a simpler format for our component
-    const suggestions = (data.predictions || []).map((p: any) => ({
+    interface GooglePrediction {
+      description: string
+      place_id: string
+    }
+    const suggestions = ((data.predictions || []) as GooglePrediction[]).map((p) => ({
       label: p.description,
       placeId: p.place_id,
     }))

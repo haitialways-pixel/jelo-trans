@@ -2,7 +2,6 @@ import { Navbar } from '@/components/shared/Navbar'
 import { Footer } from '@/components/shared/Footer'
 import { BookingWizard } from '@/components/booking/BookingWizard'
 import { createClient } from '@/lib/supabase/server'
-import Script from 'next/script'
 
 export const runtime = 'edge'
 
@@ -18,12 +17,6 @@ export default async function BookPage() {
   return (
     <div className="bg-[#0a0a0a] min-h-screen text-white">
       <Navbar />
-
-      {/* Google Maps Script */}
-      <Script
-        src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`}
-        strategy="afterInteractive"
-      />
 
       <div className="pt-16 pb-12 max-w-5xl mx-auto px-6">
         <div className="text-center mb-10">

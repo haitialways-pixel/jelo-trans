@@ -12,7 +12,7 @@ type Props = {
 type Suggestion = { label: string }
 
 export function AddressAutocomplete({ placeholder, value, onChange }: Props) {
-  const [input, setInput] = useState(value)
+  const [input, setInput] = useState(value || '')
   const [suggestions, setSuggestions] = useState<Suggestion[]>([])
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -72,7 +72,7 @@ export function AddressAutocomplete({ placeholder, value, onChange }: Props) {
         onChange={(e) => handleInput(e.target.value)}
         onFocus={() => suggestions.length > 0 && setOpen(true)}
         autoComplete="off"
-        className="w-full p-4 rounded-2xl"
+        className="w-full p-4 rounded-2xl bg-[#111] border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-[#c5a26f]"
       />
       {loading && (
         <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#c5a26f] animate-spin" />
