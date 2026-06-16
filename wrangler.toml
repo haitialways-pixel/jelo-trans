@@ -2,7 +2,30 @@
 compatibility_date = "2026-06-15"
 compatibility_flags = ["nodejs_compat"]
 
-# Important for next-on-pages
+# Important for next-on-pages / @opennextjs/cloudflare
 pages_build_output_dir = ".vercel/output/static"
 
 name = "phalo-transportation"
+
+# ----------------------------------------------------------------------------
+# Environment variables & secrets for Cloudflare deployment
+# ----------------------------------------------------------------------------
+# - Public vars (NEXT_PUBLIC_*) can be set as "Environment variables" in the
+#   Cloudflare Pages dashboard (or [vars] here for build-time).
+# - Server-only secrets (GOOGLE_MAPS_API_KEY, SUPABASE_SERVICE_ROLE_KEY,
+#   STRIPE_SECRET_KEY, RESEND_API_KEY, etc.) MUST be set as **Secrets** in the
+#   Pages dashboard (Settings → Environment variables → ... → "Secret") or via:
+#     npx wrangler pages secret put GOOGLE_MAPS_API_KEY
+#     npx wrangler pages secret put SUPABASE_SERVICE_ROLE_KEY
+#   ...
+#
+# For LOCAL preview (`npm run preview` which does `wrangler dev`):
+#   Create a file named `.dev.vars` (gitignored) next to this one:
+#     GOOGLE_MAPS_API_KEY=...
+#     SUPABASE_SERVICE_ROLE_KEY=...
+#   (Simple KEY=VALUE lines. This is the most common reason for
+#    "Google Maps API key is missing on the server" during local CF testing.)
+#
+# After changing secrets you usually need a fresh deploy.
+# See HANDOFF_README.md "Deploying to Cloudflare" section for full steps.
+# ----------------------------------------------------------------------------

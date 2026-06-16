@@ -94,6 +94,29 @@ npm run dev
 
 ---
 
+## Deploying to Cloudflare (Pages + Workers via open-next)
+
+The repo also supports deployment to Cloudflare (see `npm run deploy` and `npm run preview`).
+
+1. Make sure you have Wrangler CLI auth: `npx wrangler login`.
+2. (Optional but recommended for local testing of edge routes) Create `.dev.vars` in project root (gitignored) with your **server-only** secrets, one per line:
+   ```
+   GOOGLE_MAPS_API_KEY=your_real_server_key_here
+   SUPABASE_SERVICE_ROLE_KEY=...
+   STRIPE_SECRET_KEY=...
+   RESEND_API_KEY=...
+   ```
+   (Plain `KEY=VALUE` format — no `export`, no quotes around most values.)
+3. For production: In the Cloudflare Pages dashboard → your project → Settings → Environment variables (or use `wrangler pages secret put GOOGLE_MAPS_API_KEY` etc. for encrypted secrets).
+   - Add **all** the server-only keys from the table above (no `NEXT_PUBLIC_` prefix for secrets).
+   - Also add the public ones if used (`NEXT_PUBLIC_*` can be "Plaintext" or "Environment variable").
+4. Run `npm run build && npx @opennextjs/cloudflare deploy` (or connect Git for continuous deploy).
+5. After deploy, update any webhook URLs (Stripe, etc.) with the new `*.pages.dev` domain and set the corresponding secrets.
+
+**Note on GOOGLE_MAPS_API_KEY**: This is the most common source of "Google Maps API key is missing on the server". It must be a **server-side** key (Places API + Distance Matrix API enabled). It is **not** the same as any `NEXT_PUBLIC_` key. Set it in the target platform's secret/env config, then redeploy.
+
+---
+
 ## Things Phalo must customize before going live
 
 - [ ] **Fleet photos** — replace files in `public/images/` (Suburban, Yukon XL, Expedition, Sprinter, Sedan). The current paths are placeholders.

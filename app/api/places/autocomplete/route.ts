@@ -24,7 +24,7 @@ export async function GET(request: Request) {
   const apiKey = process.env.GOOGLE_MAPS_API_KEY
 
   if (!apiKey) {
-    return NextResponse.json({ error: 'Google Maps API key is missing' }, { status: 500 })
+    return NextResponse.json({ error: 'Google Maps API key is missing on the server. Set GOOGLE_MAPS_API_KEY (server-only, see .env.example and HANDOFF_README.md) and redeploy.' }, { status: 500 })
   }
 
   try {

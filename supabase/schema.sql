@@ -16,6 +16,15 @@
 -- Security: anon/customers NEVER touch tables directly. Guests act through
 -- SECURITY DEFINER RPCs; staff read via their own JWT (RLS + is_staff()) and
 -- write via audited SECURITY DEFINER RPCs or RLS-gated direct writes.
+--
+-- IMPORTANT (external to this DB):
+--   The Google Maps integration (address autocomplete + distance) lives in the
+--   Next.js app at /api/places/*. It requires a SERVER-ONLY env var named
+--   GOOGLE_MAPS_API_KEY (with Places API + Distance Matrix API enabled) to be
+--   set on the *app host* (Vercel, Cloudflare Pages/Workers, etc.), NOT inside
+--   the database. Missing key → "Google Maps API key is missing on the server".
+--   See .env.example, HANDOFF_README.md, and your hosting dashboard.
+--   Supabase keys (URL + service_role) are also required on the app host.
 -- ============================================================================
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
