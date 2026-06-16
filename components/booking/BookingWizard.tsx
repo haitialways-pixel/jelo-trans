@@ -129,7 +129,6 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
       return
     }
 
-    // ... (rest of your nextStep logic stays exactly the same)
     if (currentStep === 1 && formData.vehicleId) {
       setLoading(true)
       const result = await calculatePrice({
@@ -183,7 +182,7 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
     return base.toFixed(2)
   }
 
-  // Payment / Confirmation screens
+  // Payment / Success screens (unchanged)
   if (bookingNumber && clientSecret && !paid) {
     return (
       <div className="card p-8 md:p-10 max-w-lg mx-auto">
@@ -203,7 +202,6 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
   }
 
   if (bookingNumber && (!clientSecret || paid)) {
-    // ... your confirmation screen stays unchanged
     const formatPickup = (v: string) => {
       try {
         return new Date(v).toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })
@@ -213,29 +211,37 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
     }
     return (
       <div className="card p-10 max-w-lg mx-auto">
-        {/* ... your existing confirmation JSX ... */}
+        {/* Your existing confirmation JSX — keep it as is */}
+        <div className="text-center">
+          <div className="text-6xl mb-6 text-[#c5a26f]">✓</div>
+          <h2 className="text-4xl tracking-tight mb-2">Booking Confirmed!</h2>
+          <p className="text-[#a1a1aa] text-sm mb-4">Your reservation is registered. Here are the details:</p>
+          <p className="text-[#c5a26f] text-3xl font-mono mb-8">{bookingNumber}</p>
+        </div>
+        {/* ... rest of confirmation content ... */}
       </div>
     )
   }
 
-  // Main Wizard
+  // Google Maps Loading States
   if (loadError) {
-    return <div className="text-red-500 p-8 text-center">Failed to load Google Maps. Please refresh.</div>
+    return <div className="text-red-500 p-8 text-center border border-red-500/30 rounded-2xl">Failed to load Google Maps. Please refresh the page.</div>
   }
 
   if (!isLoaded) {
     return (
       <div className="text-center py-20">
         <Loader2 className="w-12 h-12 text-[#c5a26f] animate-spin mx-auto mb-4" />
-        <p className="text-[#c5a26f]">Loading booking system...</p>
+        <p className="text-[#c5a26f]">Loading booking system and address search...</p>
       </div>
     )
   }
 
+  // Main Wizard UI (your existing code)
   return (
     <div className="max-w-4xl mx-auto">
-      {/* Progress indicator, form steps, etc. — your existing code from here down stays the same */}
-      {/* ... (keep all your existing JSX for steps, buttons, etc.) ... */}
+      {/* Progress, steps, buttons, etc. — paste the rest of your original return JSX here */}
+      {/* ... keep everything from the progress indicator down ... */}
     </div>
   )
 }
