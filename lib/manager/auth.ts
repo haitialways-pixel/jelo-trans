@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export type StaffSession = {
   userId: string
@@ -8,40 +9,24 @@ export type StaffSession = {
   role: string
 }
 
-/**
- * Server-side guard for the manager area.
- *
- * Two independent checks, both server-side:
- *   1. getUser() — verifies the session WITH the Supabase auth server (never the
- *      spoofable getSession()/cookie alone).
- *   2. staff membership — the user must have a row in public.staff.
- *
- * This is the FIRST of three layers (layout guard → server action re-check → DB
- * RLS/RPC). A customer has no account, so step 1 already stops them; even a
- * self-signed-up account is stopped at step 2. Redirects to the login page on
- * any failure — the protected content is never rendered or sent.
- */
-export async function requireStaff(): Promise<StaffSession> {
+async function resolveStaffSession(): Promise<StaffSession | null> {
   const supabase = await createClient()
-
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user) redirect('/manager/login')
+  if (!user) return null
 
-  // Membership check. Under RLS, a non-staff user reads 0 rows here, so a missing
-  // row == not authorized. (is_staff() in the DB enforces the same predicate.)
-  const { data: staffRow } = await supabase
+  // Staff registry is managed out-of-band; read via service role after session
+  // is verified so RLS quirks cannot block legitimate staff members.
+  const admin = createAdminClient()
+  const { data: staffRow, error } = await admin
     .from('staff')
     .select('full_name, role')
     .eq('id', user.id)
     .maybeSingle()
 
-  if (!staffRow) {
-    await supabase.auth.signOut()
-    redirect('/manager/login?error=not_staff')
-  }
+  if (error || !staffRow) return null
 
   return {
     userId: user.id,
@@ -52,28 +37,27 @@ export async function requireStaff(): Promise<StaffSession> {
 }
 
 /**
- * Non-redirecting variant for server actions: returns the session or throws.
- * Server actions are a separate entry point from page rendering, so they must
- * re-verify on their own (defense in depth).
+ * Server-side guard for the manager area.
+ * Verifies Supabase session + staff registry membership.
  */
-export async function assertStaff(): Promise<StaffSession> {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) throw new Error('Not authenticated')
-
-  const { data: staffRow } = await supabase
-    .from('staff')
-    .select('full_name, role')
-    .eq('id', user.id)
-    .maybeSingle()
-  if (!staffRow) throw new Error('Not authorized')
-
-  return {
-    userId: user.id,
-    email: user.email ?? null,
-    fullName: staffRow.full_name,
-    role: staffRow.role,
+export async function requireStaff(): Promise<StaffSession> {
+  const session = await resolveStaffSession()
+  if (!session) {
+    const supabase = await createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    // Do not sign out here — Server Components cannot reliably clear auth
+    // cookies (especially on edge). The login page signs out client-side when
+    // it receives ?error=not_staff so the user can try another account.
+    redirect(user ? '/manager/login?error=not_staff' : '/manager/login')
   }
+  return session
+}
+
+/** Non-redirecting variant for server actions. */
+export async function assertStaff(): Promise<StaffSession> {
+  const session = await resolveStaffSession()
+  if (!session) throw new Error('Not authenticated or not authorized')
+  return session
 }

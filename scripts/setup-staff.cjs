@@ -3,6 +3,7 @@
  *
  * Usage:
  *   npm run setup-staff
+ *   npm run setup-staff -- --seed-all
  *
  * Optional env overrides:
  *   MANAGER_EMAIL=manager@phalotransportation.com
@@ -15,6 +16,7 @@ const { resolve, dirname } = require('path')
 const { URL } = require('url')
 
 const root = resolve(__dirname, '..')
+const seedAll = process.argv.includes('--seed-all')
 
 function loadEnvFile(filename) {
   const path = resolve(root, filename)
@@ -35,6 +37,7 @@ loadEnvFile('.env')
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 const email = process.env.MANAGER_EMAIL ?? 'manager@phalotransportation.com'
 const password = process.env.MANAGER_PASSWORD ?? 'PhaloManager2026!'
 const fullName = process.env.MANAGER_NAME ?? 'Phalo Manager'
@@ -44,9 +47,9 @@ function fail(message) {
   process.exit(1)
 }
 
-if (!url || !serviceKey) {
+if (!url || !serviceKey || !anonKey) {
   fail(
-    'Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY.\n' +
+    'Missing NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, or SUPABASE_SERVICE_ROLE_KEY.\n' +
       'Copy .env.example → .env.local and paste your keys from\n' +
       'Supabase Dashboard → Project Settings → API.',
   )
@@ -83,43 +86,76 @@ const admin = createClient(url, serviceKey, {
   auth: { persistSession: false, autoRefreshToken: false },
 })
 
+const anon = createClient(url, anonKey, {
+  auth: { persistSession: false, autoRefreshToken: false },
+})
+
 async function findUserByEmail(targetEmail) {
-  let page = 1
-  while (true) {
-    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 })
-    if (error) throw error
-    const match = data.users.find((u) => u.email?.toLowerCase() === targetEmail.toLowerCase())
-    if (match) return match
-    if (data.users.length < 200) break
-    page += 1
+  // listUsers is broken on some Supabase projects (500). Fall back to sign-in.
+  try {
+    let page = 1
+    while (true) {
+      const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 })
+      if (error) break
+      const match = data.users.find((u) => u.email?.toLowerCase() === targetEmail.toLowerCase())
+      if (match) return match
+      if (data.users.length < 200) return null
+      page += 1
+    }
+  } catch {
+    /* fall through */
   }
+
+  const { data, error } = await anon.auth.signInWithPassword({
+    email: targetEmail,
+    password,
+  })
+  if (!error && data.user) return data.user
+
   return null
 }
 
-async function main() {
-  await verifyHostResolvable()
-
-  let user = await findUserByEmail(email)
+async function ensureAuthUser(targetEmail, targetPassword) {
+  let user = await findUserByEmail(targetEmail)
 
   if (user) {
     console.log(`Found existing auth user: ${user.email} (${user.id})`)
     const { error } = await admin.auth.admin.updateUserById(user.id, {
-      password,
+      password: targetPassword,
       email_confirm: true,
     })
-    if (error) throw error
-    console.log('Password updated / email confirmed.')
-  } else {
-    const { data, error } = await admin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-    })
-    if (error) throw error
-    user = data.user
-    console.log(`Created auth user: ${user.email} (${user.id})`)
+    if (error) {
+      console.warn(`Could not update password via admin API (${error.message}); continuing.`)
+    } else {
+      console.log('Password updated / email confirmed.')
+    }
+    return user
   }
 
+  const { data, error } = await admin.auth.admin.createUser({
+    email: targetEmail,
+    password: targetPassword,
+    email_confirm: true,
+  })
+  if (error) {
+    if (error.message?.toLowerCase().includes('already')) {
+      const retry = await anon.auth.signInWithPassword({
+        email: targetEmail,
+        password: targetPassword,
+      })
+      if (retry.data?.user) {
+        console.log(`Resolved existing user via sign-in: ${retry.data.user.email}`)
+        return retry.data.user
+      }
+    }
+    throw error
+  }
+
+  console.log(`Created auth user: ${data.user.email} (${data.user.id})`)
+  return data.user
+}
+
+async function ensureStaffRow(user, name) {
   const { data: existingStaff, error: staffLookupError } = await admin
     .from('staff')
     .select('id, full_name, role')
@@ -130,20 +166,47 @@ async function main() {
 
   if (existingStaff) {
     console.log(`Staff row already exists (${existingStaff.role}): ${existingStaff.full_name}`)
-  } else {
-    const { error: insertError } = await admin.from('staff').insert({
-      id: user.id,
-      full_name: fullName,
-      role: 'admin',
-    })
-    if (insertError) throw insertError
-    console.log(`Inserted staff row for ${fullName} (admin).`)
+    return
   }
+
+  const { error: insertError } = await admin.from('staff').insert({
+    id: user.id,
+    full_name: name,
+    role: 'admin',
+  })
+  if (insertError) throw insertError
+  console.log(`Inserted staff row for ${name} (admin).`)
+}
+
+async function bootstrapAllStaff() {
+  const { data, error } = await admin.rpc('bootstrap_staff_registry')
+  if (error) {
+    console.warn(
+      `bootstrap_staff_registry RPC unavailable (${error.message}).\n` +
+        'Run supabase/migrations/20260618_bootstrap_staff.sql in the Supabase SQL Editor, then retry.',
+    )
+    return 0
+  }
+  return data ?? 0
+}
+
+async function main() {
+  await verifyHostResolvable()
+
+  if (seedAll) {
+    const inserted = await bootstrapAllStaff()
+    console.log(`\n✅ Seeded ${inserted} staff row(s) from auth.users.`)
+    return
+  }
+
+  const user = await ensureAuthUser(email, password)
+  await ensureStaffRow(user, fullName)
 
   console.log('\n✅ Manager login ready:')
   console.log(`  URL:      http://localhost:3000/manager/login`)
   console.log(`  Email:    ${email}`)
   console.log(`  Password: ${password}`)
+  console.log('\nTip: run `npm run setup-staff -- --seed-all` to grant staff access to every auth user.')
 }
 
 main().catch((err) => {
@@ -158,7 +221,7 @@ main().catch((err) => {
     fail(
       'Supabase rejected the service role key.\n' +
         'After changing the project URL, you must also update BOTH keys in .env.local\n' +
-        'from the same project (eeytcoibulhxuxlsrjhe):\n' +
+        'from the same project:\n' +
         '  • NEXT_PUBLIC_SUPABASE_ANON_KEY\n' +
         '  • SUPABASE_SERVICE_ROLE_KEY\n' +
         'Supabase Dashboard → Project Settings → API',

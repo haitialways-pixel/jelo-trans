@@ -37,9 +37,13 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  if (isLogin && user) {
+  // Let authenticated users stay on the login page when staff check failed
+  // (requireStaff redirects here with ?error=not_staff). Redirecting them
+  // straight back to /manager creates an infinite loop.
+  if (isLogin && user && !request.nextUrl.searchParams.has('error')) {
     const url = request.nextUrl.clone()
     url.pathname = '/manager'
+    url.search = ''
     return NextResponse.redirect(url)
   }
 
