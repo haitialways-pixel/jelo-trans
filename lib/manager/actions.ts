@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { assertStaff } from '@/lib/manager/auth'
+import { staffDb } from '@/lib/manager/db'
 import { sendChauffeurEnRoute } from '@/lib/email/sendChauffeurEnRoute'
 import { sendArrivedAtPickup } from '@/lib/email/sendArrivedAtPickup'
 import { sendPassengerOnBoard } from '@/lib/email/sendPassengerOnBoard'
@@ -33,17 +34,18 @@ export async function advanceReservation(id: string, stage: Stage): Promise<Acti
     if (!VALID_STAGES.includes(stage)) return { ok: false, error: 'Invalid stage' }
 
     const supabase = await createClient()
+    const admin = await staffDb()
 
     // Auto-assign vehicle if not yet assigned when confirming or dispatching
     if (stage === 'confirm' || stage === 'dispatch') {
-      const { data: currentRes } = await supabase
+      const { data: currentRes } = await admin
         .from('reservations')
         .select('assigned_unit_id, vehicle_id')
         .eq('id', id)
         .maybeSingle()
 
       if (currentRes && !currentRes.assigned_unit_id && currentRes.vehicle_id) {
-        const { data: availUnit } = await supabase
+        const { data: availUnit } = await admin
           .from('vehicle_units')
           .select('id')
           .eq('model_id', currentRes.vehicle_id)
@@ -88,7 +90,7 @@ export async function advanceReservation(id: string, stage: Stage): Promise<Acti
           })
         } else {
           // Re-fetch so the receipt email reads the post-charge state.
-          const { data: fresh } = await supabase
+          const { data: fresh } = await admin
             .from('reservations')
             .select('*')
             .eq('id', id)
@@ -107,7 +109,7 @@ export async function advanceReservation(id: string, stage: Stage): Promise<Acti
       // rather than a bare UUID. Best-effort — undefined if the join fails.
       let vehicleName: string | null = null
       if (res.vehicle_id) {
-        const { data: v } = await supabase
+        const { data: v } = await admin
           .from('fleet')
           .select('name')
           .eq('id', res.vehicle_id)
@@ -231,8 +233,7 @@ export async function updateFleetPricing(
   minimumPrice: number,
 ): Promise<ActionResult> {
   try {
-    await assertStaff()
-    const supabase = await createClient()
+    const supabase = await staffDb()
     const { error } = await supabase
       .from('fleet')
       .update({
@@ -262,8 +263,7 @@ export async function addVehicleUnit(
   licensePlate: string,
 ): Promise<ActionResult> {
   try {
-    await assertStaff()
-    const supabase = await createClient()
+    const supabase = await staffDb()
     const { error } = await supabase
       .from('vehicle_units')
       .insert({
@@ -291,8 +291,7 @@ export async function updateVehicleUnit(
   licensePlate: string,
 ): Promise<ActionResult> {
   try {
-    await assertStaff()
-    const supabase = await createClient()
+    const supabase = await staffDb()
     const { error } = await supabase
       .from('vehicle_units')
       .update({
@@ -315,8 +314,7 @@ export async function updateVehicleUnit(
 /** Delete a physical vehicle unit. */
 export async function deleteVehicleUnit(unitId: string): Promise<ActionResult> {
   try {
-    await assertStaff()
-    const supabase = await createClient()
+    const supabase = await staffDb()
     const { error } = await supabase
       .from('vehicle_units')
       .delete()
@@ -344,8 +342,7 @@ export async function createFleetModel(
   tier: string
 ): Promise<ActionResult> {
   try {
-    await assertStaff()
-    const supabase = await createClient()
+    const supabase = await staffDb()
     const { error } = await supabase
       .from('fleet')
       .insert({
@@ -375,8 +372,7 @@ export async function createFleetModel(
 /** Delete a vehicle class from the fleet. */
 export async function deleteFleetModel(modelId: string): Promise<ActionResult> {
   try {
-    await assertStaff()
-    const supabase = await createClient()
+    const supabase = await staffDb()
     const { error } = await supabase
       .from('fleet')
       .delete()
@@ -396,8 +392,7 @@ export async function deleteFleetModel(modelId: string): Promise<ActionResult> {
 /** Add a new chauffeur. */
 export async function addChauffeur(name: string, phone: string): Promise<ActionResult> {
   try {
-    await assertStaff()
-    const supabase = await createClient()
+    const supabase = await staffDb()
     const { error } = await supabase
       .from('chauffeurs')
       .insert({ name, phone })
@@ -415,8 +410,7 @@ export async function addChauffeur(name: string, phone: string): Promise<ActionR
 /** Delete a chauffeur. */
 export async function deleteChauffeur(id: string): Promise<ActionResult> {
   try {
-    await assertStaff()
-    const supabase = await createClient()
+    const supabase = await staffDb()
     const { error } = await supabase
       .from('chauffeurs')
       .delete()

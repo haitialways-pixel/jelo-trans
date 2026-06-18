@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { staffDb } from '@/lib/manager/db'
 
 /** A reservation as seen by staff (full row + embedded vehicle name). */
 export type ManagerReservation = {
@@ -38,12 +38,12 @@ export type ManagerReservation = {
 const RES_COLUMNS =
   'id, booking_number, customer_name, customer_email, customer_phone, pickup_address, dropoff_address, pickup_time, status, payment_status, deposit_amount, balance_amount, deposit_paid_at, balance_paid_at, total_price, passengers, luggage, duration_hours, chauffeur_name, vehicle_id, assigned_unit_id, dispatched_at, arrived_pickup_at, onboard_at, arrived_dropoff_at, completed_at, special_requests, created_at, distance_miles, fleet:vehicle_id (name, type), assigned_unit:assigned_unit_id (label, year)'
 
-/** All reservations (staff RLS gates this to managers), soonest pickup first. */
+/** All reservations (staff-gated server-side), soonest pickup first. */
 export async function getReservations(opts?: {
   status?: string
   limit?: number
 }): Promise<ManagerReservation[]> {
-  const supabase = await createClient()
+  const supabase = await staffDb()
   let q = supabase
     .from('reservations')
     .select(RES_COLUMNS)
@@ -53,19 +53,25 @@ export async function getReservations(opts?: {
   if (opts?.limit) q = q.limit(opts.limit)
 
   const { data, error } = await q
-  if (error || !data) return []
-  return data as unknown as ManagerReservation[]
+  if (error) {
+    console.error('[manager] getReservations:', error.message)
+    return []
+  }
+  return (data ?? []) as unknown as ManagerReservation[]
 }
 
-/** A single reservation by id, or null if not found / not authorized. */
+/** A single reservation by id, or null if not found. */
 export async function getReservation(id: string): Promise<ManagerReservation | null> {
-  const supabase = await createClient()
+  const supabase = await staffDb()
   const { data, error } = await supabase
     .from('reservations')
     .select(RES_COLUMNS)
     .eq('id', id)
     .maybeSingle()
-  if (error || !data) return null
+  if (error) {
+    console.error('[manager] getReservation:', error.message)
+    return null
+  }
   return data as unknown as ManagerReservation
 }
 
@@ -91,15 +97,18 @@ export type VehicleUnit = {
 
 /** Every physical unit (all statuses), grouped-ready, ordered by model then label. */
 export async function getVehicleUnits(): Promise<VehicleUnit[]> {
-  const supabase = await createClient()
+  const supabase = await staffDb()
   const { data, error } = await supabase
     .from('vehicle_units')
     .select(
       'id, label, year, license_plate, status, model_id, model:model_id (name, tier, base_price, price_per_mile, image_url, capacity, luggage_capacity, display_order)',
     )
     .order('label', { ascending: true })
-  if (error || !data) return []
-  const units = data as unknown as VehicleUnit[]
+  if (error) {
+    console.error('[manager] getVehicleUnits:', error.message)
+    return []
+  }
+  const units = (data ?? []) as unknown as VehicleUnit[]
   return units.sort((a, b) => {
     const oa = a.model?.display_order ?? 999
     const ob = b.model?.display_order ?? 999
@@ -121,7 +130,7 @@ export async function getAuditLog(opts?: {
   reservationId?: string
   limit?: number
 }): Promise<AuditEntry[]> {
-  const supabase = await createClient()
+  const supabase = await staffDb()
   let q = supabase
     .from('audit_log')
     .select('id, created_at, actor_email, action, reservation_id, details')
@@ -129,7 +138,10 @@ export async function getAuditLog(opts?: {
     .limit(opts?.limit ?? 50)
   if (opts?.reservationId) q = q.eq('reservation_id', opts.reservationId)
   const { data, error } = await q
-  if (error || !data) return []
+  if (error) {
+    console.error('[manager] getAuditLog:', error.message)
+    return []
+  }
   return data as unknown as AuditEntry[]
 }
 
@@ -146,14 +158,17 @@ export type SupportRequest = {
 
 /** Open chatbot escalations (newest first). */
 export async function getSupportRequests(limit = 10): Promise<SupportRequest[]> {
-  const supabase = await createClient()
+  const supabase = await staffDb()
   const { data, error } = await supabase
     .from('support_requests')
     .select('id, created_at, kind, customer_name, customer_phone, customer_email, message, status')
     .neq('status', 'handled')
     .order('created_at', { ascending: false })
     .limit(limit)
-  if (error || !data) return []
+  if (error) {
+    console.error('[manager] getSupportRequests:', error.message)
+    return []
+  }
   return data as unknown as SupportRequest[]
 }
 
@@ -167,7 +182,7 @@ export type DashboardStats = {
 
 /** Headline counts for the dashboard. */
 export async function getDashboardStats(): Promise<DashboardStats> {
-  const supabase = await createClient()
+  const supabase = await staffDb()
   const startOfToday = new Date()
   startOfToday.setHours(0, 0, 0, 0)
   const endOfToday = new Date(startOfToday)
@@ -218,13 +233,16 @@ export type ManagerFleetModel = {
 }
 
 export async function getFleetModels(): Promise<ManagerFleetModel[]> {
-  const supabase = await createClient()
+  const supabase = await staffDb()
   const { data, error } = await supabase
     .from('fleet')
     .select('*')
     .order('display_order', { ascending: true })
 
-  if (error || !data) return []
+  if (error) {
+    console.error('[manager] getFleetModels:', error.message)
+    return []
+  }
   return data.map((v) => ({
     ...v,
     base_price: Number(v.base_price || 0),
@@ -242,13 +260,15 @@ export type Chauffeur = {
 }
 
 export async function getChauffeurs(): Promise<Chauffeur[]> {
-  const supabase = await createClient()
+  const supabase = await staffDb()
   const { data, error } = await supabase
     .from('chauffeurs')
     .select('*')
     .order('name', { ascending: true })
 
-  if (error || !data) return []
+  if (error) {
+    console.error('[manager] getChauffeurs:', error.message)
+    return []
+  }
   return data as Chauffeur[]
 }
-

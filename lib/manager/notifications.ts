@@ -8,6 +8,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { assertStaff } from '@/lib/manager/auth'
+import { staffDb } from '@/lib/manager/db'
 import { revalidatePath } from 'next/cache'
 
 export type NotificationKind =
@@ -32,7 +33,7 @@ export type ManagerNotification = {
 
 /** Most recent notifications (default 30). */
 export async function getRecentNotifications(limit = 30): Promise<ManagerNotification[]> {
-  const supabase = await createClient()
+  const supabase = await staffDb()
   const { data, error } = await supabase
     .from('notifications')
     .select('id, kind, title, body, reservation_id, severity, read_at, created_at')
@@ -44,7 +45,7 @@ export async function getRecentNotifications(limit = 30): Promise<ManagerNotific
 
 /** How many unread are there right now? (small query, cheap to call). */
 export async function getUnreadCount(): Promise<number> {
-  const supabase = await createClient()
+  const supabase = await staffDb()
   const { count } = await supabase
     .from('notifications')
     .select('id', { count: 'exact', head: true })
