@@ -72,10 +72,10 @@ export function ChatWidget() {
       </button>
 
       {open && (
-        <div className="fixed bottom-24 right-6 z-50 flex w-[360px] max-w-[calc(100vw-2rem)] h-[520px] max-h-[calc(100vh-8rem)] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#111] shadow-2xl">
-          <div className="border-b border-white/10 px-5 py-4">
-            <div className="text-xs tracking-[3px] text-[#c5a26f]">PHALO TRANSPORTATION CONCIERGE</div>
-            <div className="text-sm text-[#a1a1aa]">Assistant · instant replies</div>
+        <div className="fixed bottom-24 right-6 z-50 flex w-[360px] max-w-[calc(100vw-2rem)] h-[520px] max-h-[calc(100vh-8rem)] flex-col overflow-hidden rounded-2xl border border-outline-variant/30 bg-card shadow-2xl">
+          <div className="border-b border-outline-variant/30 px-5 py-4">
+            <div className="text-xs tracking-[3px] text-primary">PHALO TRANSPORTATION CONCIERGE</div>
+            <div className="text-sm text-on-surface-variant">Assistant · instant replies</div>
           </div>
 
           <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
@@ -83,14 +83,14 @@ export function ChatWidget() {
               <div key={i} className={m.role === 'user' ? 'text-right' : ''}>
                 <div
                   className={`inline-block max-w-[85%] whitespace-pre-line rounded-2xl px-4 py-2.5 text-sm ${
-                    m.role === 'user' ? 'bg-[#c5a26f] text-black' : 'bg-white/5 text-white'
+                    m.role === 'user' ? 'btn-gold' : 'bg-surface-container-low text-on-surface'
                   }`}
                 >
                   {m.text}
                   {m.link && (
                     <Link
                       href={m.link.href}
-                      className="mt-2 block font-medium text-[#c5a26f] underline underline-offset-2"
+                      className="mt-2 block font-medium text-primary underline underline-offset-2"
                     >
                       {m.link.label} →
                     </Link>
@@ -98,7 +98,7 @@ export function ChatWidget() {
                 </div>
               </div>
             ))}
-            {loading && <div className="text-xs tracking-widest text-[#666]">typing…</div>}
+            {loading && <div className="text-xs tracking-widest text-on-surface-variant">typing…</div>}
             <div ref={endRef} />
           </div>
 
@@ -108,7 +108,7 @@ export function ChatWidget() {
                 <button
                   key={q}
                   onClick={() => send(q)}
-                  className="rounded-full border border-white/15 px-3 py-1.5 text-xs text-[#a1a1aa] hover:border-[#c5a26f] hover:text-white"
+                  className="rounded-full border border-outline-variant/40 px-3 py-1.5 text-xs text-on-surface-variant hover:border-primary hover:text-on-surface"
                 >
                   {q}
                 </button>
@@ -121,13 +121,13 @@ export function ChatWidget() {
               e.preventDefault()
               send(input)
             }}
-            className="flex gap-2 border-t border-white/10 p-3"
+            className="flex gap-2 border-t border-outline-variant/30 p-3"
           >
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask a question…"
-              className="flex-1 rounded-full bg-white/5 px-4 py-2.5 text-sm text-white outline-none placeholder:text-[#666]"
+              className="flex-1 rounded-full bg-surface-container-lowest px-4 py-2.5 text-sm text-on-surface outline-none placeholder:text-on-surface-variant/60"
             />
             <button
               type="submit"

@@ -29,7 +29,7 @@ export function AddressAutocomplete({ placeholder, value, onChange }: Props) {
 
   function handleInput(v: string) {
     setInput(v)
-    onChange(v) // keep the form in sync even without picking a suggestion
+    onChange(v)
     if (debounceRef.current) clearTimeout(debounceRef.current)
     if (v.trim().length < 3) {
       setSuggestions([])
@@ -44,7 +44,7 @@ export function AddressAutocomplete({ placeholder, value, onChange }: Props) {
     try {
       const res = await fetch(`/api/places/autocomplete?q=${encodeURIComponent(q)}`)
       const data = await res.json()
-      
+
       const sugg: Suggestion[] = data.suggestions || []
       setSuggestions(sugg)
       setOpen(sugg.length > 0)
@@ -72,20 +72,20 @@ export function AddressAutocomplete({ placeholder, value, onChange }: Props) {
         onChange={(e) => handleInput(e.target.value)}
         onFocus={() => suggestions.length > 0 && setOpen(true)}
         autoComplete="off"
-        className="w-full p-4 rounded-2xl bg-[#111] border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-[#c5a26f]"
+        className="w-full p-4 rounded-2xl bg-card border border-outline-variant/30 text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"
       />
       {loading && (
-        <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#c5a26f] animate-spin" />
+        <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary animate-spin" />
       )}
       {open && suggestions.length > 0 && (
-        <ul className="absolute z-30 mt-1 w-full bg-[#111] border border-[#2a2a2a] rounded-2xl overflow-hidden shadow-2xl">
+        <ul className="absolute z-30 mt-1 w-full bg-card border border-outline-variant/40 rounded-2xl overflow-hidden shadow-2xl">
           {suggestions.map((s, i) => (
             <li
               key={i}
               onClick={() => pick(s)}
-              className="flex items-start gap-2 px-4 py-3 text-sm text-white hover:bg-[#c5a26f]/10 cursor-pointer border-b border-white/5 last:border-0"
+              className="flex items-start gap-2 px-4 py-3 text-sm text-on-surface hover:bg-primary/10 cursor-pointer border-b border-outline-variant/20 last:border-0"
             >
-              <MapPin className="w-4 h-4 text-[#c5a26f] mt-0.5 shrink-0" />
+              <MapPin className="w-4 h-4 text-primary mt-0.5 shrink-0" />
               <span>{s.label}</span>
             </li>
           ))}

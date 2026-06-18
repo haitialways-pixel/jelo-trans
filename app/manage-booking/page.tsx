@@ -44,11 +44,11 @@ export default function ManageBookingPage() {
   }
 
   return (
-    <div className="bg-[#0a0a0a] text-white min-h-screen">
+    <div className="bg-background text-on-surface min-h-screen">
       <Navbar />
       <div className="max-w-lg mx-auto pt-24 px-6 pb-20">
         <h1 className="text-6xl tracking-[-2px] font-semibold">Manage Booking</h1>
-        <p className="text-[#a1a1aa] mt-2">Enter your booking number and phone to view or cancel.</p>
+        <p className="text-on-surface-variant mt-2">Enter your booking number and phone to view or cancel.</p>
 
         {!booking ? (
           <form onSubmit={handleSearch} className="mt-10 space-y-4">
@@ -61,7 +61,7 @@ export default function ManageBookingPage() {
           </form>
         ) : (
           <div className="mt-10 card p-9">
-            <div className="text-[#c5a26f] text-xs tracking-widest">BOOKING #{booking.booking_number}</div>
+            <div className="text-primary text-xs tracking-widest">BOOKING #{booking.booking_number}</div>
             <div className="text-3xl font-semibold tracking-tight mt-2">{booking.customer_name}</div>
 
             <div className="mt-6 space-y-2 text-sm">

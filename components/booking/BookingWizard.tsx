@@ -19,9 +19,9 @@ export type Vehicle = {
 
 function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between gap-6 py-2 border-b border-white/5 last:border-0">
-      <span className="text-[#a1a1aa] shrink-0 font-medium">{label}</span>
-      <span className="text-white text-right font-semibold">{value}</span>
+    <div className="flex justify-between gap-6 py-2 border-b border-outline-variant/20 last:border-0">
+      <span className="text-on-surface-variant shrink-0 font-medium">{label}</span>
+      <span className="text-on-surface text-right font-semibold">{value}</span>
     </div>
   )
 }
@@ -198,8 +198,8 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
     return (
       <div className="card p-8 md:p-10 max-w-lg mx-auto">
         <h2 className="text-3xl tracking-tight mb-1">Secure your reservation</h2>
-        <p className="text-[#a1a1aa] text-sm mb-6">
-          Booking <span className="font-mono text-[#c5a26f]">{bookingNumber}</span> — a 10% deposit
+        <p className="text-on-surface-variant text-sm mb-6">
+          Booking <span className="font-mono text-primary">{bookingNumber}</span> — a 10% deposit
           confirms it.
         </p>
         <PaymentStep
@@ -224,13 +224,13 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
     return (
       <div className="card p-10 max-w-lg mx-auto">
         <div className="text-center">
-          <div className="text-6xl mb-6 text-[#c5a26f]">✓</div>
+          <div className="text-6xl mb-6 text-primary">✓</div>
           <h2 className="text-4xl tracking-tight mb-2">Booking Confirmed!</h2>
-          <p className="text-[#a1a1aa] text-sm mb-4">Your reservation is registered. Here are the details:</p>
-          <p className="text-[#c5a26f] text-3xl font-mono mb-8">{bookingNumber}</p>
+          <p className="text-on-surface-variant text-sm mb-4">Your reservation is registered. Here are the details:</p>
+          <p className="text-primary text-3xl font-mono mb-8">{bookingNumber}</p>
         </div>
 
-        <div className="border-t border-white/10 pt-6 space-y-2 text-sm">
+        <div className="border-t border-outline-variant/30 pt-6 space-y-2 text-sm">
           <SummaryRow label="Name" value={formData.customerName} />
           <SummaryRow label="Pickup Time" value={formatPickup(formData.pickupTime)} />
           <SummaryRow label="Pickup" value={formData.pickupAddress} />
@@ -249,7 +249,7 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
           )}
         </div>
 
-        <p className="text-[#a1a1aa] text-sm mt-6 border-t border-white/10 pt-6">
+        <p className="text-on-surface-variant text-sm mt-6 border-t border-outline-variant/30 pt-6">
           {paid
             ? `Your 10% deposit is paid — the balance is charged automatically after your ride. A confirmation and receipt are on their way to ${formData.customerEmail}. `
             : emailSent
@@ -271,23 +271,23 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
             <div
               className={`flex items-center justify-center w-10 h-10 rounded-full font-semibold border transition ${
                 i === currentStep
-                  ? 'bg-[#c5a26f] text-black border-[#c5a26f]'
+                  ? 'bg-primary text-background border-primary'
                   : i < currentStep
-                    ? 'bg-[#c5a26f]/20 text-[#c5a26f] border-[#c5a26f]'
-                    : 'bg-transparent text-[#71717a] border-white/10'
+                    ? 'bg-primary/20 text-primary border-primary'
+                    : 'bg-transparent text-on-surface-variant border-outline-variant/30'
               }`}
             >
               {i + 1}
             </div>
             <span
               className={`ml-2 text-sm font-medium hidden sm:inline ${
-                i === currentStep ? 'text-white' : 'text-[#71717a]'
+                i === currentStep ? 'text-on-surface' : 'text-on-surface-variant'
               }`}
             >
               {label}
             </span>
             {i < steps.length - 1 && (
-              <div className="w-12 h-[1px] bg-white/10 mx-4 hidden sm:block" />
+              <div className="w-12 h-[1px] bg-outline-variant/30 mx-4 hidden sm:block" />
             )}
           </div>
         ))}
@@ -296,8 +296,8 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
       <div className="card p-8 md:p-12 relative overflow-hidden">
         {loading && (
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
-            <Loader2 className="w-12 h-12 text-[#c5a26f] animate-spin mb-4" />
-            <p className="text-[#c5a26f] font-semibold text-lg tracking-wider">
+            <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
+            <p className="text-primary font-semibold text-lg tracking-wider">
               {currentStep === 0 ? 'CALCULATING ROUTE...' : 'PROCESSING...'}
             </p>
           </div>
@@ -305,10 +305,10 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
 
         {currentStep === 0 && (
           <div className="space-y-6">
-            <h2 className="text-3xl font-semibold tracking-tight text-white mb-6">Trip Details</h2>
+            <h2 className="text-3xl font-semibold tracking-tight text-on-surface mb-6">Trip Details</h2>
             
             <div className="space-y-1">
-              <label className="text-xs text-[#c5a26f] uppercase tracking-wider font-semibold ml-1">Pickup Address *</label>
+              <label className="text-xs text-primary uppercase tracking-wider font-semibold ml-1">Pickup Address *</label>
               <AddressAutocomplete
                 placeholder="Enter pickup address, airport, hotel..."
                 value={formData.pickupAddress || ''}
@@ -317,7 +317,7 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs text-[#c5a26f] uppercase tracking-wider font-semibold ml-1">Dropoff Address *</label>
+              <label className="text-xs text-primary uppercase tracking-wider font-semibold ml-1">Dropoff Address *</label>
               <AddressAutocomplete
                 placeholder="Enter dropoff destination..."
                 value={formData.dropoffAddress || ''}
@@ -327,37 +327,37 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="flex flex-col">
-                <label className="text-xs text-[#c5a26f] uppercase tracking-wider font-semibold mb-2 ml-1">Pickup Date & Time *</label>
+                <label className="text-xs text-primary uppercase tracking-wider font-semibold mb-2 ml-1">Pickup Date & Time *</label>
                 <input
                   type="datetime-local"
                   min={getMinDateTime()}
                   value={formData.pickupTime || ''}
                   onChange={(e) => updateForm('pickupTime', e.target.value)}
-                  className="w-full p-4 rounded-2xl bg-[#111] border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-[#c5a26f]"
+                  className="w-full p-4 rounded-2xl bg-card border border-outline-variant/30 text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"
                   required
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col">
-                  <label className="text-xs text-[#c5a26f] uppercase tracking-wider font-semibold mb-2 ml-1">Passengers</label>
+                  <label className="text-xs text-primary uppercase tracking-wider font-semibold mb-2 ml-1">Passengers</label>
                   <input
                     type="number"
                     min="1"
                     max="14"
                     value={formData.passengers}
-                    className="p-4 rounded-2xl bg-[#111] border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-[#c5a26f]"
+                    className="p-4 rounded-2xl bg-card border border-outline-variant/30 text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"
                     onChange={(e) => updateForm('passengers', parseInt(e.target.value) || 1)}
                   />
                 </div>
                 <div className="flex flex-col">
-                  <label className="text-xs text-[#c5a26f] uppercase tracking-wider font-semibold mb-2 ml-1">Luggage</label>
+                  <label className="text-xs text-primary uppercase tracking-wider font-semibold mb-2 ml-1">Luggage</label>
                   <input
                     type="number"
                     min="0"
                     max="14"
                     value={formData.luggage}
-                    className="p-4 rounded-2xl bg-[#111] border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-[#c5a26f]"
+                    className="p-4 rounded-2xl bg-card border border-outline-variant/30 text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"
                     onChange={(e) => updateForm('luggage', parseInt(e.target.value) || 0)}
                   />
                 </div>
@@ -365,10 +365,10 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
             </div>
 
             <div className="flex flex-col">
-              <label className="text-xs text-[#c5a26f] uppercase tracking-wider font-semibold mb-2 ml-1">Special Requests (optional)</label>
+              <label className="text-xs text-primary uppercase tracking-wider font-semibold mb-2 ml-1">Special Requests (optional)</label>
               <textarea
                 placeholder="Child seats, flight numbers, specific route preferences..."
-                className="w-full p-4 rounded-2xl bg-[#111] border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-[#c5a26f] h-24 resize-none"
+                className="w-full p-4 rounded-2xl bg-card border border-outline-variant/30 text-on-surface focus:outline-none focus:ring-1 focus:ring-primary h-24 resize-none"
                 onChange={(e) => updateForm('specialRequests', e.target.value)}
                 value={formData.specialRequests || ''}
               />
@@ -380,27 +380,27 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
           <div>
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
               <div>
-                <h2 className="text-3xl font-semibold tracking-tight text-white">Choose Your Vehicle</h2>
-                <p className="text-sm text-[#a1a1aa] mt-1">Select from our luxury Orlando fleet</p>
+                <h2 className="text-3xl font-semibold tracking-tight text-on-surface">Choose Your Vehicle</h2>
+                <p className="text-sm text-on-surface-variant mt-1">Select from our luxury Orlando fleet</p>
               </div>
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex gap-6 text-sm">
+              <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-4 flex gap-6 text-sm">
                 <div className="flex items-center gap-1.5">
-                  <Navigation className="w-4 h-4 text-[#c5a26f]" />
+                  <Navigation className="w-4 h-4 text-primary" />
                   <span>{formData.distanceText}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <Clock className="w-4 h-4 text-[#c5a26f]" />
+                  <Clock className="w-4 h-4 text-primary" />
                   <span>{formData.durationText}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <Navigation className="w-4 h-4 text-[#c5a26f]" />
+                  <Navigation className="w-4 h-4 text-primary" />
                   <span>Distance: {formData.distanceText}</span>
                 </div>
               </div>
             </div>
 
             {vehicles.length === 0 ? (
-              <p className="text-[#a1a1aa]">No vehicles are currently available online. Please contact us directly to arrange your trip.</p>
+              <p className="text-on-surface-variant">No vehicles are currently available online. Please contact us directly to arrange your trip.</p>
             ) : (
               <div className="grid md:grid-cols-3 gap-6">
                 {vehicles.map((v) => {
@@ -411,8 +411,8 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
                     <div
                       key={v.id}
                       onClick={() => updateForm('vehicleId', v.id)}
-                      className={`card p-4 cursor-pointer hover:ring-2 hover:ring-[#c5a26f] transition flex flex-col justify-between ${
-                        isSelected ? 'ring-2 ring-[#c5a26f] bg-[#c5a26f]/5' : 'border border-white/5'
+                      className={`card p-4 cursor-pointer hover:ring-2 hover:ring-primary transition flex flex-col justify-between ${
+                        isSelected ? 'ring-2 ring-primary bg-primary/10' : 'border border-outline-variant/20'
                       }`}
                     >
                       <div>
@@ -423,16 +423,16 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
                             className="w-full h-full object-cover"
                           />
                         </div>
-                        <div className="font-semibold text-lg text-white">{v.name}</div>
-                        <div className="text-xs text-[#a1a1aa] mt-1">
+                        <div className="font-semibold text-lg text-on-surface">{v.name}</div>
+                        <div className="text-xs text-on-surface-variant mt-1">
                           Up to {v.capacity} passengers · ${v.base_price} base + ${v.price_per_mile}/mi
                         </div>
                       </div>
 
-                      <div className="mt-6 pt-4 border-t border-white/5 flex justify-between items-end">
-                        <span className="text-xs text-[#a1a1aa] font-medium mb-0.5">Est. Total</span>
+                      <div className="mt-6 pt-4 border-t border-outline-variant/20 flex justify-between items-end">
+                        <span className="text-xs text-on-surface-variant font-medium mb-0.5">Est. Total</span>
                         <div className="text-right">
-                          <span className="text-xl font-bold text-[#c5a26f]">${calculatedTotal}</span>
+                          <span className="text-xl font-bold text-primary">${calculatedTotal}</span>
                         </div>
                       </div>
                     </div>
@@ -445,59 +445,59 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
 
         {currentStep === 2 && price && (
           <div>
-            <h2 className="text-3xl font-semibold tracking-tight text-white mb-6">Review & Confirm</h2>
+            <h2 className="text-3xl font-semibold tracking-tight text-on-surface mb-6">Review & Confirm</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
               <div className="space-y-4">
-                <div className="bg-white/5 p-6 rounded-2xl border border-white/10 space-y-4">
-                  <h3 className="text-xs text-[#c5a26f] uppercase tracking-wider font-semibold border-b border-white/10 pb-2">Route Details</h3>
+                <div className="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/30 space-y-4">
+                  <h3 className="text-xs text-primary uppercase tracking-wider font-semibold border-b border-outline-variant/30 pb-2">Route Details</h3>
                   <div className="flex gap-3">
-                    <MapPin className="w-5 h-5 text-[#c5a26f] shrink-0 mt-0.5" />
+                    <MapPin className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                     <div>
-                      <span className="text-xs text-[#a1a1aa] block uppercase">From</span>
-                      <span className="text-white text-sm font-semibold">{formData.pickupAddress}</span>
+                      <span className="text-xs text-on-surface-variant block uppercase">From</span>
+                      <span className="text-on-surface text-sm font-semibold">{formData.pickupAddress}</span>
                     </div>
                   </div>
                   <div className="flex gap-3">
-                    <MapPin className="w-5 h-5 text-[#c5a26f] shrink-0 mt-0.5" />
+                    <MapPin className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                     <div>
-                      <span className="text-xs text-[#a1a1aa] block uppercase">To</span>
-                      <span className="text-white text-sm font-semibold">{formData.dropoffAddress}</span>
+                      <span className="text-xs text-on-surface-variant block uppercase">To</span>
+                      <span className="text-on-surface text-sm font-semibold">{formData.dropoffAddress}</span>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2 pt-2 text-center text-xs">
-                    <div className="bg-[#111] p-3 rounded-xl">
-                      <span className="text-[#a1a1aa] block">Distance</span>
-                      <span className="text-white font-bold block mt-1">{formData.distanceText}</span>
+                    <div className="bg-surface-container-low p-3 rounded-xl">
+                      <span className="text-on-surface-variant block">Distance</span>
+                      <span className="text-on-surface font-bold block mt-1">{formData.distanceText}</span>
                     </div>
-                    <div className="bg-[#111] p-3 rounded-xl">
-                      <span className="text-[#a1a1aa] block">Est. Time</span>
-                      <span className="text-white font-bold block mt-1">{formData.durationText}</span>
+                    <div className="bg-surface-container-low p-3 rounded-xl">
+                      <span className="text-on-surface-variant block">Est. Time</span>
+                      <span className="text-on-surface font-bold block mt-1">{formData.durationText}</span>
                     </div>
                   </div>
                 </div>
               </div>
 
               <div className="space-y-4">
-                <div className="bg-white/5 p-6 rounded-2xl border border-white/10 space-y-2">
-                  <h3 className="text-xs text-[#c5a26f] uppercase tracking-wider font-semibold border-b border-white/10 pb-2 mb-2">Price Summary</h3>
+                <div className="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/30 space-y-2">
+                  <h3 className="text-xs text-primary uppercase tracking-wider font-semibold border-b border-outline-variant/30 pb-2 mb-2">Price Summary</h3>
                   <SummaryRow label="Ride Price" value={`$${price.basePrice.toFixed(2)}`} />
-                  <div className="flex justify-between items-center pt-4 border-t border-[#c5a26f]/20 text-xl font-bold">
-                    <span className="text-white">Estimated Total</span>
-                    <span className="text-[#c5a26f]">${price.total.toFixed(2)}</span>
+                  <div className="flex justify-between items-center pt-4 border-t border-primary/20 text-xl font-bold">
+                    <span className="text-on-surface">Estimated Total</span>
+                    <span className="text-primary">${price.total.toFixed(2)}</span>
                   </div>
-                  <p className="text-[10px] text-[#71717a] text-right mt-1">Includes all local tolls and taxes</p>
+                  <p className="text-[10px] text-on-surface-variant text-right mt-1">Includes all local tolls and taxes</p>
                 </div>
               </div>
             </div>
 
-            <h3 className="text-xl font-semibold text-white mb-4">Contact Information</h3>
+            <h3 className="text-xl font-semibold text-on-surface mb-4">Contact Information</h3>
             <div className="flex flex-col gap-4 max-w-md">
               <input
                 type="text"
                 placeholder="Full Name *"
                 value={formData.customerName || ''}
-                className="p-4 rounded-2xl bg-[#111] border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-[#c5a26f] transition-all"
+                className="p-4 rounded-2xl bg-card border border-outline-variant/30 text-on-surface focus:outline-none focus:ring-1 focus:ring-primary transition-all"
                 onChange={(e) => updateForm('customerName', e.target.value)}
                 required
               />
@@ -505,7 +505,7 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
                 type="email"
                 placeholder="Email Address *"
                 value={formData.customerEmail || ''}
-                className="p-4 rounded-2xl bg-[#111] border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-[#c5a26f] transition-all"
+                className="p-4 rounded-2xl bg-card border border-outline-variant/30 text-on-surface focus:outline-none focus:ring-1 focus:ring-primary transition-all"
                 onChange={(e) => updateForm('customerEmail', e.target.value)}
                 required
               />
@@ -513,7 +513,7 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
                 type="tel"
                 placeholder="Phone Number *"
                 value={formData.customerPhone || ''}
-                className="p-4 rounded-2xl bg-[#111] border border-white/10 text-white focus:outline-none focus:ring-1 focus:ring-[#c5a26f] transition-all"
+                className="p-4 rounded-2xl bg-card border border-outline-variant/30 text-on-surface focus:outline-none focus:ring-1 focus:ring-primary transition-all"
                 onChange={(e) => updateForm('customerPhone', e.target.value)}
                 required
               />
@@ -528,11 +528,11 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
         )}
 
         {/* Navigation Buttons */}
-        <div className="flex justify-between mt-10 pt-8 border-t border-white/10">
+        <div className="flex justify-between mt-10 pt-8 border-t border-outline-variant/30">
           <button
             onClick={prevStep}
             disabled={currentStep === 0 || loading}
-            className="px-8 py-3 disabled:opacity-40 border border-white/10 text-white rounded-full hover:bg-white/5 transition"
+            className="px-8 py-3 disabled:opacity-40 border border-outline-variant/30 text-on-surface rounded-full hover:bg-surface-container-lowest transition"
           >
             Back
           </button>

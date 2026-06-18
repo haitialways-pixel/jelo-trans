@@ -13,23 +13,23 @@ const services = [
 
 export default function ServicesPage() {
   return (
-    <div className="bg-[#0a0a0a] text-white min-h-screen">
+    <div className="bg-background text-on-surface min-h-screen">
       <Navbar />
       <div className="pt-20 max-w-5xl mx-auto px-6 pb-20">
         <h1 className="text-7xl tracking-[-3px] font-semibold pt-10">Services &amp; Occasions</h1>
-        <p className="text-2xl text-[#a1a1aa] mt-3">Whatever the reason for your journey, we will make it exceptional.</p>
+        <p className="text-2xl text-on-surface-variant mt-3">Whatever the reason for your journey, we will make it exceptional.</p>
 
         <div className="mt-14 grid gap-4">
           {services.map((s, i) => (
             <div key={i} className="card p-8 md:p-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div>
                 <div className="text-3xl tracking-[-1.2px] font-semibold">{s.title}</div>
-                <p className="text-[#a1a1aa] mt-2 max-w-xl">{s.desc}</p>
+                <p className="text-on-surface-variant mt-2 max-w-xl">{s.desc}</p>
               </div>
               <div className="text-right">
-                <div className="text-[#c5a26f] text-sm tracking-widest mb-1">STARTING AT</div>
+                <div className="text-primary text-sm tracking-widest mb-1">STARTING AT</div>
                 <div className="text-3xl tabular-nums">{s.price}</div>
-                <Link href="/book" className="mt-4 inline-block text-sm tracking-widest underline underline-offset-4 hover:text-[#c5a26f]">BOOK THIS SERVICE →</Link>
+                <Link href="/book" className="mt-4 inline-block text-sm tracking-widest underline underline-offset-4 hover:text-primary">BOOK THIS SERVICE →</Link>
               </div>
             </div>
           ))}

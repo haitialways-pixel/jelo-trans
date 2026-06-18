@@ -15,12 +15,12 @@ export default async function BookPage() {
     .order('base_price', { ascending: true })
 
   return (
-    <div className="bg-[#0a0a0a] min-h-screen text-white">
+    <div className="bg-background min-h-screen text-on-surface">
       <Navbar />
 
       <div className="pt-16 pb-12 max-w-5xl mx-auto px-6">
         <div className="text-center mb-10">
-          <div className="text-[#c5a26f] tracking-[4px] text-xs">ORLANDO LUXURY TRANSPORTATION</div>
+          <div className="text-primary tracking-[4px] text-xs">ORLANDO LUXURY TRANSPORTATION</div>
           <h1 className="text-6xl tracking-[-2.5px] font-semibold mt-2">Reserve Your Journey</h1>
         </div>
 

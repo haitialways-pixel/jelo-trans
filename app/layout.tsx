@@ -42,7 +42,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} ${outfit.variable} antialiased`}>
-      <body className="bg-[#0a0a0a] text-white">
+      <body className="bg-background text-on-surface">
         {children}
         <ChatWidgetGate />
         <Toaster position="top-center" richColors />

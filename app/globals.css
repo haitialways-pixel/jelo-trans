@@ -11,13 +11,18 @@ iframe[name*="StripeDevTools" i] {
 }
 
 :root {
-  --background: #0a0a0a;
-  --foreground: #f5f5f5;
-  --card: #111111;
-  --border: #2a2a2a;
-  --gold: #c5a26f;
-  --gold-light: #d4af37;
-  --muted: #a1a1aa;
+  --background: #faf7f2;
+  --foreground: #2c2418;
+  --card: #fffdf9;
+  --border: #e5ddd0;
+  --beige: #d4c4a8;
+  --beige-light: #e8dcc8;
+  --beige-dark: #c4b49a;
+  --accent: #9a7b4f;
+  --accent-light: #b8956b;
+  --muted: #7a6f63;
+  --gold: var(--beige);
+  --gold-light: var(--beige-light);
 }
 
 body {
@@ -28,35 +33,34 @@ h1, h2, .display {
   font-family: var(--font-playfair);
 }
 
-/* Luxurious Gold Accents */
 .gold {
-  color: var(--gold);
+  color: var(--accent);
 }
 
 .btn-gold {
-  background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%);
-  color: #0a0a0a;
+  background: linear-gradient(135deg, var(--beige-light) 0%, var(--beige) 100%);
+  color: var(--foreground);
   font-weight: 600;
   transition: all 0.2s cubic-bezier(0.23, 1.0, 0.32, 1);
 }
 
 .btn-gold:hover {
   transform: translateY(-1px);
-  box-shadow: 0 10px 30px -15px rgba(197, 162, 111, 0.5);
+  box-shadow: 0 10px 30px -12px rgba(154, 123, 79, 0.35);
+  background: linear-gradient(135deg, #f0e6d6 0%, var(--beige-light) 100%);
 }
 
 .btn-outline-gold {
-  border: 1px solid var(--gold);
-  color: var(--gold);
+  border: 1px solid var(--beige-dark);
+  color: var(--accent);
   transition: all 0.2s ease;
 }
 
 .btn-outline-gold:hover {
-  background: var(--gold);
-  color: #0a0a0a;
+  background: var(--beige-light);
+  color: var(--foreground);
 }
 
-/* Cards */
 .card {
   background: var(--card);
   border: 1px solid var(--border);
@@ -65,24 +69,22 @@ h1, h2, .display {
 
 .card:hover {
   transform: translateY(-2px);
-  border-color: var(--gold);
+  border-color: var(--beige-dark);
 }
 
-/* Form Inputs */
 input, textarea, select {
-  background: #0f0f0f;
+  background: #fffdf9;
   border: 1px solid var(--border);
-  color: white;
+  color: var(--foreground);
   transition: all 0.2s ease;
 }
 
 input:focus, textarea:focus, select:focus {
-  border-color: var(--gold);
+  border-color: var(--accent);
   outline: none;
-  box-shadow: 0 0 0 1px var(--gold);
+  box-shadow: 0 0 0 1px var(--accent-light);
 }
 
-/* Booking Wizard */
 .step-indicator {
   width: 2rem;
   height: 2rem;
@@ -92,17 +94,16 @@ input:focus, textarea:focus, select:focus {
   justify-content: center;
   font-size: 0.75rem;
   font-weight: 600;
-  background: #1a1a1a;
+  background: var(--card);
   border: 1px solid var(--border);
 }
 
 .step-indicator.active {
-  background: var(--gold);
-  color: #0a0a0a;
-  border-color: var(--gold);
+  background: var(--beige);
+  color: var(--foreground);
+  border-color: var(--beige-dark);
 }
 
-/* Status Badges */
 .badge {
   font-size: 0.75rem;
   padding: 0.25rem 0.75rem;
@@ -110,43 +111,45 @@ input:focus, textarea:focus, select:focus {
   font-weight: 500;
 }
 
-.badge-pending { background: #3f3f46; color: #e4e4e7; }
-.badge-confirmed { background: #166534; color: #86efac; }
-.badge-completed { background: #052e16; color: #4ade80; }
-.badge-cancelled { background: #3f1f1f; color: #fca5a5; }
+.badge-pending { background: #ede6da; color: #5c5248; }
+.badge-confirmed { background: #d4edda; color: #1e5631; }
+.badge-completed { background: #c8e6c9; color: #2e7d32; }
+.badge-cancelled { background: #fce4e4; color: #b71c1c; }
 
 /* ============================================================
-   "Noir et Or" redesign — design tokens + utilities
+   Luxe Ivory — design tokens + utilities
    ============================================================ */
 @theme {
-  --color-primary: #f2ca50;
-  --color-primary-dim: #d4af37;
-  --color-background: #131313;
-  --color-on-surface: #e5e2e1;
-  --color-on-surface-variant: #d0c5af;
-  --color-surface-container-lowest: #0e0e0e;
-  --color-surface-container-low: #1c1b1b;
-  --color-surface-container: #201f1f;
-  --color-surface-container-high: #2a2a2a;
-  --color-outline-variant: #4d4635;
+  --color-primary: #9a7b4f;
+  --color-primary-dim: #b8956b;
+  --color-background: #faf7f2;
+  --color-card: #fffdf9;
+  --color-on-surface: #2c2418;
+  --color-on-surface-variant: #5c5248;
+  --color-surface-container-lowest: #f5efe6;
+  --color-surface-container-low: #ede6da;
+  --color-surface-container: #e8dfd0;
+  --color-surface-container-high: #ddd4c4;
+  --color-outline-variant: #c4b49a;
 }
 
 .glass-dark {
-  background: linear-gradient(135deg, rgba(32, 31, 31, 0.8) 0%, rgba(14, 14, 14, 0.9) 100%);
+  background: linear-gradient(135deg, rgba(255, 253, 249, 0.92) 0%, rgba(245, 239, 230, 0.88) 100%);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(196, 180, 154, 0.25);
 }
 
 .gold-hairline {
-  border-top: 1px solid rgba(242, 202, 80, 0.3);
-  border-left: 1px solid rgba(242, 202, 80, 0.3);
+  border-top: 1px solid rgba(154, 123, 79, 0.25);
+  border-left: 1px solid rgba(154, 123, 79, 0.25);
 }
 
 .gold-shimmer {
-  background: linear-gradient(110deg, #d4af37 0%, #f2ca50 50%, #d4af37 100%);
+  background: linear-gradient(110deg, var(--beige) 0%, var(--beige-light) 50%, var(--beige) 100%);
   background-size: 200% 100%;
   animation: shimmer 3s infinite linear;
-  color: #0a0a0a;
+  color: var(--foreground);
 }
 
 @keyframes shimmer {
@@ -158,5 +161,5 @@ input:focus, textarea:focus, select:focus {
 .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
 .spotlight-glow {
-  background: radial-gradient(circle at center, rgba(242, 202, 80, 0.15) 0%, rgba(19, 19, 19, 0) 70%);
+  background: radial-gradient(circle at center, rgba(232, 220, 200, 0.6) 0%, rgba(250, 247, 242, 0) 70%);
 }

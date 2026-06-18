@@ -10,11 +10,11 @@ import { finalizeDeposit } from '@/app/book/actions'
 const stripePromise = getStripePromise()
 
 const appearance: Appearance = {
-  theme: 'night',
+  theme: 'stripe',
   variables: {
-    colorPrimary: '#c5a26f',
-    colorBackground: '#0f0f0f',
-    colorText: '#ffffff',
+    colorPrimary: '#9a7b4f',
+    colorBackground: '#fffdf9',
+    colorText: '#2c2418',
     borderRadius: '12px',
     fontFamily: 'Arial, sans-serif',
   },
@@ -75,16 +75,16 @@ function CheckoutForm({ depositAmount, balanceAmount, bookingNumber, onPaid }: P
   return (
     <form onSubmit={pay} className="space-y-6">
       {/* Disclosure — shown BEFORE the customer pays (the consent point). */}
-      <div className="rounded-2xl border border-[#c5a26f]/30 bg-[#c5a26f]/5 p-5">
+      <div className="rounded-2xl border border-primary/30 bg-primary/5 p-5">
         <div className="flex justify-between text-sm">
-          <span className="text-[#a1a1aa]">Deposit due now (10%)</span>
-          <span className="text-white font-semibold">${depositAmount.toFixed(2)}</span>
+          <span className="text-on-surface-variant">Deposit due now (10%)</span>
+          <span className="text-on-surface font-semibold">${depositAmount.toFixed(2)}</span>
         </div>
         <div className="flex justify-between text-sm mt-2">
-          <span className="text-[#a1a1aa]">Balance after your ride</span>
-          <span className="text-white">${balanceAmount.toFixed(2)}</span>
+          <span className="text-on-surface-variant">Balance after your ride</span>
+          <span className="text-on-surface">${balanceAmount.toFixed(2)}</span>
         </div>
-        <p className="text-[11px] text-[#a1a1aa] mt-3 leading-relaxed">
+        <p className="text-[11px] text-on-surface-variant mt-3 leading-relaxed">
           Your card is saved securely to charge the balance automatically once your ride is
           completed. You&apos;ll receive a receipt for each charge.
         </p>
