@@ -1,7 +1,7 @@
 'use client'
 
 import { Suspense, useState } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Lock, Loader2 } from 'lucide-react'
 
@@ -15,7 +15,6 @@ export default function ManagerLoginPage() {
 
 function LoginForm() {
   const params = useSearchParams()
-  const router = useRouter()
   const notStaff = params.get('error') === 'not_staff'
 
   const [email, setEmail] = useState('')
@@ -29,11 +28,7 @@ function LoginForm() {
     setError(null)
 
     const supabase = createClient()
-
-    const { data, error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
 
     if (signInError) {
       setLoading(false)
@@ -41,20 +36,9 @@ function LoginForm() {
       return
     }
 
-    // Check if user is manager
-    const { data: userData } = await supabase.auth.getUser()
-    const role = userData.user?.user_metadata?.role
-
-    if (role !== 'manager') {
-      setLoading(false)
-      await supabase.auth.signOut()
-      router.push('/manager/login?error=not_staff')
-      return
-    }
-
-    // Successful manager login — use router for SPA navigation
-    router.push('/manager')
-    router.refresh() // Force refresh to update server session
+    // Full navigation so the proxy + server layout see the new auth cookies.
+    // Staff membership is verified server-side via public.staff in requireStaff().
+    window.location.href = '/manager'
   }
 
   return (
@@ -71,7 +55,7 @@ function LoginForm() {
         <form onSubmit={onSubmit} className="glass-dark gold-hairline rounded-2xl p-6 space-y-4">
           {notStaff && (
             <p className="text-red-300 text-xs bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">
-              This account is not authorized for the manager area.
+              This account is not authorized for the manager area. Ask an administrator to add your user to the staff registry.
             </p>
           )}
 
