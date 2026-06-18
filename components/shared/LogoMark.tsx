@@ -11,12 +11,11 @@ export function LogoMark({ size = 'nav' }: LogoMarkProps) {
   const { box, label } = SIZES[size]
 
   return (
-    <Image
-  src="/images/logo.png"
-  alt="Phalo Transportation"
-  width={size === 'nav' ? 43 : 38}
-  height={size === 'nav' ? 43 : 38}
-  className={`${box} object-contain shrink-0`}
-/>
+    <div
+      className={`${box} rounded-lg border-2 border-dashed border-primary/45 bg-surface-container-lowest flex items-center justify-center shrink-0`}
+      aria-label="Company logo placeholder"
+    >
+      <span className={`${label} text-primary/65 tracking-[0.2em] font-medium uppercase`}>Logo</span>
+    </div>
   )
 }
