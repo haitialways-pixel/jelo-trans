@@ -1,7 +1,7 @@
 'use client'
 
 import { Suspense, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Lock, Loader2 } from 'lucide-react'
 
@@ -15,6 +15,7 @@ export default function ManagerLoginPage() {
 
 function LoginForm() {
   const params = useSearchParams()
+  const router = useRouter()
   const notStaff = params.get('error') === 'not_staff'
 
   const [email, setEmail] = useState('')
@@ -26,15 +27,34 @@ function LoginForm() {
     e.preventDefault()
     setLoading(true)
     setError(null)
+
     const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) {
+
+    const { data, error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+
+    if (signInError) {
       setLoading(false)
       setError('Invalid email or password.')
       return
     }
-    // Full navigation so the server layout immediately sees the new auth cookie.
-    window.location.href = '/manager'
+
+    // Check if user is manager
+    const { data: userData } = await supabase.auth.getUser()
+    const role = userData.user?.user_metadata?.role
+
+    if (role !== 'manager') {
+      setLoading(false)
+      await supabase.auth.signOut()
+      router.push('/manager/login?error=not_staff')
+      return
+    }
+
+    // Successful manager login — use router for SPA navigation
+    router.push('/manager')
+    router.refresh() // Force refresh to update server session
   }
 
   return (

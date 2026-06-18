@@ -1,14 +1,13 @@
-// next.config.mjs
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
     remotePatterns: [
-      { hostname: '**' }, // Allow Supabase, Stripe images, etc.
+      { hostname: '**' },
     ],
   },
   typescript: {
-    ignoreBuildErrors: true,     // Temporary for Cloudflare deployment
+    ignoreBuildErrors: true,
   },
-};
+}
 
-export default nextConfig;
+export default nextConfig
