@@ -18,4 +18,14 @@ export function LogoMark({ size = 'nav' }: LogoMarkProps) {
       <span className={`${label} text-primary/65 tracking-[0.2em] font-medium uppercase`}>Logo</span>
     </div>
   )
+  import Image from 'next/image'
+
+// inside LogoMark, replace the placeholder div with:
+<Image
+  src="/images/logo.png"
+  alt="Phalo Transportation"
+  width={size === 'nav' ? 43 : 38}
+  height={size === 'nav' ? 43 : 38}
+  className={`${box} object-contain shrink-0`}
+/>
 }
