@@ -1,90 +1,37 @@
-'use client'
+'use server'
 
-import { Suspense, useActionState, useEffect } from 'react'
-import { useSearchParams } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
-import { Lock, Loader2 } from 'lucide-react'
-import { managerLogin, type LoginState } from './actions'
+import { redirect } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
 
-export default function ManagerLoginPage() {
-  return (
-    <Suspense fallback={null}>
-      <LoginForm />
-    </Suspense>
-  )
-}
+export type LoginState = { error?: string }
 
-function LoginForm() {
-  const params = useSearchParams()
-  const notStaff = params.get('error') === 'not_staff'
+export async function managerLogin(
+  _prev: LoginState,
+  formData: FormData,
+): Promise<LoginState> {
+  const email = String(formData.get('email') ?? '').trim()
+  const password = String(formData.get('password') ?? '')
 
-  const [state, formAction, pending] = useActionState<LoginState, FormData>(managerLogin, {})
+  if (!email || !password) {
+    return { error: 'Email and password are required.' }
+  }
 
-  // Clear stale auth cookies so the proxy stops bouncing us to /manager.
-  useEffect(() => {
-    if (!notStaff) return
-    const supabase = createClient()
-    void supabase.auth.signOut()
-  }, [notStaff])
+  const supabase = await createClient()
 
-  return (
-    <div className="min-h-screen bg-background text-on-surface flex items-center justify-center px-6">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <div className="mx-auto mb-4 w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-            <Lock className="w-6 h-6 text-primary" />
-          </div>
-          <h1 className="display text-2xl font-semibold">Manager Access</h1>
-          <p className="text-on-surface-variant text-sm mt-1">Phalo Transportation — staff only</p>
-        </div>
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
-        <form action={formAction} className="glass-dark gold-hairline rounded-2xl p-6 space-y-4">
-          {notStaff && (
-            <p className="text-red-300 text-xs bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">
-              This account is not authorized for the manager area. Ask an administrator to add your user to the staff registry.
-            </p>
-          )}
+  if (error) {
+    return { error: 'Invalid email or password.' }
+  }
 
-          <div>
-            <label className="block text-xs tracking-wide text-on-surface-variant mb-1.5">Email</label>
-            <input
-              type="email"
-              name="email"
-              required
-              autoComplete="email"
-              className="w-full rounded-lg px-3 py-2.5 text-sm"
-              placeholder="you@phalotransportation.com"
-            />
-          </div>
+  // Check role from user metadata
+  const role = data.user?.user_metadata?.role || data.user?.app_metadata?.role
 
-          <div>
-            <label className="block text-xs tracking-wide text-on-surface-variant mb-1.5">Password</label>
-            <input
-              type="password"
-              name="password"
-              required
-              autoComplete="current-password"
-              className="w-full rounded-lg px-3 py-2.5 text-sm"
-              placeholder="••••••••"
-            />
-          </div>
+  if (role !== 'manager') {
+    await supabase.auth.signOut()
+    return { error: 'This account is not authorized for the manager area.' }
+  }
 
-          {state.error && <p className="text-red-300 text-xs">{state.error}</p>}
-
-          <button
-            type="submit"
-            disabled={pending}
-            className="gold-shimmer w-full flex items-center justify-center gap-2 font-semibold tracking-[0.1em] text-sm py-3 rounded-xl disabled:opacity-60"
-          >
-            {pending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-            {pending ? 'SIGNING IN…' : 'SIGN IN'}
-          </button>
-        </form>
-
-        <p className="text-center text-on-surface-variant/60 text-[11px] mt-6">
-          Access is by invitation only. Contact an administrator if you need an account.
-        </p>
-      </div>
-    </div>
-  )
+  // Success - redirect to manager dashboard
+  redirect('/manager')
 }
