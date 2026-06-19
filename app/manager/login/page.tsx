@@ -1,37 +1,50 @@
-'use server'
+'use client'
 
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/client'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 
-export type LoginState = { error?: string }
+export default function ManagerDashboard() {
+  const [user, setUser] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const router = useRouter()
 
-export async function managerLogin(
-  _prev: LoginState,
-  formData: FormData,
-): Promise<LoginState> {
-  const email = String(formData.get('email') ?? '').trim()
-  const password = String(formData.get('password') ?? '')
+  useEffect(() => {
+    const supabase = createClient()
 
-  if (!email || !password) {
-    return { error: 'Email and password are required.' }
+    supabase.auth.getUser().then(({ data }) => {
+      if (!data.user) {
+        router.push('/manager/login')
+        return
+      }
+      setUser(data.user)
+      setLoading(false)
+    })
+  }, [router])
+
+  if (loading) {
+    return <div className="p-8 text-center">Loading manager portal...</div>
   }
 
-  const supabase = await createClient()
+  return (
+    <div className="p-8 max-w-4xl mx-auto">
+      <h1 className="text-4xl font-bold mb-8">Manager Portal</h1>
+      
+      <div className="bg-white/5 p-8 rounded-2xl">
+        <p>Welcome, {user?.email}</p>
+        <p className="text-green-400 mt-2">You are logged in as Manager</p>
+      </div>
 
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-
-  if (error) {
-    return { error: 'Invalid email or password.' }
-  }
-
-  // Check role from user metadata
-  const role = data.user?.user_metadata?.role || data.user?.app_metadata?.role
-
-  if (role !== 'manager') {
-    await supabase.auth.signOut()
-    return { error: 'This account is not authorized for the manager area.' }
-  }
-
-  // Success - redirect to manager dashboard
-  redirect('/manager')
+      <div className="mt-8 grid grid-cols-2 gap-6">
+        <div className="bg-white/5 p-6 rounded-2xl">
+          <h3 className="font-semibold mb-4">Fleet Management</h3>
+          <p>Manage vehicles and drivers</p>
+        </div>
+        <div className="bg-white/5 p-6 rounded-2xl">
+          <h3 className="font-semibold mb-4">Reservations</h3>
+          <p>View and assign bookings</p>
+        </div>
+      </div>
+    </div>
+  )
 }
