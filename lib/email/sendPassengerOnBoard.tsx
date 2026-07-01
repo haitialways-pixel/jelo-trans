@@ -16,6 +16,7 @@ export async function sendPassengerOnBoard(i: Input): Promise<EmailResult> {
   if (!i.to || !EMAIL_RE.test(i.to)) return { sent: false, reason: 'invalid recipient email' }
   return sendTemplatedMail({
     to: i.to,
+    fromKind: 'customer',
     subject: `Enjoy the ride — Booking #${i.bookingNumber}`,
     react: (
       <PassengerOnBoardEmail

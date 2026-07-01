@@ -1,4 +1,4 @@
-import { getDispatchFromAddress, getDispatchReplyToAddress, sendMail } from './mailer'
+import { getDispatchReplyToAddress, sendMail } from './mailer'
 import { fmtDate, fmtTime, EMAIL_RE } from './format'
 
 export type DriverDispatchInput = {
@@ -135,12 +135,11 @@ export async function sendDriverDispatch(i: DriverDispatchInput): Promise<EmailR
   }
 
   const { html, text } = buildDriverDispatchContent(i)
-  const from = getDispatchFromAddress()
   const replyTo = getDispatchReplyToAddress()
 
   const result = await sendMail({
     to,
-    from,
+    fromKind: 'dispatch',
     replyTo,
     subject: `Trip assignment — Booking #${i.bookingNumber}`,
     html,
@@ -151,14 +150,12 @@ export async function sendDriverDispatch(i: DriverDispatchInput): Promise<EmailR
     console.warn('[email] sendDriverDispatch failed:', result.reason, {
       bookingNumber: i.bookingNumber,
       to,
-      from,
       replyTo,
     })
   } else {
     console.info('[email] Driver dispatch email sent', {
       bookingNumber: i.bookingNumber,
       to,
-      from,
       replyTo,
       id: result.id,
     })

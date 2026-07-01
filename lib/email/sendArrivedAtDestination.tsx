@@ -14,6 +14,7 @@ export async function sendArrivedAtDestination(i: Input): Promise<EmailResult> {
   if (!i.to || !EMAIL_RE.test(i.to)) return { sent: false, reason: 'invalid recipient email' }
   return sendTemplatedMail({
     to: i.to,
+    fromKind: 'customer',
     subject: `You have arrived — Booking #${i.bookingNumber}`,
     react: (
       <ArrivedAtDestinationEmail

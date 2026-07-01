@@ -48,6 +48,7 @@ async function notifyEmail(input: NotifyInput): Promise<void> {
       `It's logged in the support queue (support_requests). Please follow up.`
   await sendMail({
     to,
+    fromKind: 'customer',
     subject,
     text: body,
     html: `<p style="font-family:Arial,sans-serif;">${body.replace(/\n/g, '<br>')}</p>`,

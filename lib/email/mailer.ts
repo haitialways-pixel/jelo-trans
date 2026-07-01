@@ -7,10 +7,30 @@ let _resend: Resend | null = null
 
 const RENDER_TIMEOUT_MS = 30_000
 const SEND_TIMEOUT_MS = 15_000
-const FROM_FALLBACK = 'Phalo Transportation <onboarding@resend.dev>'
 const SANDBOX_FROM = 'onboarding@resend.dev'
-const DISPATCH_FROM_DEFAULT = 'Phalo Transportation <no-reply@phalotrans.com>'
+
+/** Default display names per email category */
+export const CUSTOMER_FROM_NAME = 'Phalo Transportation Booking'
+export const DISPATCH_FROM_NAME = 'Trip Dispatch - Phalo Transportation'
+
+/** Default bare sender addresses (must be verified in Resend) */
+export const CUSTOMER_FROM_ADDRESS = 'bookings@phalotrans.com'
+export const DISPATCH_FROM_ADDRESS = 'no-reply@phalotrans.com'
+
 const DISPATCH_REPLY_TO_DEFAULT = 'info.phalotrans@gmail.com'
+
+export type EmailSenderKind = 'customer' | 'dispatch'
+
+export type FromOverrides = {
+  /** Pre-built RFC From header — highest priority */
+  from?: string
+  /** Customer booking vs driver dispatch profile */
+  fromKind?: EmailSenderKind
+  /** Override display name only */
+  fromName?: string
+  /** Override bare email address only */
+  fromAddress?: string
+}
 
 function getResend(): Resend | null {
   const key = process.env.RESEND_API_KEY
@@ -33,6 +53,13 @@ export function parseFromEmail(from: string): string {
   return (match?.[1] ?? from).trim()
 }
 
+/** Extract display name from `Name <email>` if present. */
+export function parseFromName(from: string): string | null {
+  const match = from.match(/^(.+?)\s*<[^>]+>\s*$/)
+  if (!match) return null
+  return match[1].replace(/^["']|["']$/g, '').trim() || null
+}
+
 const BLOCKED_FROM_DOMAINS = new Set([
   'gmail.com',
   'googlemail.com',
@@ -45,54 +72,90 @@ const BLOCKED_FROM_DOMAINS = new Set([
   'msn.com',
 ])
 
-function isValidResendFromAddress(from: string): boolean {
-  const email = parseFromEmail(from).toLowerCase()
-  if (!email.includes('@')) return false
+function isValidResendFromAddress(email: string): boolean {
+  const normalized = email.toLowerCase()
+  if (!normalized.includes('@')) return false
 
-  const domain = email.split('@')[1] ?? ''
+  const domain = normalized.split('@')[1] ?? ''
   if (!domain || domain.includes('..')) return false
-  // Catches typos like gmail.com.com or phalotrans.com.com
   if (/\.(com|net|org|io|co)\.(com|net|org|io|co)$/i.test(domain)) return false
   if (BLOCKED_FROM_DOMAINS.has(domain)) return false
 
   return true
 }
 
-/** Resolved sender used for all outbound mail. */
-export function getMailFromAddress(): string {
-  if (useSandboxFrom()) return FROM_FALLBACK
+/** Build a Resend-compatible From header from display name + bare address. */
+export function formatFromHeader(displayName: string, email: string): string {
+  const trimmedName = displayName.trim()
+  const trimmedEmail = email.trim()
+  const needsQuotes = /[,;<>@"\\]/.test(trimmedName)
+  const safeName = needsQuotes
+    ? `"${trimmedName.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
+    : trimmedName
+  return `${safeName} <${trimmedEmail}>`
+}
 
-  const configured = process.env.BOOKING_FROM_EMAIL?.trim()
-  if (!configured) return FROM_FALLBACK
-  if (!configured.includes('@')) return FROM_FALLBACK
+function readBareAddress(envKey: string, legacyEnvKey: string | null, fallback: string): string {
+  const explicit = process.env[envKey]?.trim()
+  if (explicit && explicit.includes('@')) return explicit
 
-  if (!isValidResendFromAddress(configured)) {
-    console.warn(
-      '[email] BOOKING_FROM_EMAIL is not a valid Resend sender; using sandbox fallback.',
-      { configured },
-    )
-    return FROM_FALLBACK
+  if (legacyEnvKey) {
+    const legacy = process.env[legacyEnvKey]?.trim()
+    if (legacy && legacy.includes('@')) return parseFromEmail(legacy)
   }
 
-  return configured
+  return fallback
+}
+
+function defaultNameForKind(kind: EmailSenderKind): string {
+  if (kind === 'dispatch') {
+    return process.env.DISPATCH_FROM_NAME?.trim() || DISPATCH_FROM_NAME
+  }
+  return process.env.BOOKING_FROM_NAME?.trim() || CUSTOMER_FROM_NAME
+}
+
+function defaultAddressForKind(kind: EmailSenderKind): string {
+  if (kind === 'dispatch') {
+    return readBareAddress('DISPATCH_FROM_ADDRESS', 'DISPATCH_FROM_EMAIL', DISPATCH_FROM_ADDRESS)
+  }
+  return readBareAddress('BOOKING_FROM_ADDRESS', 'BOOKING_FROM_EMAIL', CUSTOMER_FROM_ADDRESS)
+}
+
+/** Resolve the full From header for a sender profile. */
+export function resolveFromHeader(overrides: FromOverrides = {}): string {
+  if (overrides.from?.trim()) return overrides.from.trim()
+
+  const kind = overrides.fromKind ?? 'customer'
+
+  if (useSandboxFrom()) {
+    const name = overrides.fromName?.trim() || defaultNameForKind(kind)
+    return formatFromHeader(name, SANDBOX_FROM)
+  }
+
+  const email = overrides.fromAddress?.trim() || defaultAddressForKind(kind)
+  if (!isValidResendFromAddress(email)) {
+    console.warn('[email] invalid from address; using Resend sandbox sender', { kind, email })
+    const name = overrides.fromName?.trim() || defaultNameForKind(kind)
+    return formatFromHeader(name, SANDBOX_FROM)
+  }
+
+  const name = overrides.fromName?.trim() || defaultNameForKind(kind)
+  return formatFromHeader(name, email)
+}
+
+/** @deprecated Use resolveFromHeader({ fromKind: 'customer' }) */
+export function getMailFromAddress(): string {
+  return resolveFromHeader({ fromKind: 'customer' })
+}
+
+/** @deprecated Use resolveFromHeader({ fromKind: 'dispatch' }) */
+export function getDispatchFromAddress(): string {
+  return resolveFromHeader({ fromKind: 'dispatch' })
 }
 
 /** True when sending via Resend's test sender (no custom domain verified yet). */
 export function isResendSandboxMode(): boolean {
-  return getMailFromAddress().includes(SANDBOX_FROM)
-}
-
-/** Sender for driver dispatch emails (defaults to no-reply@phalotrans.com). */
-export function getDispatchFromAddress(): string {
-  if (useSandboxFrom()) return FROM_FALLBACK
-
-  const configured = process.env.DISPATCH_FROM_EMAIL?.trim()
-  if (configured && configured.includes('@') && isValidResendFromAddress(configured)) {
-    return configured
-  }
-
-  if (isValidResendFromAddress(DISPATCH_FROM_DEFAULT)) return DISPATCH_FROM_DEFAULT
-  return getMailFromAddress()
+  return resolveFromHeader({ fromKind: 'customer' }).includes(SANDBOX_FROM)
 }
 
 /** Reply-To for driver dispatch — driver replies land here (defaults to info.phalotrans@gmail.com). */
@@ -112,9 +175,8 @@ function friendlyResendError(message: string, from: string, to: string): string 
     const parsed = parseFromEmail(from)
     return (
       `Resend cannot send from "${parsed}". ` +
-      `You cannot use Gmail/Yahoo addresses as the sender, and typos like "gmail.com.com" will fail. ` +
-      `Until your own domain is verified in Resend, set on Vercel: ` +
-      `RESEND_USE_SANDBOX_FROM=true and BOOKING_FROM_EMAIL="Phalo Transportation <onboarding@resend.dev>".`
+      `Verify your domain in Resend and set BOOKING_FROM_ADDRESS / DISPATCH_FROM_ADDRESS, ` +
+      `or use RESEND_USE_SANDBOX_FROM=true with onboarding@resend.dev for testing.`
     )
   }
 
@@ -124,7 +186,7 @@ function friendlyResendError(message: string, from: string, to: string): string 
   ) {
     return (
       `Resend sandbox: emails can only be delivered to your Resend account email until a domain is verified. ` +
-      `Cannot send to ${to}. Add the driver's email as a chauffeur contact after domain verification.`
+      `Cannot send to ${to}.`
     )
   }
 
@@ -167,16 +229,19 @@ function htmlToPlainText(html: string): string {
 
 export type MailResult = { sent: boolean; reason?: string; id?: string }
 
-export async function sendTemplatedMail(input: {
+type SendOptions = FromOverrides & {
   to: string
   subject: string
-  react: ReactElement
   replyTo?: string
-}): Promise<MailResult> {
+}
+
+export async function sendTemplatedMail(
+  input: SendOptions & { react: ReactElement },
+): Promise<MailResult> {
   const r = getResend()
   if (!r) return { sent: false, reason: 'Resend not configured (RESEND_API_KEY missing)' }
 
-  const from = getMailFromAddress()
+  const from = resolveFromHeader(input)
   try {
     const html = await withTimeout(render(input.react), 'render email', RENDER_TIMEOUT_MS)
     const text = htmlToPlainText(html)
@@ -199,7 +264,7 @@ export async function sendTemplatedMail(input: {
       return { sent: false, reason }
     }
 
-    console.info('[email] sent', { to: input.to, subject: input.subject, id: result.data?.id })
+    console.info('[email] sent', { to: input.to, subject: input.subject, from, id: result.data?.id })
     return { sent: true, id: result.data?.id }
   } catch (e) {
     const reason = friendlyResendError(e instanceof Error ? e.message : 'send failed', from, input.to)
@@ -208,18 +273,13 @@ export async function sendTemplatedMail(input: {
   }
 }
 
-export async function sendMail(input: {
-  to: string
-  subject: string
-  html: string
-  text?: string
-  from?: string
-  replyTo?: string
-}): Promise<MailResult> {
+export async function sendMail(
+  input: SendOptions & { html: string; text?: string },
+): Promise<MailResult> {
   const r = getResend()
   if (!r) return { sent: false, reason: 'Resend not configured' }
 
-  const from = input.from ?? getMailFromAddress()
+  const from = resolveFromHeader(input)
   try {
     const result = await withTimeout(
       r.emails.send({
@@ -237,7 +297,7 @@ export async function sendMail(input: {
       console.error('[email] Resend API error:', reason, { to: input.to, from })
       return { sent: false, reason }
     }
-    console.info('[email] sent', { to: input.to, subject: input.subject, id: result.data?.id })
+    console.info('[email] sent', { to: input.to, subject: input.subject, from, id: result.data?.id })
     return { sent: true, id: result.data?.id }
   } catch (e) {
     const reason = friendlyResendError(e instanceof Error ? e.message : 'send failed', from, input.to)
@@ -255,7 +315,7 @@ export function getMailSetupHint(): string | null {
   if (isResendSandboxMode()) {
     return (
       'Resend sandbox mode: only your Resend account email can receive mail until you verify a custom domain. ' +
-      'Verify phalotrans.com (or your domain) in Resend, then set BOOKING_FROM_EMAIL to that domain and remove RESEND_USE_SANDBOX_FROM.'
+      'Set BOOKING_FROM_ADDRESS and DISPATCH_FROM_ADDRESS after domain verification, then remove RESEND_USE_SANDBOX_FROM.'
     )
   }
   return null

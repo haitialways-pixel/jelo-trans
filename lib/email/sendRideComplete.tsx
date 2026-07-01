@@ -23,6 +23,7 @@ export async function sendRideComplete(i: Input): Promise<EmailResult> {
   if (!i.to || !EMAIL_RE.test(i.to)) return { sent: false, reason: 'invalid recipient email' }
   return sendTemplatedMail({
     to: i.to,
+    fromKind: 'customer',
     subject: `Thank you for riding with Phalo Transportation — Booking #${i.bookingNumber}`,
     react: (
       <RideCompletedEmail

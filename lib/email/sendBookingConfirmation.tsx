@@ -1,4 +1,4 @@
-import { getMailFromAddress, sendMail } from './mailer'
+import { sendMail } from './mailer'
 import { fmtDate, fmtTime, EMAIL_RE } from './format'
 
 export type BookingEmailInput = {
@@ -99,7 +99,7 @@ export async function sendBookingConfirmation(i: BookingEmailInput): Promise<Ema
   const { html, text } = buildBookingConfirmationContent(i)
   const result = await sendMail({
     to,
-    from: getMailFromAddress(),
+    fromKind: 'customer',
     subject: `Your Phalo Transportation booking #${i.bookingNumber} is confirmed`,
     html,
     text,

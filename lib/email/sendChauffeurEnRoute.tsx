@@ -19,6 +19,7 @@ export async function sendChauffeurEnRoute(i: Input): Promise<EmailResult> {
   if (!i.to || !EMAIL_RE.test(i.to)) return { sent: false, reason: 'invalid recipient email' }
   return sendTemplatedMail({
     to: i.to,
+    fromKind: 'customer',
     subject: `Your driver is on the way — Booking #${i.bookingNumber}`,
     react: (
       <ChauffeurEnRouteEmail

@@ -16,6 +16,7 @@ export async function sendArrivedAtPickup(i: Input): Promise<EmailResult> {
   if (!i.to || !EMAIL_RE.test(i.to)) return { sent: false, reason: 'invalid recipient email' }
   return sendTemplatedMail({
     to: i.to,
+    fromKind: 'customer',
     subject: `Your driver has arrived — Booking #${i.bookingNumber}`,
     react: (
       <ArrivedAtPickupEmail
