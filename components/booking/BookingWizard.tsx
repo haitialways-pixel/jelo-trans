@@ -4,7 +4,12 @@ import { useState } from 'react'
 import { calculatePrice, createReservation } from '@/app/book/actions'
 import { PaymentStep } from './PaymentStep'
 import { AddressAutocomplete } from './AddressAutocomplete'
-import { Clock, MapPin, Navigation, HelpCircle, Loader2 } from 'lucide-react'
+import { Clock, MapPin, Navigation, Loader2 } from 'lucide-react'
+import {
+  DEFAULT_GRATUITY_PERCENT,
+  GRATUITY_OPTIONS,
+  type GratuityPercent,
+} from '@/lib/pricing'
 
 const steps = ['Trip Details', 'Select Vehicle', 'Review & Confirm']
 
@@ -31,6 +36,7 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
   const [formData, setFormData] = useState<any>({
     passengers: 2,
     luggage: 2,
+    gratuityPercent: DEFAULT_GRATUITY_PERCENT,
   })
   const [price, setPrice] = useState<any>(null)
   const [loading, setLoading] = useState(false)
@@ -45,6 +51,29 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
 
   const updateForm = (field: string, value: any) => {
     setFormData((prev: any) => ({ ...prev, [field]: value }))
+  }
+
+  const refreshPrice = async (gratuityPercent?: GratuityPercent) => {
+    if (!formData.vehicleId) return
+    const percent = gratuityPercent ?? formData.gratuityPercent ?? DEFAULT_GRATUITY_PERCENT
+    const result = await calculatePrice({
+      vehicleId: formData.vehicleId,
+      distanceMiles: Number(formData.distanceMiles || 0),
+      pickupTime: formData.pickupTime,
+      durationHours: Number(formData.durationHours),
+      gratuityPercent: percent,
+    })
+    if (!result.error) setPrice(result)
+    return result
+  }
+
+  const selectGratuity = async (percent: GratuityPercent) => {
+    updateForm('gratuityPercent', percent)
+    if (currentStep !== 2) return
+    setLoading(true)
+    const result = await refreshPrice(percent)
+    setLoading(false)
+    if (result?.error) setError(result.error)
   }
 
   // Get current date-time string in local format YYYY-MM-DDTHH:mm for datetime-local min attribute
@@ -134,19 +163,13 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
     // Transitioning from Step 1 (Vehicle) to Step 2 (Review)
     if (currentStep === 1 && formData.vehicleId) {
       setLoading(true)
-      const result = await calculatePrice({
-        vehicleId: formData.vehicleId,
-        distanceMiles: Number(formData.distanceMiles || 0),
-        pickupTime: formData.pickupTime,
-        durationHours: Number(formData.durationHours),
-      })
+      const result = await refreshPrice()
       setLoading(false)
 
-      if (result.error) {
+      if (result?.error) {
         setError(result.error)
         return
       }
-      setPrice(result)
       setCurrentStep(currentStep + 1)
       return
     }
@@ -240,6 +263,15 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
           {price?.vehicleName && <SummaryRow label="Vehicle" value={price.vehicleName} />}
           <SummaryRow label="Distance" value={formData.distanceText || `${formData.distanceMiles} mi`} />
           <SummaryRow label="Travel Time" value={formData.durationText} />
+          {price?.basePrice != null && (
+            <SummaryRow label="Trip fare" value={`$${Number(price.basePrice).toFixed(2)}`} />
+          )}
+          {price?.gratuityAmount != null && price.gratuityPercent != null && (
+            <SummaryRow
+              label={`Gratuity (${price.gratuityPercent}%)`}
+              value={`$${Number(price.gratuityAmount).toFixed(2)}`}
+            />
+          )}
           {price?.total != null && (
             <SummaryRow label="Estimated Total" value={`$${Number(price.total).toFixed(2)}`} />
           )}
@@ -296,9 +328,9 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
         ))}
       </div>
 
-      <div className="card p-8 md:p-12 relative overflow-hidden">
+      <div className="card luxe-card p-8 md:p-12 relative overflow-hidden shadow-lg shadow-primary/5">
         {loading && (
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
+          <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
             <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
             <p className="text-primary font-semibold text-lg tracking-wider">
               {currentStep === 0 ? 'CALCULATING ROUTE...' : 'PROCESSING...'}
@@ -482,14 +514,48 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
               </div>
 
               <div className="space-y-4">
-                <div className="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/30 space-y-2">
-                  <h3 className="text-xs text-primary uppercase tracking-wider font-semibold border-b border-outline-variant/30 pb-2 mb-2">Price Summary</h3>
-                  <SummaryRow label="Ride Price" value={`$${price.basePrice.toFixed(2)}`} />
-                  <div className="flex justify-between items-center pt-4 border-t border-primary/20 text-xl font-bold">
+                <div className="bg-white p-6 rounded-2xl border border-outline-variant/25 shadow-sm space-y-3">
+                  <h3 className="text-xs text-primary uppercase tracking-wider font-semibold border-b border-outline-variant/20 pb-2">
+                    Price Summary
+                  </h3>
+                  <SummaryRow label="Trip fare" value={`$${price.basePrice.toFixed(2)}`} />
+
+                  <div>
+                    <p className="text-xs text-primary uppercase tracking-wider font-semibold mb-2">
+                      Gratuity for your chauffeur
+                    </p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {GRATUITY_OPTIONS.map((pct) => {
+                        const selected = formData.gratuityPercent === pct
+                        return (
+                          <button
+                            key={pct}
+                            type="button"
+                            onClick={() => selectGratuity(pct)}
+                            className={`rounded-xl border py-3 text-sm font-semibold transition ${
+                              selected
+                                ? 'border-primary bg-primary/10 text-primary shadow-sm'
+                                : 'border-outline-variant/30 bg-card text-on-surface-variant hover:border-primary/40'
+                            }`}
+                          >
+                            {pct}%
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  <SummaryRow
+                    label={`Gratuity (${price.gratuityPercent ?? formData.gratuityPercent}%)`}
+                    value={`$${Number(price.gratuityAmount ?? 0).toFixed(2)}`}
+                  />
+                  <div className="flex justify-between items-center pt-3 border-t border-primary/15 text-xl font-bold">
                     <span className="text-on-surface">Estimated Total</span>
                     <span className="text-primary">${price.total.toFixed(2)}</span>
                   </div>
-                  <p className="text-[10px] text-on-surface-variant text-right mt-1">Includes all local tolls and taxes</p>
+                  <p className="text-[10px] text-on-surface-variant text-right">
+                    Fare includes tolls and taxes · gratuity goes to your chauffeur
+                  </p>
                 </div>
               </div>
             </div>
@@ -525,7 +591,7 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
         )}
 
         {error && (
-          <p className="text-red-500 mt-6 text-center font-medium bg-red-950/30 p-4 rounded-2xl border border-red-500/20">
+          <p className="text-red-700 mt-6 text-center font-medium bg-red-50 p-4 rounded-2xl border border-red-200">
             {error}
           </p>
         )}

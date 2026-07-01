@@ -23,7 +23,7 @@ export async function sendBookingReceived(i: BookingReceivedInput): Promise<Emai
   const result = await sendTemplatedMail({
     to: i.to,
     fromKind: 'customer',
-    subject: `We received your Phalo Transportation booking #${i.bookingNumber}`,
+    subject: `We received your booking with Phalo Transportation #${i.bookingNumber}`,
     react: (
       <BookingReceivedEmail
         customerName={i.customerName}

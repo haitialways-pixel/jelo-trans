@@ -22,8 +22,8 @@ export default async function Home() {
       {/* HERO */}
       <section className="relative h-[88vh] min-h-[620px] w-full flex items-end justify-center overflow-hidden">
         <div className="absolute inset-0">
-          <img src="/images/stitch-hero-night.jpg" alt="Phalo Transportation luxury SUV chauffeur service in Orlando" className="w-full h-full object-cover object-center" />
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/75 to-background/40" />
+          <img src="/images/stitch-suv-studio.jpg" alt="Phalo Transportation luxury SUV chauffeur service in Orlando" className="w-full h-full object-cover object-center brightness-105" />
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-white/20" />
         </div>
         <div className="relative z-10 px-6 pb-16 md:pb-24 text-center max-w-2xl">
           <span className="text-[11px] tracking-[0.3em] text-primary block mb-4">ORLANDO, FLORIDA</span>
@@ -61,7 +61,7 @@ export default async function Home() {
                   alt={v.name}
                   className="w-full h-full object-contain group-hover:scale-105 transition duration-700"
                 />
-                <div className="absolute top-3 right-3 bg-on-surface/80 text-background text-[10px] tracking-widest px-3 py-1 rounded-full uppercase">
+                <div className="absolute top-3 right-3 bg-white/90 text-primary border border-primary/25 text-[10px] tracking-widest px-3 py-1 rounded-full uppercase shadow-sm">
                   {v.tier ?? 'fleet'}
                 </div>
               </div>

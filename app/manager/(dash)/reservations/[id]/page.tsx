@@ -225,6 +225,17 @@ function PaymentPanel({ r }: { r: ManagerReservation }) {
           <span className="text-sm text-on-surface-variant"> / {formatMoney(total)}</span>
         </p>
       </div>
+      {r.fare_subtotal != null && (
+        <PayRow label="Trip fare" amount={Number(r.fare_subtotal)} paid={fully} pendingLabel="in total" />
+      )}
+      {r.gratuity_amount != null && r.gratuity_percent != null && (
+        <PayRow
+          label={`Gratuity (${r.gratuity_percent}%)`}
+          amount={Number(r.gratuity_amount)}
+          paid={fully}
+          pendingLabel="in total"
+        />
+      )}
       <PayRow label="Deposit (10%)" amount={deposit} paid={depositPaid} />
       <PayRow label="Balance" amount={balance} paid={balancePaid} pendingLabel="due after ride" />
     </div>

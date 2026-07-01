@@ -4,7 +4,7 @@ import type { Vehicle } from '@/lib/fleet'
 
 const FALLBACK_IMAGE = '/images/fleet-overview.jpg'
 
-/** Noir-et-Or studio card — image (spotlit) on the left, details on the right. DB-driven. */
+/** Luxury studio card — image on the left, details on the right. DB-driven. */
 export function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
   const basePrice = Math.round(Number(vehicle.base_price))
   const mileRate = Number(vehicle.price_per_mile)
@@ -12,7 +12,7 @@ export function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
   const isNew = /\b(2024|2025|2026)\b/.test(vehicle.name)
 
   return (
-    <article className="glass-dark gold-hairline rounded-2xl overflow-hidden group relative flex flex-col md:flex-row md:h-[320px] hover:bg-surface-container/60 transition-colors duration-500">
+    <article className="glass-dark gold-hairline rounded-2xl overflow-hidden group relative flex flex-col md:flex-row md:h-[320px] hover:shadow-lg hover:shadow-primary/10 transition-all duration-500">
       {isNew && (
         <div className="absolute top-4 left-4 z-20 bg-background/80 backdrop-blur-md border border-primary/50 text-primary text-[10px] font-semibold tracking-widest px-3 py-1 rounded-full">
           NEW UNITS
@@ -45,7 +45,7 @@ export function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
 
         <Link
           href="/book"
-          className="block text-center border border-primary/40 text-primary hover:bg-primary hover:text-black font-semibold tracking-[0.15em] text-xs py-3 rounded-xl transition"
+          className="block text-center border border-primary/40 text-primary hover:bg-primary hover:text-white font-semibold tracking-[0.15em] text-xs py-3 rounded-xl transition"
         >
           SELECT VEHICLE
         </Link>

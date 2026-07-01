@@ -1,32 +1,28 @@
 @import "tailwindcss";
 
-/* Hide the Stripe "View test data" floating badge that appears bottom-right when
-   the publishable key is a TEST key. Cosmetic-only — Stripe shows nothing in LIVE
-   mode, so this CSS becomes a no-op in production. If Stripe renames the frame
-   title in a future release, this selector might need updating; the fallback is
-   the bottom-right floating button (it's always positioned `fixed`). */
 iframe[title*="Stripe developer tools" i],
 iframe[name*="StripeDevTools" i] {
   display: none !important;
 }
 
 :root {
-  --background: #faf7f2;
-  --foreground: #2c2418;
-  --card: #fffdf9;
-  --border: #e5ddd0;
-  --beige: #d4c4a8;
-  --beige-light: #e8dcc8;
-  --beige-dark: #c4b49a;
-  --accent: #9a7b4f;
-  --accent-light: #b8956b;
-  --muted: #7a6f63;
+  --background: #fdfbf7;
+  --foreground: #1f1a14;
+  --card: #ffffff;
+  --border: #e8dfd2;
+  --beige: #e2d2b4;
+  --beige-light: #f3ead8;
+  --beige-dark: #c9b896;
+  --accent: #b8956b;
+  --accent-light: #d4b896;
+  --muted: #6b6258;
   --gold: var(--beige);
   --gold-light: var(--beige-light);
 }
 
 body {
   font-family: var(--font-outfit), var(--font-geist-sans), system-ui, sans-serif;
+  color-scheme: light;
 }
 
 h1, h2, .display {
@@ -38,16 +34,17 @@ h1, h2, .display {
 }
 
 .btn-gold {
-  background: linear-gradient(135deg, var(--beige-light) 0%, var(--beige) 100%);
+  background: linear-gradient(135deg, #f7f0e4 0%, var(--beige) 55%, #d4b896 100%);
   color: var(--foreground);
   font-weight: 600;
   transition: all 0.2s cubic-bezier(0.23, 1.0, 0.32, 1);
+  box-shadow: 0 8px 24px -14px rgba(184, 149, 107, 0.55);
 }
 
 .btn-gold:hover {
   transform: translateY(-1px);
-  box-shadow: 0 10px 30px -12px rgba(154, 123, 79, 0.35);
-  background: linear-gradient(135deg, #f0e6d6 0%, var(--beige-light) 100%);
+  box-shadow: 0 14px 32px -12px rgba(184, 149, 107, 0.45);
+  background: linear-gradient(135deg, #fffaf2 0%, var(--beige-light) 55%, var(--beige) 100%);
 }
 
 .btn-outline-gold {
@@ -64,7 +61,7 @@ h1, h2, .display {
 .card {
   background: var(--card);
   border: 1px solid var(--border);
-  transition: transform 0.2s cubic-bezier(0.23, 1.0, 0.32, 1), border-color 0.2s ease;
+  transition: transform 0.2s cubic-bezier(0.23, 1.0, 0.32, 1), border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .card:hover {
@@ -72,8 +69,13 @@ h1, h2, .display {
   border-color: var(--beige-dark);
 }
 
+.luxe-card {
+  background: linear-gradient(180deg, #ffffff 0%, #fffdf9 100%);
+  border: 1px solid rgba(201, 184, 150, 0.35);
+}
+
 input, textarea, select {
-  background: #fffdf9;
+  background: #ffffff;
   border: 1px solid var(--border);
   color: var(--foreground);
   transition: all 0.2s ease;
@@ -82,7 +84,7 @@ input, textarea, select {
 input:focus, textarea:focus, select:focus {
   border-color: var(--accent);
   outline: none;
-  box-shadow: 0 0 0 1px var(--accent-light);
+  box-shadow: 0 0 0 3px rgba(184, 149, 107, 0.15);
 }
 
 .step-indicator {
@@ -99,7 +101,7 @@ input:focus, textarea:focus, select:focus {
 }
 
 .step-indicator.active {
-  background: var(--beige);
+  background: var(--beige-light);
   color: var(--foreground);
   border-color: var(--beige-dark);
 }
@@ -111,45 +113,45 @@ input:focus, textarea:focus, select:focus {
   font-weight: 500;
 }
 
-.badge-pending { background: #ede6da; color: #5c5248; }
-.badge-confirmed { background: #d4edda; color: #1e5631; }
-.badge-completed { background: #c8e6c9; color: #2e7d32; }
-.badge-cancelled { background: #fce4e4; color: #b71c1c; }
+.badge-pending { background: #f5efe6; color: #5c5248; }
+.badge-confirmed { background: #e8f5e9; color: #1e5631; }
+.badge-completed { background: #e0f2e1; color: #2e7d32; }
+.badge-cancelled { background: #fdecea; color: #b71c1c; }
 
-/* ============================================================
-   Luxe Ivory — design tokens + utilities
-   ============================================================ */
 @theme {
-  --color-primary: #9a7b4f;
-  --color-primary-dim: #b8956b;
-  --color-background: #faf7f2;
-  --color-card: #fffdf9;
-  --color-on-surface: #2c2418;
+  --color-primary: #b8956b;
+  --color-primary-dim: #d4b896;
+  --color-primary-dark: #9a7b4f;
+  --color-background: #fdfbf7;
+  --color-card: #ffffff;
+  --color-on-surface: #1f1a14;
   --color-on-surface-variant: #5c5248;
-  --color-surface-container-lowest: #f5efe6;
-  --color-surface-container-low: #ede6da;
-  --color-surface-container: #e8dfd0;
-  --color-surface-container-high: #ddd4c4;
-  --color-outline-variant: #c4b49a;
+  --color-surface-container-lowest: #faf6ef;
+  --color-surface-container-low: #f3ece2;
+  --color-surface-container: #ebe3d6;
+  --color-surface-container-high: #e0d6c6;
+  --color-outline-variant: #d4c4a8;
 }
 
 .glass-dark {
-  background: linear-gradient(135deg, rgba(255, 253, 249, 0.92) 0%, rgba(245, 239, 230, 0.88) 100%);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.96) 0%, rgba(250, 246, 239, 0.92) 100%);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(196, 180, 154, 0.25);
+  border: 1px solid rgba(212, 196, 168, 0.35);
+  box-shadow: 0 12px 40px -24px rgba(154, 123, 79, 0.25);
 }
 
 .gold-hairline {
-  border-top: 1px solid rgba(154, 123, 79, 0.25);
-  border-left: 1px solid rgba(154, 123, 79, 0.25);
+  border-top: 1px solid rgba(184, 149, 107, 0.22);
+  border-left: 1px solid rgba(184, 149, 107, 0.22);
 }
 
 .gold-shimmer {
-  background: linear-gradient(110deg, var(--beige) 0%, var(--beige-light) 50%, var(--beige) 100%);
+  background: linear-gradient(110deg, #f3ead8 0%, #e2d2b4 45%, #f7f0e4 55%, #e2d2b4 100%);
   background-size: 200% 100%;
   animation: shimmer 3s infinite linear;
   color: var(--foreground);
+  box-shadow: 0 10px 30px -16px rgba(184, 149, 107, 0.5);
 }
 
 @keyframes shimmer {
@@ -161,5 +163,5 @@ input:focus, textarea:focus, select:focus {
 .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
 .spotlight-glow {
-  background: radial-gradient(circle at center, rgba(232, 220, 200, 0.6) 0%, rgba(250, 247, 242, 0) 70%);
+  background: radial-gradient(circle at center, rgba(255, 252, 245, 0.95) 0%, rgba(253, 251, 247, 0.4) 65%, rgba(253, 251, 247, 0) 100%);
 }

@@ -20,8 +20,13 @@ export default async function BookPage() {
 
       <div className="pt-16 pb-12 max-w-5xl mx-auto px-6">
         <div className="text-center mb-10">
-          <div className="text-primary tracking-[4px] text-xs">ORLANDO LUXURY TRANSPORTATION</div>
-          <h1 className="text-6xl tracking-[-2.5px] font-semibold mt-2">Reserve Your Journey</h1>
+          <div className="text-primary tracking-[4px] text-xs font-medium">ORLANDO LUXURY TRANSPORTATION</div>
+          <h1 className="display text-5xl md:text-6xl tracking-tight font-semibold mt-2 text-on-surface">
+            Reserve Your Journey
+          </h1>
+          <p className="text-on-surface-variant text-sm mt-3 max-w-xl mx-auto">
+            Select your vehicle, choose gratuity, and secure your chauffeur in minutes.
+          </p>
         </div>
 
         <BookingWizard vehicles={vehicles ?? []} />

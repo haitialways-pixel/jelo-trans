@@ -12,6 +12,11 @@ import {
   getManagerPendingReservationsUrl,
   getManagerReservationUrl,
 } from '@/lib/site'
+import {
+  computeTripPrice,
+  DEFAULT_GRATUITY_PERCENT,
+  isValidGratuityPercent,
+} from '@/lib/pricing'
 
 async function managerReservationLink(bookingNumber: string) {
   try {
@@ -44,13 +49,17 @@ export async function calculatePrice(data: {
   distanceMiles: number
   pickupTime?: string
   durationHours?: number
+  gratuityPercent?: number
 }) {
   try {
     const supabase = await createClient()
+    const gratuityPercent = isValidGratuityPercent(Number(data.gratuityPercent))
+      ? Number(data.gratuityPercent)
+      : DEFAULT_GRATUITY_PERCENT
 
     const { data: vehicle, error } = await supabase
       .from('fleet')
-      .select('id, name, base_price, price_per_mile')
+      .select('id, name, base_price, price_per_mile, minimum_price')
       .eq('id', data.vehicleId)
       .single()
 
@@ -80,14 +89,19 @@ export async function calculatePrice(data: {
       }
     }
 
-    const base = Math.round((Number(vehicle.base_price) + (data.distanceMiles * Number(vehicle.price_per_mile))) * 100) / 100
-    const gratuity = 0
-    const total = base
+    const priced = computeTripPrice({
+      basePrice: Number(vehicle.base_price),
+      pricePerMile: Number(vehicle.price_per_mile),
+      distanceMiles: Number(data.distanceMiles || 0),
+      minimumPrice: Number(vehicle.minimum_price ?? 0),
+      gratuityPercent,
+    })
 
     return {
-      basePrice: base,
-      gratuity,
-      total,
+      basePrice: priced.fareSubtotal,
+      gratuityPercent: priced.gratuityPercent,
+      gratuityAmount: priced.gratuityAmount,
+      total: priced.total,
       vehicleName: vehicle.name,
     }
   } catch {
@@ -111,6 +125,10 @@ export async function createReservation(formData: any) {
 
     // All validation, the authoritative price, and the availability check happen
     // inside create_reservation() (SECURITY DEFINER). The client total is never trusted.
+    const gratuityPercent = isValidGratuityPercent(Number(formData.gratuityPercent))
+      ? Number(formData.gratuityPercent)
+      : DEFAULT_GRATUITY_PERCENT
+
     const { data: bookingNumber, error } = await supabase.rpc('create_reservation', {
       p_customer_name: formData.customerName,
       p_customer_email: formData.customerEmail,
@@ -124,6 +142,7 @@ export async function createReservation(formData: any) {
       p_duration_hours: Number(formData.durationHours) || 3,
       p_special_requests: formData.specialRequests || null,
       p_distance_miles: Number(formData.distanceMiles) || 0,
+      p_gratuity_percent: gratuityPercent,
     })
 
     if (error) {
@@ -146,6 +165,7 @@ export async function createReservation(formData: any) {
           `Vehicle: ${formData.vehicleName ?? '—'}\n` +
           `Phone: ${formData.customerPhone}\n` +
           `Customer email: ${formData.customerEmail}\n` +
+          `Gratuity: ${gratuityPercent}%\n` +
           (isStripeConfigured() ? 'Deposit: not paid yet' : 'Deposit: Stripe not configured'),
         ...link,
       })
