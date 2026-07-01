@@ -1,22 +1,90 @@
 -- Manual reservations, driver dispatch contact prefs, and auth helper.
--- Safe to re-run (IF NOT EXISTS / OR REPLACE).
+--
+-- If you see "relation public.chauffeurs does not exist", run this FIRST:
+--   supabase/fix-chauffeurs.sql
+-- Then re-run this file.
+--
+-- Fresh project: run supabase/schema.sql (chauffeurs is created before reservations).
 
--- Chauffeur contact preferences for dispatch notifications
+SET search_path = public, extensions;
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- ============================================================================
+-- CHAUFFEURS — create if missing, then add dispatch contact columns
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS public.chauffeurs (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  phone text,
+  email text,
+  notify_email boolean NOT NULL DEFAULT true,
+  notify_sms boolean NOT NULL DEFAULT true,
+  status text NOT NULL DEFAULT 'available' CHECK (status IN ('available','busy','off_duty')),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- Backfill columns on older chauffeurs tables that pre-date this migration
 ALTER TABLE public.chauffeurs
   ADD COLUMN IF NOT EXISTS email text,
   ADD COLUMN IF NOT EXISTS notify_email boolean NOT NULL DEFAULT true,
   ADD COLUMN IF NOT EXISTS notify_sms boolean NOT NULL DEFAULT true;
 
--- Reservation provenance + chauffeur FK
-ALTER TABLE public.reservations
-  ADD COLUMN IF NOT EXISTS source text NOT NULL DEFAULT 'web'
-    CHECK (source IN ('web', 'manual')),
-  ADD COLUMN IF NOT EXISTS chauffeur_id uuid REFERENCES public.chauffeurs(id) ON DELETE SET NULL;
+-- RLS (only when base schema functions exist; no-op otherwise)
+DO $$
+BEGIN
+  IF to_regprocedure('public.is_staff()') IS NOT NULL THEN
+    ALTER TABLE public.chauffeurs ENABLE ROW LEVEL SECURITY;
+    BEGIN
+      CREATE POLICY "Staff read chauffeurs" ON public.chauffeurs
+        FOR SELECT TO authenticated USING (public.is_staff());
+    EXCEPTION WHEN duplicate_object THEN NULL;
+    END;
+    BEGIN
+      CREATE POLICY "Staff manages chauffeurs" ON public.chauffeurs
+        FOR ALL TO authenticated USING (public.is_staff()) WITH CHECK (public.is_staff());
+    EXCEPTION WHEN duplicate_object THEN NULL;
+    END;
+  END IF;
+  BEGIN
+    CREATE POLICY "Service role manages chauffeurs" ON public.chauffeurs
+      FOR ALL TO service_role USING (true) WITH CHECK (true);
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END;
+END $$;
 
-CREATE INDEX IF NOT EXISTS idx_reservations_source ON public.reservations (source, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_reservations_chauffeur ON public.reservations (chauffeur_id);
+-- ============================================================================
+-- RESERVATIONS — incremental columns (skip if table not provisioned yet)
+-- ============================================================================
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'reservations'
+  ) THEN
+    ALTER TABLE public.reservations
+      ADD COLUMN IF NOT EXISTS source text NOT NULL DEFAULT 'web',
+      ADD COLUMN IF NOT EXISTS chauffeur_id uuid REFERENCES public.chauffeurs(id) ON DELETE SET NULL;
 
--- Auth helper: avoids circular RLS on staff table (is_staff() requires reading staff).
+    -- Add check constraint only if not already present
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_constraint
+      WHERE conname = 'reservations_source_check'
+    ) THEN
+      ALTER TABLE public.reservations
+        ADD CONSTRAINT reservations_source_check CHECK (source IN ('web', 'manual'));
+    END IF;
+
+    CREATE INDEX IF NOT EXISTS idx_reservations_source ON public.reservations (source, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_reservations_chauffeur ON public.reservations (chauffeur_id);
+  ELSE
+    RAISE NOTICE 'public.reservations does not exist — run supabase/schema.sql first, then re-run this migration.';
+  END IF;
+END $$;
+
+-- ============================================================================
+-- AUTH HELPER — avoids circular RLS on staff table
+-- ============================================================================
 CREATE OR REPLACE FUNCTION public.get_my_staff_profile()
 RETURNS TABLE (full_name text, role text)
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
@@ -25,7 +93,9 @@ $$;
 REVOKE ALL ON FUNCTION public.get_my_staff_profile() FROM public, anon;
 GRANT EXECUTE ON FUNCTION public.get_my_staff_profile() TO authenticated;
 
--- Staff manual reservation creation (manager sets price; skips guest availability RPC).
+-- ============================================================================
+-- STAFF RPCs (require base schema: reservations, is_staff, write_audit, …)
+-- ============================================================================
 CREATE OR REPLACE FUNCTION public.staff_create_reservation(
   p_customer_name    text,
   p_customer_email   text,
@@ -89,8 +159,8 @@ $$;
 REVOKE ALL ON FUNCTION public.staff_create_reservation(text, text, text, text, text, timestamptz, uuid, integer, integer, numeric, text, numeric, numeric) FROM public, anon;
 GRANT EXECUTE ON FUNCTION public.staff_create_reservation(text, text, text, text, text, timestamptz, uuid, integer, integer, numeric, text, numeric, numeric) TO authenticated;
 
--- Assign unit + chauffeur (by id or name).
 DROP FUNCTION IF EXISTS public.staff_assign_reservation(uuid, uuid, text);
+DROP FUNCTION IF EXISTS public.staff_assign_reservation(uuid, uuid, text, uuid);
 CREATE OR REPLACE FUNCTION public.staff_assign_reservation(
   p_reservation_id uuid,
   p_unit_id uuid,

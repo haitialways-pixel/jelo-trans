@@ -16,8 +16,16 @@
 -- Security: anon/customers NEVER touch tables directly. Guests act through
 -- SECURITY DEFINER RPCs; staff read via their own JWT (RLS + is_staff()) and
 -- write via audited SECURITY DEFINER RPCs or RLS-gated direct writes.
+--
+-- HOW TO RUN (Supabase Dashboard → SQL Editor):
+--   1. Paste this ENTIRE file (do not run a partial selection).
+--   2. Click Run once. The DROP block at the top resets all app tables first.
+--   3. After success: npm run setup-staff  (creates manager login)
+--
+-- If you have live data you cannot wipe, use supabase/fix-chauffeurs.sql instead.
 -- ============================================================================
 
+SET search_path = public, extensions;
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- ============================================================================
@@ -56,6 +64,10 @@ DROP FUNCTION IF EXISTS public.staff_assign_reservation(uuid, uuid, text, uuid);
 DROP FUNCTION IF EXISTS public.staff_create_reservation(text, text, text, text, text, timestamptz, uuid, integer, integer, numeric, text, numeric, numeric);
 DROP FUNCTION IF EXISTS public.get_my_staff_profile();
 DROP FUNCTION IF EXISTS public.staff_set_unit_status(uuid, text);
+DROP FUNCTION IF EXISTS public.staff_assign_unit(uuid, uuid, text);
+DROP FUNCTION IF EXISTS public.archive_old_reservations(integer);
+DROP FUNCTION IF EXISTS public.staff_update_fleet_pricing(uuid, numeric, numeric, numeric);
+DROP FUNCTION IF EXISTS public.bootstrap_staff_registry();
 DROP FUNCTION IF EXISTS public.check_rate_limit(text, text, int, int);
 DROP FUNCTION IF EXISTS public.create_notification(text, text, text, uuid, text);
 
@@ -103,6 +115,21 @@ CREATE TABLE public.vehicle_units (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX idx_vehicle_units_model ON public.vehicle_units (model_id, status);
+
+-- ============================================================================
+-- CHAUFFEURS — must exist before reservations (FK: chauffeur_id)
+-- ============================================================================
+CREATE TABLE public.chauffeurs (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  phone text,
+  email text,
+  notify_email boolean NOT NULL DEFAULT true,
+  notify_sms boolean NOT NULL DEFAULT true,
+  status text NOT NULL DEFAULT 'available' CHECK (status IN ('available','busy','off_duty')),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
 
 -- ============================================================================
 -- RESERVATIONS — includes lifecycle timestamps + Stripe payment columns.
@@ -176,21 +203,6 @@ CREATE TABLE public.support_requests (
   status text NOT NULL DEFAULT 'new' CHECK (status IN ('new','in_progress','handled'))
 );
 CREATE INDEX idx_support_requests_status ON public.support_requests (status, created_at);
-
--- ============================================================================
--- CHAUFFEURS — staff-managed list of drivers (assignment lookup)
--- ============================================================================
-CREATE TABLE public.chauffeurs (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  name text NOT NULL,
-  phone text,
-  email text,
-  notify_email boolean NOT NULL DEFAULT true,
-  notify_sms boolean NOT NULL DEFAULT true,
-  status text NOT NULL DEFAULT 'available' CHECK (status IN ('available','busy','off_duty')),
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
 
 -- ============================================================================
 -- STAFF — invite-only authorization gate. Rows created out-of-band (Supabase
@@ -274,6 +286,8 @@ CREATE INDEX idx_notifications_kind   ON public.notifications (kind, created_at 
 CREATE INDEX idx_reservations_booking_phone ON public.reservations (booking_number, customer_phone);
 CREATE INDEX idx_reservations_pickup_time   ON public.reservations (pickup_time);
 CREATE INDEX idx_reservations_vehicle       ON public.reservations (vehicle_id, pickup_time);
+CREATE INDEX idx_reservations_source        ON public.reservations (source, created_at DESC);
+CREATE INDEX idx_reservations_chauffeur     ON public.reservations (chauffeur_id);
 
 -- ============================================================================
 -- TRIGGERS — booking number generator + phone normalization
@@ -305,6 +319,7 @@ BEGIN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS reservations_booking_number ON public.reservations;
 CREATE TRIGGER reservations_booking_number
   BEFORE INSERT ON public.reservations
   FOR EACH ROW EXECUTE FUNCTION public.generate_booking_number();
@@ -330,6 +345,7 @@ BEGIN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS reservations_normalize_phone ON public.reservations;
 CREATE TRIGGER reservations_normalize_phone
   BEFORE INSERT OR UPDATE ON public.reservations
   FOR EACH ROW EXECUTE FUNCTION public.normalize_phone();
@@ -864,72 +880,99 @@ ALTER TABLE public.api_attempts     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications    ENABLE ROW LEVEL SECURITY;
 
 -- Catalog: public can SELECT; staff can ALSO write (edit prices in manager UI).
+DROP POLICY IF EXISTS "Public can view fleet" ON public.fleet;
 CREATE POLICY "Public can view fleet" ON public.fleet
   FOR SELECT TO anon, authenticated USING (true);
+DROP POLICY IF EXISTS "Staff manages fleet" ON public.fleet;
 CREATE POLICY "Staff manages fleet" ON public.fleet
   FOR ALL TO authenticated USING (public.is_staff()) WITH CHECK (public.is_staff());
 
 -- Reservations: anon blocked (writes go through create_reservation); staff read via JWT.
+DROP POLICY IF EXISTS "Block direct access to reservations" ON public.reservations;
 CREATE POLICY "Block direct access to reservations" ON public.reservations
   FOR ALL TO anon USING (false) WITH CHECK (false);
+DROP POLICY IF EXISTS "Staff can read reservations" ON public.reservations;
 CREATE POLICY "Staff can read reservations" ON public.reservations
   FOR SELECT TO authenticated USING (public.is_staff());
+DROP POLICY IF EXISTS "Service role manages reservations" ON public.reservations;
+CREATE POLICY "Service role manages reservations" ON public.reservations
+  FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 -- Payments: service role + staff read.
+DROP POLICY IF EXISTS "Service role manages payments" ON public.payments;
 CREATE POLICY "Service role manages payments" ON public.payments
   FOR ALL TO service_role USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Staff can read payments" ON public.payments;
 CREATE POLICY "Staff can read payments" ON public.payments
   FOR SELECT TO authenticated USING (public.is_staff());
 
 -- Support requests: anon blocked; staff read; service role full.
+DROP POLICY IF EXISTS "Block direct access to support_requests" ON public.support_requests;
 CREATE POLICY "Block direct access to support_requests" ON public.support_requests
   FOR ALL TO anon, authenticated USING (false) WITH CHECK (false);
+DROP POLICY IF EXISTS "Service role manages support_requests" ON public.support_requests;
 CREATE POLICY "Service role manages support_requests" ON public.support_requests
   FOR ALL TO service_role USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Staff can read support_requests" ON public.support_requests;
 CREATE POLICY "Staff can read support_requests" ON public.support_requests
   FOR SELECT TO authenticated USING (public.is_staff());
 
 -- Vehicle units: staff read AND staff manage; service role full.
+DROP POLICY IF EXISTS "Staff read vehicle_units" ON public.vehicle_units;
 CREATE POLICY "Staff read vehicle_units" ON public.vehicle_units
   FOR SELECT TO authenticated USING (public.is_staff());
+DROP POLICY IF EXISTS "Service role manages vehicle_units" ON public.vehicle_units;
 CREATE POLICY "Service role manages vehicle_units" ON public.vehicle_units
   FOR ALL TO service_role USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Staff manages vehicle_units" ON public.vehicle_units;
 CREATE POLICY "Staff manages vehicle_units" ON public.vehicle_units
   FOR ALL TO authenticated USING (public.is_staff()) WITH CHECK (public.is_staff());
 
 -- Chauffeurs: staff read AND staff manage; service role full.
+DROP POLICY IF EXISTS "Staff read chauffeurs" ON public.chauffeurs;
 CREATE POLICY "Staff read chauffeurs" ON public.chauffeurs
   FOR SELECT TO authenticated USING (public.is_staff());
+DROP POLICY IF EXISTS "Service role manages chauffeurs" ON public.chauffeurs;
 CREATE POLICY "Service role manages chauffeurs" ON public.chauffeurs
   FOR ALL TO service_role USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Staff manages chauffeurs" ON public.chauffeurs;
 CREATE POLICY "Staff manages chauffeurs" ON public.chauffeurs
   FOR ALL TO authenticated USING (public.is_staff()) WITH CHECK (public.is_staff());
 
 -- Staff registry: staff read; managed out-of-band by service role.
+DROP POLICY IF EXISTS "Staff can read staff" ON public.staff;
 CREATE POLICY "Staff can read staff" ON public.staff
   FOR SELECT TO authenticated USING (public.is_staff());
+DROP POLICY IF EXISTS "Service role manages staff" ON public.staff;
 CREATE POLICY "Service role manages staff" ON public.staff
   FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 -- Audit log: staff read; written via SECURITY DEFINER (write_audit) only.
+DROP POLICY IF EXISTS "Staff can read audit_log" ON public.audit_log;
 CREATE POLICY "Staff can read audit_log" ON public.audit_log
   FOR SELECT TO authenticated USING (public.is_staff());
+DROP POLICY IF EXISTS "Service role manages audit_log" ON public.audit_log;
 CREATE POLICY "Service role manages audit_log" ON public.audit_log
   FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 -- Stripe events & api_attempts: only the trusted server (service_role) ever touches them.
+DROP POLICY IF EXISTS "Service role manages stripe_events" ON public.stripe_events;
 CREATE POLICY "Service role manages stripe_events" ON public.stripe_events
   FOR ALL TO service_role USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Service role manages api_attempts" ON public.api_attempts;
 CREATE POLICY "Service role manages api_attempts" ON public.api_attempts
   FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 -- Notifications: staff read AND update (to mark as read); service role full
 -- (used by app code to insert via admin client for events that happen outside RPCs,
 -- e.g. Stripe balance charge results); anon has no access.
+DROP POLICY IF EXISTS "Staff read notifications" ON public.notifications;
 CREATE POLICY "Staff read notifications" ON public.notifications
   FOR SELECT TO authenticated USING (public.is_staff());
+DROP POLICY IF EXISTS "Staff update notifications" ON public.notifications;
 CREATE POLICY "Staff update notifications" ON public.notifications
   FOR UPDATE TO authenticated USING (public.is_staff()) WITH CHECK (public.is_staff());
+DROP POLICY IF EXISTS "Service role manages notifications" ON public.notifications;
 CREATE POLICY "Service role manages notifications" ON public.notifications
   FOR ALL TO service_role USING (true) WITH CHECK (true);
 
@@ -1033,3 +1076,14 @@ $$;
 
 REVOKE ALL ON FUNCTION public.staff_assign_unit(uuid, uuid, text) FROM public, anon;
 GRANT EXECUTE ON FUNCTION public.staff_assign_unit(uuid, uuid, text) TO authenticated;
+
+-- ============================================================================
+-- VERIFY — should list chauffeurs BEFORE reservations in creation order
+-- ============================================================================
+SELECT table_name,
+       (SELECT count(*) FROM information_schema.columns c
+         WHERE c.table_schema = 'public' AND c.table_name = t.table_name) AS columns
+FROM information_schema.tables t
+WHERE table_schema = 'public'
+  AND table_name IN ('fleet', 'vehicle_units', 'chauffeurs', 'reservations', 'staff')
+ORDER BY table_name;
