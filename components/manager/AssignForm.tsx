@@ -56,10 +56,19 @@ export function AssignForm({
   }
 
   function dispatchDriver() {
+    if (!chauffeurId && !chauffeur.trim()) {
+      toast.error('Select a chauffeur before sending dispatch')
+      return
+    }
     start(async () => {
-      const res = await sendDriverDispatchNotification(r.id)
+      const res = await sendDriverDispatchNotification(r.id, {
+        unitId: unitId || null,
+        chauffeurName: chauffeur,
+        chauffeurId: chauffeurId || null,
+      })
       if (res.ok) {
-        toast.success('Dispatch notification sent to driver')
+        toast.success('Dispatch email sent to driver')
+        router.refresh()
       } else {
         toast.error(res.error)
       }

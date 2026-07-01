@@ -19,12 +19,13 @@ export type DriverDispatchInput = {
 export type EmailResult = { sent: boolean; reason?: string }
 
 export async function sendDriverDispatch(i: DriverDispatchInput): Promise<EmailResult> {
-  if (!i.to || !EMAIL_RE.test(i.to)) {
-    console.warn('[email] sendDriverDispatch: invalid recipient', { bookingNumber: i.bookingNumber })
+  const to = i.to.trim()
+  if (!to || !EMAIL_RE.test(to)) {
+    console.warn('[email] sendDriverDispatch: invalid recipient', { bookingNumber: i.bookingNumber, to: i.to })
     return { sent: false, reason: 'invalid driver email' }
   }
   const result = await sendTemplatedMail({
-    to: i.to,
+    to,
     subject: `Trip assignment — Booking #${i.bookingNumber}`,
     react: (
       <DriverDispatchEmail
@@ -43,9 +44,9 @@ export async function sendDriverDispatch(i: DriverDispatchInput): Promise<EmailR
     ),
   })
   if (!result.sent) {
-    console.warn('[email] sendDriverDispatch failed:', result.reason, { bookingNumber: i.bookingNumber, to: i.to })
+    console.warn('[email] sendDriverDispatch failed:', result.reason, { bookingNumber: i.bookingNumber, to })
   } else {
-    console.info('[email] Driver dispatch email sent', { bookingNumber: i.bookingNumber, to: i.to })
+    console.info('[email] Driver dispatch email sent', { bookingNumber: i.bookingNumber, to, id: result.id })
   }
   return result
 }

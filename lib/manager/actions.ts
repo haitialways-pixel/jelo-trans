@@ -6,7 +6,7 @@ import { assertStaff } from '@/lib/manager/auth'
 import { staffDb } from '@/lib/manager/db'
 import { sendBookingReceived } from '@/lib/email/sendBookingReceived'
 import { queueLifecycleEmails } from '@/lib/manager/lifecycleEmails'
-import { notifyDriverDispatch } from '@/lib/manager/dispatch'
+import { notifyDriverDispatch, dispatchDeliveryError } from '@/lib/manager/dispatch'
 import type { Chauffeur, ManagerReservation } from '@/lib/manager/data'
 import { isStripeConfigured } from '@/lib/stripe/server'
 import { chargeBalance } from '@/lib/stripe/payments'
@@ -420,10 +420,29 @@ export async function createManualReservation(input: {
 }
 
 /** Dispatch driver notifications without advancing lifecycle (re-send). */
-export async function sendDriverDispatchNotification(id: string): Promise<ActionResult> {
+export async function sendDriverDispatchNotification(
+  id: string,
+  assignment?: {
+    unitId?: string | null
+    chauffeurName?: string
+    chauffeurId?: string | null
+  },
+): Promise<ActionResult> {
   try {
     await assertStaff()
+    const supabase = await createClient()
     const admin = await staffDb()
+
+    if (assignment) {
+      const { error: assignError } = await supabase.rpc('staff_assign_reservation', {
+        p_reservation_id: id,
+        p_unit_id: assignment.unitId ?? null,
+        p_chauffeur_name: assignment.chauffeurName ?? '',
+        p_chauffeur_id: assignment.chauffeurId ?? null,
+      })
+      if (assignError) return { ok: false, error: assignError.message }
+    }
+
     const { data: res, error } = await admin
       .from('reservations')
       .select(
@@ -443,15 +462,23 @@ export async function sendDriverDispatchNotification(id: string): Promise<Action
     }
 
     if (!chauffeur) {
-      return { ok: false, error: 'Assign a chauffeur from the driver list before dispatching.' }
+      return {
+        ok: false,
+        error: 'Select a chauffeur from the driver list (with an email on file) before dispatching.',
+      }
     }
 
-    await notifyDriverDispatch({
-      reservation: res as unknown as import('@/lib/manager/data').ManagerReservation,
+    const dispatchResult = await notifyDriverDispatch({
+      reservation: res as unknown as ManagerReservation,
       chauffeur,
       vehicleName: (res as { fleet?: { name?: string } }).fleet?.name ?? null,
     })
 
+    const deliveryError = dispatchDeliveryError(dispatchResult)
+    if (deliveryError) return { ok: false, error: deliveryError }
+
+    revalidatePath('/manager')
+    revalidatePath(`/manager/reservations/${id}`)
     return { ok: true }
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'Dispatch failed' }

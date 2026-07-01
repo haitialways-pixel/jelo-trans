@@ -64,7 +64,14 @@ async function sendLifecycleEmails({ stage, res, vehicleName, chauffeurContact }
         pickupTime: res.pickup_time,
       })
       if (chauffeurContact) {
-        await notifyDriverDispatch({ reservation: res, chauffeur: chauffeurContact, vehicleName })
+        const dispatchResult = await notifyDriverDispatch({
+          reservation: res,
+          chauffeur: chauffeurContact,
+          vehicleName,
+        })
+        if (!dispatchResult.email.sent && !dispatchResult.sms.sent) {
+          console.warn('[lifecycleEmails] driver dispatch not delivered:', dispatchResult)
+        }
       }
       break
     case 'arrive_pickup':
