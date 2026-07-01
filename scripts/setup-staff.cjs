@@ -36,7 +36,8 @@ loadEnvFile('.env.local')
 loadEnvFile('.env')
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+const serviceKey =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 const email = process.env.MANAGER_EMAIL ?? 'manager@phalotransportation.com'
 const password = process.env.MANAGER_PASSWORD ?? 'PhaloManager2026!'
@@ -49,9 +50,9 @@ function fail(message) {
 
 if (!url || !serviceKey || !anonKey) {
   fail(
-    'Missing NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, or SUPABASE_SERVICE_ROLE_KEY.\n' +
-      'Copy .env.example → .env.local and paste your keys from\n' +
-      'Supabase Dashboard → Project Settings → API.',
+    'Missing NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, or a service key\n' +
+      '(SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SECRET_KEY).\n' +
+      'Copy keys from Supabase Dashboard → Project Settings → API.',
   )
 }
 
@@ -123,6 +124,7 @@ async function ensureAuthUser(targetEmail, targetPassword) {
     const { error } = await admin.auth.admin.updateUserById(user.id, {
       password: targetPassword,
       email_confirm: true,
+      user_metadata: { full_name: fullName, role: 'admin' },
     })
     if (error) {
       console.warn(`Could not update password via admin API (${error.message}); continuing.`)
@@ -136,6 +138,7 @@ async function ensureAuthUser(targetEmail, targetPassword) {
     email: targetEmail,
     password: targetPassword,
     email_confirm: true,
+    user_metadata: { full_name: fullName, role: 'admin' },
   })
   if (error) {
     if (error.message?.toLowerCase().includes('already')) {
@@ -206,7 +209,8 @@ async function main() {
   console.log(`  URL:      http://localhost:3000/manager/login`)
   console.log(`  Email:    ${email}`)
   console.log(`  Password: ${password}`)
-  console.log('\nTip: run `npm run setup-staff -- --seed-all` to grant staff access to every auth user.')
+  console.log('\nTip: users added in Supabase Auth get a staff row automatically (after migration 20260704).')
+  console.log('     Run `npm run seed-staff` to backfill any existing auth users missing staff access.')
 }
 
 main().catch((err) => {

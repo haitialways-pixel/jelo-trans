@@ -69,6 +69,8 @@ DROP FUNCTION IF EXISTS public.staff_assign_unit(uuid, uuid, text);
 DROP FUNCTION IF EXISTS public.archive_old_reservations(integer);
 DROP FUNCTION IF EXISTS public.staff_update_fleet_pricing(uuid, numeric, numeric, numeric);
 DROP FUNCTION IF EXISTS public.bootstrap_staff_registry();
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+DROP FUNCTION IF EXISTS public.handle_new_auth_user() CASCADE;
 DROP FUNCTION IF EXISTS public.check_rate_limit(text, text, int, int);
 DROP FUNCTION IF EXISTS public.create_notification(text, text, text, uuid, text);
 
@@ -209,8 +211,8 @@ CREATE TABLE public.support_requests (
 CREATE INDEX idx_support_requests_status ON public.support_requests (status, created_at);
 
 -- ============================================================================
--- STAFF — invite-only authorization gate. Rows created out-of-band (Supabase
--- Auth → Add user, then INSERT INTO staff). NEVER public signup.
+-- STAFF — authorization gate for /manager. A row is auto-created when a user
+-- is added in Supabase Auth (trigger below). Customers never use Auth signup.
 -- ============================================================================
 CREATE TABLE public.staff (
   id         uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -218,6 +220,63 @@ CREATE TABLE public.staff (
   role       text NOT NULL DEFAULT 'manager' CHECK (role IN ('manager','admin')),
   created_at timestamptz NOT NULL DEFAULT now()
 );
+
+-- Auto-provision staff when an auth user is created (Dashboard → Add user, or setup-staff).
+CREATE OR REPLACE FUNCTION public.handle_new_auth_user()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth
+AS $$
+DECLARE
+  v_role text;
+BEGIN
+  v_role := CASE
+    WHEN NEW.raw_user_meta_data->>'role' = 'admin' THEN 'admin'
+    ELSE 'manager'
+  END;
+
+  INSERT INTO public.staff (id, full_name, role)
+  VALUES (
+    NEW.id,
+    COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
+    v_role
+  )
+  ON CONFLICT (id) DO NOTHING;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_auth_user();
+
+-- One-time / dev helper: backfill staff rows for auth users missing from the registry.
+CREATE OR REPLACE FUNCTION public.bootstrap_staff_registry()
+RETURNS integer
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth
+AS $$
+DECLARE
+  inserted integer;
+BEGIN
+  INSERT INTO public.staff (id, full_name, role)
+  SELECT
+    u.id,
+    COALESCE(u.raw_user_meta_data->>'full_name', split_part(u.email, '@', 1)),
+    CASE WHEN u.raw_user_meta_data->>'role' = 'admin' THEN 'admin' ELSE 'manager' END
+  FROM auth.users u
+  WHERE NOT EXISTS (SELECT 1 FROM public.staff s WHERE s.id = u.id);
+
+  GET DIAGNOSTICS inserted = ROW_COUNT;
+  RETURN inserted;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.bootstrap_staff_registry() FROM public, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.bootstrap_staff_registry() TO service_role;
 
 -- ============================================================================
 -- AUDIT LOG — every staff write recorded (who/what/when)

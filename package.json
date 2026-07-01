@@ -10,7 +10,8 @@
     "preview": "wrangler dev",
     "deploy": "npm run build && npx @opennextjs/cloudflare deploy",
     "setup-staff": "node scripts/setup-staff.cjs",
-    "seed-staff": "node scripts/setup-staff.cjs -- --seed-all"
+    "seed-staff": "node scripts/setup-staff.cjs -- --seed-all",
+    "provision-staff-auth": "node scripts/provision-staff-auth.cjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",

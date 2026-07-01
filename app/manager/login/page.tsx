@@ -53,8 +53,8 @@ function LoginForm() {
       setLoading(false)
       setError(
         profileError?.message?.includes('get_my_staff_profile')
-          ? 'Staff auth is not configured in the database. Run supabase/migrations/20260701_manual_dispatch_auth.sql.'
-          : 'This account is not authorized for the manager area.',
+          ? 'Staff auth is not configured in the database. Run supabase/migrations/20260704_auto_staff_on_auth_user.sql.'
+          : 'This account is not authorized for the manager area. Ask an admin to add you in Supabase Auth, or run npm run seed-staff to backfill existing users.',
       )
       return
     }
