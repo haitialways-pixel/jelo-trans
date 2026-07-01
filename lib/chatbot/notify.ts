@@ -1,20 +1,39 @@
 // Management notification — SERVER ONLY. Reusable for chat escalations AND operational
 // alerts (new booking, etc.).
 //
-// Both channels are OPTIONAL and best-effort. Preferred channel: TELEGRAM — free and
-// instant (no per-message cost, no email deliverability/domain setup). Email (SMTP) is a
-// fallback. If neither is configured, notify is a silent no-op (callers never break).
+// Telegram is optional and instant when configured. Email goes to MANAGEMENT_EMAIL
+// (defaults to info.phalotrans@gmail.com). New online bookings always trigger email
+// even when Telegram is configured or deposit is unpaid.
 
 import { sendMail } from '@/lib/email/mailer'
+
+const MANAGEMENT_EMAIL_DEFAULT = 'info.phalotrans@gmail.com'
 
 type NotifyInput = {
   message: string
   /** Optional heading. Defaults to the chat-escalation wording for backward compatibility. */
   title?: string
   context?: Record<string, unknown>
+  /**
+   * When true, send email in addition to Telegram (not only as a fallback).
+   * Use for time-sensitive ops alerts like new online bookings.
+   */
+  alwaysEmail?: boolean
+}
+
+/** Ops inbox for booking alerts and escalations. Override with MANAGEMENT_EMAIL. */
+export function getManagementEmail(): string {
+  const configured = process.env.MANAGEMENT_EMAIL?.trim()
+  if (configured && configured.includes('@')) return configured
+  return MANAGEMENT_EMAIL_DEFAULT
 }
 
 export async function notifyManagement(input: NotifyInput): Promise<void> {
+  if (input.alwaysEmail) {
+    await Promise.allSettled([notifyTelegram(input), notifyEmail(input)])
+    return
+  }
+
   if (await notifyTelegram(input)) return
   await notifyEmail(input)
 }
@@ -39,18 +58,28 @@ async function notifyTelegram(input: NotifyInput): Promise<boolean> {
 }
 
 async function notifyEmail(input: NotifyInput): Promise<void> {
-  const to = process.env.MANAGEMENT_EMAIL
-  if (!to) return
+  const to = getManagementEmail()
   const subject = input.title ?? 'New chat escalation — a customer needs a human'
   const body = input.title
     ? input.message
     : `A website visitor asked for something the assistant can't handle:\n\n"${input.message}"\n\n` +
       `It's logged in the support queue (support_requests). Please follow up.`
-  await sendMail({
+
+  const result = await sendMail({
     to,
     fromKind: 'customer',
     subject,
     text: body,
-    html: `<p style="font-family:Arial,sans-serif;">${body.replace(/\n/g, '<br>')}</p>`,
+    html: `<div style="font-family:Arial,sans-serif;line-height:1.5;color:#111827;">${body
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\n/g, '<br>')}</div>`,
   })
+
+  if (!result.sent) {
+    console.warn('[notifyManagement] ops email failed:', result.reason, { to, subject })
+  } else {
+    console.info('[notifyManagement] ops email sent', { to, subject, id: result.id })
+  }
 }

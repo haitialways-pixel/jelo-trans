@@ -102,24 +102,26 @@ export async function createReservation(formData: any) {
 
     revalidatePath('/manage-booking')
 
-    // Alert management immediately — confirmation email to customer waits for deposit or manager review.
+    // Alert ops immediately by email (even if deposit not paid yet). Customer confirmation
+    // email still waits for manager review; "booking received" may follow deposit payment.
     try {
       await notifyManagement({
-        title: '🚗 New booking (pending review)',
+        alwaysEmail: true,
+        title: '🚗 New online booking (pending review)',
         message:
           `${formData.customerName} · ${bookingNumber}\n` +
           `${formData.pickupAddress} → ${formData.dropoffAddress}\n` +
           `Pickup: ${formData.pickupTime}\n` +
           `Vehicle: ${formData.vehicleName ?? '—'}\n` +
-          `Customer email: ${formData.customerEmail}`,
+          `Phone: ${formData.customerPhone}\n` +
+          `Customer email: ${formData.customerEmail}\n` +
+          (isStripeConfigured() ? 'Deposit: not paid yet' : 'Deposit: Stripe not configured'),
       })
     } catch (e) {
       console.error('[createReservation] management notification failed:', e)
     }
 
-    // STRIPE ON: create the 10% deposit intent now and hand the client secret to the
-    // browser (Elements). The confirmation email + management alert are DEFERRED to
-    // finalizeDeposit(), i.e. only once the deposit is actually paid.
+    // STRIPE ON: create the 10% deposit intent and hand the client secret to the browser.
     if (isStripeConfigured()) {
       try {
         const dep = await createDepositForBooking(bookingNumber)
@@ -167,20 +169,6 @@ export async function createReservation(formData: any) {
     } catch (e) {
       console.error('[createReservation] booking received email failed:', e)
       emailSent = false
-    }
-
-    try {
-      await notifyManagement({
-        title: '🚗 New booking (pending review)',
-        message:
-          `${formData.customerName} · ${bookingNumber}\n` +
-          `${formData.pickupAddress} → ${formData.dropoffAddress}\n` +
-          `Pickup: ${formData.pickupTime}\n` +
-          `Vehicle: ${formData.vehicleName ?? '—'}\n` +
-          `Customer email: ${formData.customerEmail}`,
-      })
-    } catch (e) {
-      console.error('[createReservation] management notification failed:', e)
     }
 
     return { success: true, bookingNumber, requiresPayment: false, emailSent }
@@ -256,7 +244,8 @@ export async function finalizeDeposit(bookingNumber: string) {
 
     try {
       await notifyManagement({
-        title: '🚗 New booking — deposit paid (pending review)',
+        alwaysEmail: true,
+        title: '💳 Deposit paid — ' + bookingNumber,
         message:
           `${r.customer_name} · ${bookingNumber}\n` +
           `Deposit $${Number(r.deposit_amount ?? 0).toFixed(2)} paid · ` +
