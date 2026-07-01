@@ -36,16 +36,21 @@ function channelIdle(reason: string): DispatchChannelResult {
 /** Notify assigned driver via their preferred email and/or SMS. */
 export async function notifyDriverDispatch(input: DispatchInput): Promise<DispatchResult> {
   const { reservation: r, chauffeur: c, vehicleName } = input
+  const unitLabel = r.assigned_unit?.label ?? null
   const body =
     `Phalo Transportation — Trip Assignment\n` +
     `Booking: ${r.booking_number}\n` +
     `Customer: ${r.customer_name}\n` +
+    `Phone: ${r.customer_phone}\n` +
     `Pickup: ${r.pickup_address}\n` +
     `Time: ${new Date(r.pickup_time).toLocaleString('en-US')}\n` +
     `Drop-off: ${r.dropoff_address}\n` +
-    `Vehicle: ${vehicleName ?? r.fleet?.name ?? 'TBD'}\n` +
-    `Passengers: ${r.passengers}` +
-    (r.special_requests ? `\nNotes: ${r.special_requests}` : '')
+    `Vehicle: ${vehicleName ?? r.fleet?.name ?? 'TBD'}` +
+    (unitLabel ? `\nUnit: ${unitLabel}` : '') +
+    `\nPassengers: ${r.passengers}` +
+    (r.luggage ? `\nLuggage: ${r.luggage}` : '') +
+    (r.special_requests ? `\nNotes: ${r.special_requests}` : '') +
+    `\nReply to: info.phalotrans@gmail.com`
 
   const result: DispatchResult = {
     email: channelIdle('email not configured'),
@@ -61,14 +66,22 @@ export async function notifyDriverDispatch(input: DispatchInput): Promise<Dispat
         to: email,
         driverName: c.name,
         customerName: r.customer_name,
+        customerEmail: r.customer_email,
+        customerPhone: r.customer_phone,
         bookingNumber: r.booking_number,
         pickupTime: r.pickup_time,
         pickupAddress: r.pickup_address,
         dropoffAddress: r.dropoff_address,
         vehicleName: vehicleName ?? r.fleet?.name,
+        assignedUnitLabel: unitLabel,
         passengers: r.passengers,
+        luggage: r.luggage,
+        durationHours: r.duration_hours,
+        distanceMiles: r.distance_miles,
         specialRequests: r.special_requests,
         totalPrice: Number(r.total_price),
+        paymentStatus: r.payment_status,
+        status: r.status,
       })
       result.email = {
         attempted: true,

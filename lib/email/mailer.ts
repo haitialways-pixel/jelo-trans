@@ -9,6 +9,8 @@ const RENDER_TIMEOUT_MS = 30_000
 const SEND_TIMEOUT_MS = 15_000
 const FROM_FALLBACK = 'Phalo Transportation <onboarding@resend.dev>'
 const SANDBOX_FROM = 'onboarding@resend.dev'
+const DISPATCH_FROM_DEFAULT = 'Phalo Transportation <no-reply@phalotrans.com>'
+const DISPATCH_REPLY_TO_DEFAULT = 'info.phalotrans@gmail.com'
 
 function getResend(): Resend | null {
   const key = process.env.RESEND_API_KEY
@@ -78,6 +80,26 @@ export function getMailFromAddress(): string {
 /** True when sending via Resend's test sender (no custom domain verified yet). */
 export function isResendSandboxMode(): boolean {
   return getMailFromAddress().includes(SANDBOX_FROM)
+}
+
+/** Sender for driver dispatch emails (defaults to no-reply@phalotrans.com). */
+export function getDispatchFromAddress(): string {
+  if (useSandboxFrom()) return FROM_FALLBACK
+
+  const configured = process.env.DISPATCH_FROM_EMAIL?.trim()
+  if (configured && configured.includes('@') && isValidResendFromAddress(configured)) {
+    return configured
+  }
+
+  if (isValidResendFromAddress(DISPATCH_FROM_DEFAULT)) return DISPATCH_FROM_DEFAULT
+  return getMailFromAddress()
+}
+
+/** Reply-To for driver dispatch — driver replies land here (defaults to info.phalotrans@gmail.com). */
+export function getDispatchReplyToAddress(): string {
+  const configured = process.env.DISPATCH_REPLY_TO_EMAIL?.trim()
+  if (configured && configured.includes('@')) return configured
+  return DISPATCH_REPLY_TO_DEFAULT
 }
 
 function friendlyResendError(message: string, from: string, to: string): string {
@@ -191,11 +213,13 @@ export async function sendMail(input: {
   subject: string
   html: string
   text?: string
+  from?: string
+  replyTo?: string
 }): Promise<MailResult> {
   const r = getResend()
   if (!r) return { sent: false, reason: 'Resend not configured' }
 
-  const from = getMailFromAddress()
+  const from = input.from ?? getMailFromAddress()
   try {
     const result = await withTimeout(
       r.emails.send({
@@ -204,6 +228,7 @@ export async function sendMail(input: {
         subject: input.subject,
         html: input.html,
         ...(input.text ? { text: input.text } : {}),
+        ...(input.replyTo ? { replyTo: input.replyTo } : {}),
       }),
       'resend send',
     )
