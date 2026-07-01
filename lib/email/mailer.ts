@@ -25,15 +25,54 @@ function useSandboxFrom(): boolean {
   return flag === '1' || flag === 'true' || flag === 'yes'
 }
 
+/** Extract bare address from `Name <user@domain.com>` or return input if already bare. */
+export function parseFromEmail(from: string): string {
+  const match = from.match(/<([^>]+)>/)
+  return (match?.[1] ?? from).trim()
+}
+
+const BLOCKED_FROM_DOMAINS = new Set([
+  'gmail.com',
+  'googlemail.com',
+  'yahoo.com',
+  'hotmail.com',
+  'outlook.com',
+  'icloud.com',
+  'aol.com',
+  'live.com',
+  'msn.com',
+])
+
+function isValidResendFromAddress(from: string): boolean {
+  const email = parseFromEmail(from).toLowerCase()
+  if (!email.includes('@')) return false
+
+  const domain = email.split('@')[1] ?? ''
+  if (!domain || domain.includes('..')) return false
+  // Catches typos like gmail.com.com or phalotrans.com.com
+  if (/\.(com|net|org|io|co)\.(com|net|org|io|co)$/i.test(domain)) return false
+  if (BLOCKED_FROM_DOMAINS.has(domain)) return false
+
+  return true
+}
+
 /** Resolved sender used for all outbound mail. */
 export function getMailFromAddress(): string {
   if (useSandboxFrom()) return FROM_FALLBACK
 
   const configured = process.env.BOOKING_FROM_EMAIL?.trim()
   if (!configured) return FROM_FALLBACK
-  // Resend accepts "Name <email@domain.com>" or bare email.
-  if (configured.includes('@')) return configured
-  return FROM_FALLBACK
+  if (!configured.includes('@')) return FROM_FALLBACK
+
+  if (!isValidResendFromAddress(configured)) {
+    console.warn(
+      '[email] BOOKING_FROM_EMAIL is not a valid Resend sender; using sandbox fallback.',
+      { configured },
+    )
+    return FROM_FALLBACK
+  }
+
+  return configured
 }
 
 /** True when sending via Resend's test sender (no custom domain verified yet). */
@@ -44,11 +83,16 @@ export function isResendSandboxMode(): boolean {
 function friendlyResendError(message: string, from: string, to: string): string {
   const lower = message.toLowerCase()
 
-  if (lower.includes('domain') && (lower.includes('verified') || lower.includes('not found'))) {
+  if (
+    lower.includes('not authorized') ||
+    (lower.includes('domain') && (lower.includes('verified') || lower.includes('not found')))
+  ) {
+    const parsed = parseFromEmail(from)
     return (
-      `Sender domain is not verified in Resend (${from}). ` +
-      `Until your domain is verified, set RESEND_USE_SANDBOX_FROM=true and ` +
-      `BOOKING_FROM_EMAIL="Phalo Transportation <onboarding@resend.dev>" in Vercel env vars.`
+      `Resend cannot send from "${parsed}". ` +
+      `You cannot use Gmail/Yahoo addresses as the sender, and typos like "gmail.com.com" will fail. ` +
+      `Until your own domain is verified in Resend, set on Vercel: ` +
+      `RESEND_USE_SANDBOX_FROM=true and BOOKING_FROM_EMAIL="Phalo Transportation <onboarding@resend.dev>".`
     )
   }
 
