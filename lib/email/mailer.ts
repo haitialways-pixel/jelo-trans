@@ -5,7 +5,8 @@ import type { ReactElement } from 'react'
 
 let _resend: Resend | null = null
 
-const SEND_TIMEOUT_MS = 12_000
+const RENDER_TIMEOUT_MS = 30_000
+const SEND_TIMEOUT_MS = 15_000
 const FROM_FALLBACK = 'Phalo Transportation <onboarding@resend.dev>'
 
 function getResend(): Resend | null {
@@ -26,16 +27,38 @@ function resolveFromAddress(): string {
   return FROM_FALLBACK
 }
 
-async function withTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
+async function withTimeout<T>(
+  promise: Promise<T>,
+  label: string,
+  ms: number = SEND_TIMEOUT_MS,
+): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined
   const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(new Error(`${label} timed out after ${SEND_TIMEOUT_MS}ms`)), SEND_TIMEOUT_MS)
+    timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
   })
   try {
     return await Promise.race([promise, timeout])
   } finally {
     if (timer) clearTimeout(timer)
   }
+}
+
+function htmlToPlainText(html: string): string {
+  return html
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<\/tr>/gi, '\n')
+    .replace(/<\/h[1-6]>/gi, '\n\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
 }
 
 export type MailResult = { sent: boolean; reason?: string; id?: string }
@@ -51,10 +74,8 @@ export async function sendTemplatedMail(input: {
 
   const from = resolveFromAddress()
   try {
-    const [html, text] = await withTimeout(
-      Promise.all([render(input.react), render(input.react, { plainText: true })]),
-      'render email',
-    )
+    const html = await withTimeout(render(input.react), 'render email', RENDER_TIMEOUT_MS)
+    const text = htmlToPlainText(html)
 
     const result = await withTimeout(
       r.emails.send({
