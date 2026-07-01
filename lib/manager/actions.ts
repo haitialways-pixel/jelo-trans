@@ -4,16 +4,9 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { assertStaff } from '@/lib/manager/auth'
 import { staffDb } from '@/lib/manager/db'
-import { sendBookingConfirmation } from '@/lib/email/sendBookingConfirmation'
 import { sendBookingReceived } from '@/lib/email/sendBookingReceived'
-import { sendChauffeurEnRoute } from '@/lib/email/sendChauffeurEnRoute'
-import { notifyDriverDispatch } from '@/lib/manager/dispatch'
-import type { Chauffeur } from '@/lib/manager/data'
-import { sendArrivedAtPickup } from '@/lib/email/sendArrivedAtPickup'
-import { sendPassengerOnBoard } from '@/lib/email/sendPassengerOnBoard'
-import { sendArrivedAtDestination } from '@/lib/email/sendArrivedAtDestination'
-import { sendRideComplete } from '@/lib/email/sendRideComplete'
-import { sendCancellation } from '@/lib/email/sendCancellation'
+import { queueLifecycleEmails } from '@/lib/manager/lifecycleEmails'
+import type { Chauffeur, ManagerReservation } from '@/lib/manager/data'
 import { isStripeConfigured } from '@/lib/stripe/server'
 import { chargeBalance } from '@/lib/stripe/payments'
 import { notifyManagement } from '@/lib/chatbot/notify'
@@ -131,93 +124,19 @@ export async function advanceReservation(id: string, stage: Stage): Promise<Acti
       chauffeurContact = c as Chauffeur | null
     }
 
-    if (res?.customer_email) {
-      const common = {
-        to: res.customer_email as string,
-        customerName: res.customer_name as string,
-        bookingNumber: res.booking_number as string,
-        vehicleName,
-        chauffeurName: res.chauffeur_name as string | null,
-        chauffeurPhone: chauffeurContact?.phone ?? null,
-      }
-
-      try {
-        switch (stage) {
-          case 'confirm':
-            await sendBookingConfirmation({
-              to: common.to,
-              customerName: common.customerName,
-              bookingNumber: common.bookingNumber,
-              pickupTime: res.pickup_time,
-              pickupAddress: res.pickup_address,
-              dropoffAddress: res.dropoff_address,
-              vehicleName: vehicleName ?? undefined,
-              chauffeurName: common.chauffeurName,
-              chauffeurPhone: common.chauffeurPhone,
-              totalPrice: Number(res.total_price),
-            })
-            break
-          case 'dispatch':
-            await sendChauffeurEnRoute({
-              ...common,
-              pickupAddress: res.pickup_address,
-              pickupTime: res.pickup_time,
-            })
-            break
-          case 'arrive_pickup':
-            await sendArrivedAtPickup(common)
-            break
-          case 'onboard':
-            await sendPassengerOnBoard(common)
-            break
-          case 'arrive_dropoff':
-            await sendArrivedAtDestination({
-              to: common.to,
-              customerName: common.customerName,
-              bookingNumber: common.bookingNumber,
-            })
-            break
-          case 'complete':
-            await sendRideComplete({
-              ...common,
-              pickupAddress: res.pickup_address,
-              dropoffAddress: res.dropoff_address,
-              pickupTime: res.pickup_time,
-              totalAmount: res.total_price != null ? Number(res.total_price) : null,
-              transactionId: res.balance_intent_id ?? res.deposit_intent_id ?? null,
-              paymentMethod: res.payment_status === 'paid' ? 'Card on file' : null,
-              completedAt: res.completed_at ?? new Date().toISOString(),
-            })
-            break
-          case 'cancel':
-            await sendCancellation({
-              to: common.to,
-              customerName: common.customerName,
-              bookingNumber: common.bookingNumber,
-              cancellationReason: 'Cancelled by Phalo Transportation',
-            })
-            break
-        }
-      } catch (e) {
-        console.error(`[advanceReservation] customer email failed (${stage}):`, e)
-      }
-    }
-
-    if (stage === 'dispatch' && chauffeurContact) {
-      try {
-        await notifyDriverDispatch({
-          reservation: res,
-          chauffeur: chauffeurContact,
-          vehicleName,
-        })
-      } catch (e) {
-        console.error('[advanceReservation] driver dispatch notification failed:', e)
-      }
-    }
-
     revalidatePath('/manager')
     revalidatePath('/manager/reservations')
     revalidatePath(`/manager/reservations/${id}`)
+
+    if (res) {
+      queueLifecycleEmails({
+        stage,
+        res: res as ManagerReservation,
+        vehicleName,
+        chauffeurContact,
+      })
+    }
+
     return { ok: true }
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'Action failed' }

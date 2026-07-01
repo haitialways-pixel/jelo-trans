@@ -1,16 +1,21 @@
 // Service-role Supabase client — SERVER ONLY. Bypasses RLS.
-// Used exclusively by trusted server code that has NO user session: the Stripe
-// webhook and the payment server actions. NEVER import from a client component.
-//
-// Requires SUPABASE_SERVICE_ROLE_KEY (.env.local, server-only — no NEXT_PUBLIC prefix).
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
 let _admin: SupabaseClient | null = null
 
+/** Resolve the service-role key (Supabase renamed this to SUPABASE_SECRET_KEY in newer dashboards). */
+export function getServiceRoleKey(): string | undefined {
+  return process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY
+}
+
 export function createAdminClient(): SupabaseClient {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!url || !key) throw new Error('SUPABASE_SERVICE_ROLE_KEY (or URL) is not set')
+  const key = getServiceRoleKey()
+  if (!url || !key) {
+    throw new Error(
+      'SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SECRET_KEY is not set (server-only, no NEXT_PUBLIC prefix)',
+    )
+  }
   if (!_admin) {
     _admin = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
   }
@@ -18,5 +23,5 @@ export function createAdminClient(): SupabaseClient {
 }
 
 export function isAdminConfigured(): boolean {
-  return Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY)
+  return Boolean(getServiceRoleKey())
 }

@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
-  const testEmail = searchParams.get('to') || 'your-email@example.com'
+  const testEmail = searchParams.get('to') || 'delivered@resend.dev'
 
   try {
     const result = await sendMail({
@@ -21,10 +21,12 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       success: result.sent,
-      message: result.sent 
-        ? `✅ Test email sent to ${testEmail}` 
-        : `❌ Failed to send email`,
-      details: result
+      message: result.sent
+        ? `Test email sent to ${testEmail}`
+        : 'Failed to send email',
+      configured: Boolean(process.env.RESEND_API_KEY),
+      from: process.env.BOOKING_FROM_EMAIL ?? '(using Resend onboarding fallback)',
+      details: result,
     })
   } catch (error: any) {
     console.error('Test email error:', error)

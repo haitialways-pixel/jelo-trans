@@ -1,8 +1,19 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+/** Server Actions POST with an action id — must never be redirected or they hang client-side. */
+function isServerActionRequest(request: NextRequest): boolean {
+  if (request.method !== 'POST') return false
+  return (
+    request.headers.has('next-action') ||
+    request.headers.has('Next-Action') ||
+    request.headers.get('accept')?.includes('text/x-component') === true
+  )
+}
+
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request })
+  const serverAction = isServerActionRequest(request)
 
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     return new Response(
@@ -30,10 +41,8 @@ export async function proxy(request: NextRequest) {
     },
   )
 
-  // Refresh the session on every manager request so server components see valid cookies.
   let user = null
   try {
-    // getSession refreshes expired tokens into Set-Cookie; getUser validates the JWT.
     await supabase.auth.getSession()
     const {
       data: { user: authUser },
@@ -51,16 +60,14 @@ export async function proxy(request: NextRequest) {
   const isLogin = pathname === '/manager/login'
   const isProtected = pathname.startsWith('/manager') && !isLogin
 
-  if (isProtected && !user) {
+  // Never redirect Server Action POSTs — the client awaits a response and will spin forever.
+  if (isProtected && !user && !serverAction) {
     const url = request.nextUrl.clone()
     url.pathname = '/manager/login'
     return NextResponse.redirect(url)
   }
 
-  // Let authenticated users stay on the login page when staff check failed
-  // (requireStaff redirects here with ?error=not_staff). Redirecting them
-  // straight back to /manager creates an infinite loop.
-  if (isLogin && user && !request.nextUrl.searchParams.has('error')) {
+  if (isLogin && user && !request.nextUrl.searchParams.has('error') && !serverAction) {
     const url = request.nextUrl.clone()
     url.pathname = '/manager'
     url.search = ''

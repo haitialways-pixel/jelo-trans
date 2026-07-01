@@ -31,8 +31,10 @@ name = "phalo-transportation"
 # Manager login requires these at minimum (Dashboard → Settings → Environment variables):
 #   NEXT_PUBLIC_SUPABASE_URL
 #   NEXT_PUBLIC_SUPABASE_ANON_KEY
-# SUPABASE_SERVICE_ROLE_KEY is recommended but no longer required for manager reads
-# (the app falls back to session + RLS). Stripe webhooks/payments still need it.
+# SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SECRET_KEY — required for Stripe webhooks.
+# RESEND_API_KEY + BOOKING_FROM_EMAIL — required for transactional email.
+# Quote BOOKING_FROM_EMAIL in the dashboard if it contains spaces:
+#   Phalo Transportation <bookings@phalotrans.com>
 #
 # See HANDOFF_README.md "Deploying to Cloudflare" section for full steps.
 # ----------------------------------------------------------------------------

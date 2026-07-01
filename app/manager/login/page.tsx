@@ -3,7 +3,6 @@
 import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { verifyStaffAccess } from './actions'
 import { Lock, Loader2 } from 'lucide-react'
 
 export default function ManagerLoginPage() {
@@ -45,15 +44,21 @@ function LoginForm() {
       return
     }
 
-    // Browser client sets auth cookies — more reliable than server-action sign-in on Cloudflare.
-    const staffCheck = await verifyStaffAccess()
-    if (staffCheck.error) {
+    // Staff check on the browser session — avoids server-action cookie race that caused infinite spin.
+    const { data: profileRows, error: profileError } = await supabase.rpc('get_my_staff_profile')
+    const profile = Array.isArray(profileRows) ? profileRows[0] : profileRows
+
+    if (profileError || !profile) {
+      await supabase.auth.signOut()
       setLoading(false)
-      setError(staffCheck.error)
+      setError(
+        profileError?.message?.includes('get_my_staff_profile')
+          ? 'Staff auth is not configured in the database. Run supabase/migrations/20260701_manual_dispatch_auth.sql.'
+          : 'This account is not authorized for the manager area.',
+      )
       return
     }
 
-    // Full navigation so proxy + server layout read the fresh auth cookies.
     window.location.href = '/manager'
   }
 

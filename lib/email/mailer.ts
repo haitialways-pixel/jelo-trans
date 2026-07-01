@@ -1,32 +1,45 @@
-// SERVER-ONLY mailer. Resend is the transport, @react-email/render turns React
-// components into HTML + plain-text. The exported API is best-effort: if Resend
-// isn't configured (RESEND_API_KEY missing), every call returns { sent: false }
-// instead of throwing — booking/lifecycle flows must NEVER break because email is
-// down or unconfigured.
-//
-// Required env (.env.local):
-//   RESEND_API_KEY=re_xxxxxxxx
-//   BOOKING_FROM_EMAIL=Phalo Transportation <bookings@phalotrans.com>   (must be on a verified domain)
+// SERVER-ONLY mailer via Resend + @react-email/render.
 import { Resend } from 'resend'
 import { render } from '@react-email/render'
 import type { ReactElement } from 'react'
 
 let _resend: Resend | null = null
 
+const SEND_TIMEOUT_MS = 12_000
+const FROM_FALLBACK = 'Phalo Transportation <onboarding@resend.dev>'
+
 function getResend(): Resend | null {
   const key = process.env.RESEND_API_KEY
-  if (!key) return null
+  if (!key) {
+    console.warn('[email] RESEND_API_KEY is not set')
+    return null
+  }
   if (!_resend) _resend = new Resend(key)
   return _resend
 }
 
-// onboarding@resend.dev only works while you're testing on Resend's free tier — once
-// you verify a domain, switch BOOKING_FROM_EMAIL to it.
-const FROM_FALLBACK = 'Phalo Transportation <onboarding@resend.dev>'
+function resolveFromAddress(): string {
+  const configured = process.env.BOOKING_FROM_EMAIL?.trim()
+  if (!configured) return FROM_FALLBACK
+  // Resend accepts "Name <email@domain.com>" or bare email.
+  if (configured.includes('@')) return configured
+  return FROM_FALLBACK
+}
 
-export type MailResult = { sent: boolean; reason?: string }
+async function withTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label} timed out after ${SEND_TIMEOUT_MS}ms`)), SEND_TIMEOUT_MS)
+  })
+  try {
+    return await Promise.race([promise, timeout])
+  } finally {
+    if (timer) clearTimeout(timer)
+  }
+}
 
-/** Send a React Email template (rendered to HTML + text). */
+export type MailResult = { sent: boolean; reason?: string; id?: string }
+
 export async function sendTemplatedMail(input: {
   to: string
   subject: string
@@ -35,28 +48,40 @@ export async function sendTemplatedMail(input: {
 }): Promise<MailResult> {
   const r = getResend()
   if (!r) return { sent: false, reason: 'Resend not configured (RESEND_API_KEY missing)' }
-  const from = process.env.BOOKING_FROM_EMAIL || FROM_FALLBACK
+
+  const from = resolveFromAddress()
   try {
-    const [html, text] = await Promise.all([
-      render(input.react),
-      render(input.react, { plainText: true }),
-    ])
-    const result = await r.emails.send({
-      from,
-      to: input.to,
-      subject: input.subject,
-      html,
-      text,
-      ...(input.replyTo ? { replyTo: input.replyTo } : {}),
-    })
-    if (result.error) return { sent: false, reason: result.error.message }
-    return { sent: true }
+    const [html, text] = await withTimeout(
+      Promise.all([render(input.react), render(input.react, { plainText: true })]),
+      'render email',
+    )
+
+    const result = await withTimeout(
+      r.emails.send({
+        from,
+        to: input.to,
+        subject: input.subject,
+        html,
+        text,
+        ...(input.replyTo ? { replyTo: input.replyTo } : {}),
+      }),
+      'resend send',
+    )
+
+    if (result.error) {
+      console.error('[email] Resend API error:', result.error.message, { to: input.to, from })
+      return { sent: false, reason: result.error.message }
+    }
+
+    console.info('[email] sent', { to: input.to, subject: input.subject, id: result.data?.id })
+    return { sent: true, id: result.data?.id }
   } catch (e) {
-    return { sent: false, reason: e instanceof Error ? e.message : 'send failed' }
+    const reason = e instanceof Error ? e.message : 'send failed'
+    console.error('[email] send failed:', reason, { to: input.to, from })
+    return { sent: false, reason }
   }
 }
 
-/** Send a raw HTML email — used by ops alerts (Telegram fallback). */
 export async function sendMail(input: {
   to: string
   subject: string
@@ -65,19 +90,29 @@ export async function sendMail(input: {
 }): Promise<MailResult> {
   const r = getResend()
   if (!r) return { sent: false, reason: 'Resend not configured' }
-  const from = process.env.BOOKING_FROM_EMAIL || FROM_FALLBACK
+
+  const from = resolveFromAddress()
   try {
-    const result = await r.emails.send({
-      from,
-      to: input.to,
-      subject: input.subject,
-      html: input.html,
-      ...(input.text ? { text: input.text } : {}),
-    })
-    if (result.error) return { sent: false, reason: result.error.message }
-    return { sent: true }
+    const result = await withTimeout(
+      r.emails.send({
+        from,
+        to: input.to,
+        subject: input.subject,
+        html: input.html,
+        ...(input.text ? { text: input.text } : {}),
+      }),
+      'resend send',
+    )
+    if (result.error) {
+      console.error('[email] Resend API error:', result.error.message, { to: input.to, from })
+      return { sent: false, reason: result.error.message }
+    }
+    console.info('[email] sent', { to: input.to, subject: input.subject, id: result.data?.id })
+    return { sent: true, id: result.data?.id }
   } catch (e) {
-    return { sent: false, reason: e instanceof Error ? e.message : 'send failed' }
+    const reason = e instanceof Error ? e.message : 'send failed'
+    console.error('[email] send failed:', reason, { to: input.to, from })
+    return { sent: false, reason }
   }
 }
 

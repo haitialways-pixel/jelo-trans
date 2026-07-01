@@ -24,12 +24,16 @@ export function LifecycleControls({ r }: { r: ManagerReservation }) {
   function run(stage: Stage, confirmMsg?: string) {
     if (confirmMsg && !window.confirm(confirmMsg)) return
     start(async () => {
-      const res = await advanceReservation(r.id, stage)
-      if (res.ok) {
-        toast.success('Reservation updated')
-        router.refresh()
-      } else {
-        toast.error(res.error)
+      try {
+        const res = await advanceReservation(r.id, stage)
+        if (res.ok) {
+          toast.success('Reservation updated')
+          router.refresh()
+        } else {
+          toast.error(res.error)
+        }
+      } catch {
+        toast.error('Request failed — try refreshing the page.')
       }
     })
   }
