@@ -19,6 +19,10 @@ type NotifyInput = {
    * Use for time-sensitive ops alerts like new online bookings.
    */
   alwaysEmail?: boolean
+  /** Optional CTA link (e.g. manager reservation detail page). */
+  actionUrl?: string
+  /** Link label shown in HTML email and appended to plain text. */
+  actionLabel?: string
 }
 
 /** Ops inbox for booking alerts and escalations. Override with MANAGEMENT_EMAIL. */
@@ -38,13 +42,47 @@ export async function notifyManagement(input: NotifyInput): Promise<void> {
   await notifyEmail(input)
 }
 
+function appendActionToText(message: string, input: NotifyInput): string {
+  if (!input.actionUrl) return message
+  const label = input.actionLabel ?? 'Open in manager portal'
+  return `${message}\n\n${label}: ${input.actionUrl}`
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+function buildNotifyHtml(message: string, input: NotifyInput): string {
+  const bodyHtml = escapeHtml(message).replace(/\n/g, '<br>')
+  const actionBlock = input.actionUrl
+    ? `<p style="margin:20px 0 0;">
+        <a href="${escapeHtml(input.actionUrl)}"
+           style="display:inline-block;padding:10px 18px;background:#2563eb;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;">
+          ${escapeHtml(input.actionLabel ?? 'Review pending reservation')}
+        </a>
+      </p>
+      <p style="margin:12px 0 0;font-size:12px;color:#6b7280;">
+        <a href="${escapeHtml(input.actionUrl)}" style="color:#2563eb;">${escapeHtml(input.actionUrl)}</a>
+      </p>`
+    : ''
+
+  return `<div style="font-family:Arial,sans-serif;line-height:1.5;color:#111827;">${bodyHtml}${actionBlock}</div>`
+}
+
 async function notifyTelegram(input: NotifyInput): Promise<boolean> {
   const token = process.env.TELEGRAM_BOT_TOKEN
   const chatId = process.env.TELEGRAM_CHAT_ID
   if (!token || !chatId) return false
+
+  const message = appendActionToText(input.message, input)
   const text = input.title
-    ? `${input.title}\n\n${input.message}`
-    : `🆘 New chat escalation\n\n"${input.message}"\n\nLogged in the support queue — please follow up.`
+    ? `${input.title}\n\n${message}`
+    : `🆘 New chat escalation\n\n"${message}"\n\nLogged in the support queue — please follow up.`
+
   try {
     const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: 'POST',
@@ -65,16 +103,14 @@ async function notifyEmail(input: NotifyInput): Promise<void> {
     : `A website visitor asked for something the assistant can't handle:\n\n"${input.message}"\n\n` +
       `It's logged in the support queue (support_requests). Please follow up.`
 
+  const text = appendActionToText(body, input)
+
   const result = await sendMail({
     to,
     fromKind: 'customer',
     subject,
-    text: body,
-    html: `<div style="font-family:Arial,sans-serif;line-height:1.5;color:#111827;">${body
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/\n/g, '<br>')}</div>`,
+    text,
+    html: buildNotifyHtml(body, input),
   })
 
   if (!result.sent) {

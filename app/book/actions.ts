@@ -5,9 +5,39 @@ import { sendBookingReceived } from '@/lib/email/sendBookingReceived'
 import { notifyManagement } from '@/lib/chatbot/notify'
 import { isStripeConfigured, getStripe } from '@/lib/stripe/server'
 import { createDepositForBooking } from '@/lib/stripe/payments'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdminClient, isAdminConfigured } from '@/lib/supabase/admin'
 import { checkRateLimit } from '@/lib/security/rateLimit'
 import { recordOpsNotification } from '@/lib/manager/notifyOps'
+import {
+  getManagerPendingReservationsUrl,
+  getManagerReservationUrl,
+} from '@/lib/site'
+
+async function managerReservationLink(bookingNumber: string) {
+  try {
+    if (isAdminConfigured()) {
+      const admin = createAdminClient()
+      const { data } = await admin
+        .from('reservations')
+        .select('id')
+        .eq('booking_number', bookingNumber)
+        .maybeSingle()
+      if (data?.id) {
+        return {
+          actionUrl: getManagerReservationUrl(data.id),
+          actionLabel: 'Review pending reservation',
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('[booking] could not resolve reservation link:', e)
+  }
+
+  return {
+    actionUrl: getManagerPendingReservationsUrl(),
+    actionLabel: 'View pending reservations',
+  }
+}
 
 export async function calculatePrice(data: {
   vehicleId: string
@@ -105,6 +135,7 @@ export async function createReservation(formData: any) {
     // Alert ops immediately by email (even if deposit not paid yet). Customer confirmation
     // email still waits for manager review; "booking received" may follow deposit payment.
     try {
+      const link = await managerReservationLink(bookingNumber)
       await notifyManagement({
         alwaysEmail: true,
         title: '🚗 New online booking (pending review)',
@@ -116,6 +147,7 @@ export async function createReservation(formData: any) {
           `Phone: ${formData.customerPhone}\n` +
           `Customer email: ${formData.customerEmail}\n` +
           (isStripeConfigured() ? 'Deposit: not paid yet' : 'Deposit: Stripe not configured'),
+        ...link,
       })
     } catch (e) {
       console.error('[createReservation] management notification failed:', e)
@@ -251,6 +283,8 @@ export async function finalizeDeposit(bookingNumber: string) {
           `Deposit $${Number(r.deposit_amount ?? 0).toFixed(2)} paid · ` +
           `balance $${Number(r.balance_amount ?? 0).toFixed(2)} after ride\n` +
           `Customer email: ${r.customer_email}`,
+        actionUrl: getManagerReservationUrl(r.id),
+        actionLabel: 'Open reservation in manager portal',
       })
     } catch (e) {
       console.error('[finalizeDeposit] management notification failed:', e)
