@@ -297,23 +297,21 @@ CREATE INDEX idx_reservations_chauffeur     ON public.reservations (chauffeur_id
 -- TRIGGERS — booking number generator + phone normalization
 -- ============================================================================
 
--- Booking number: PT + YYYYMMDD + 6-char CSPRNG from an unambiguous alphabet
--- (no I/O/0/1). 256 mod 32 = 0 → no modulo bias. 32^6 ≈ 1.07B combos per day.
+-- Booking number: PH + 6-char CSPRNG (8 alphanumeric total). Unambiguous alphabet (no I/O/0/1).
 CREATE OR REPLACE FUNCTION public.generate_booking_number()
 RETURNS trigger
 LANGUAGE plpgsql SET search_path = public, extensions AS $$
 DECLARE
-  date_part text := to_char(now(), 'YYYYMMDD');
-  alphabet  text := 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  suffix    text;
+  alphabet text := 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  suffix   text;
 BEGIN
-  IF NEW.booking_number IS NULL THEN
+  IF NEW.booking_number IS NULL OR btrim(NEW.booking_number) = '' THEN
     LOOP
       suffix := (
         SELECT string_agg(substr(alphabet, 1 + (get_byte(b, i) % 32), 1), '' ORDER BY i)
         FROM (SELECT gen_random_bytes(6) AS b) g, generate_series(0, 5) AS i
       );
-      NEW.booking_number := 'PT' || date_part || suffix;
+      NEW.booking_number := 'PH' || suffix;
       EXIT WHEN NOT EXISTS (
         SELECT 1 FROM public.reservations WHERE booking_number = NEW.booking_number
       );

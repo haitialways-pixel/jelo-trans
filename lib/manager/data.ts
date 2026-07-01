@@ -1,4 +1,5 @@
 import { staffDb } from '@/lib/manager/db'
+import { isBookingNumber, normalizeBookingNumber } from '@/lib/bookingNumber'
 
 /** A reservation as seen by staff (full row + embedded vehicle name). */
 export type ManagerReservation = {
@@ -42,6 +43,61 @@ export type ManagerReservation = {
 
 const RES_COLUMNS =
   'id, booking_number, customer_name, customer_email, customer_phone, pickup_address, dropoff_address, pickup_time, status, payment_status, deposit_amount, balance_amount, deposit_paid_at, balance_paid_at, total_price, fare_subtotal, gratuity_percent, gratuity_amount, passengers, luggage, duration_hours, chauffeur_name, chauffeur_id, source, vehicle_id, assigned_unit_id, dispatched_at, arrived_pickup_at, onboard_at, arrived_dropoff_at, completed_at, special_requests, created_at, distance_miles, fleet:vehicle_id (name, type), assigned_unit:assigned_unit_id (label, year)'
+
+function escapeIlike(term: string): string {
+  return term.replace(/[%_\\]/g, '')
+}
+
+function normalizePhoneSearch(term: string): string {
+  return term.replace(/[^0-9+]/g, '')
+}
+
+/** Search by last name (customer name), phone, or booking number. */
+export async function searchReservations(
+  query: string,
+  opts?: { status?: string; limit?: number },
+): Promise<ManagerReservation[]> {
+  const raw = query.trim()
+  if (!raw) return getReservations(opts)
+
+  const supabase = await staffDb()
+  const safe = escapeIlike(raw)
+  const upper = escapeIlike(normalizeBookingNumber(raw))
+  const phone = normalizePhoneSearch(raw)
+
+  const orParts: string[] = []
+
+  if (isBookingNumber(raw)) {
+    orParts.push(`booking_number.eq.${upper}`)
+  } else if (/^PH/i.test(raw)) {
+    orParts.push(`booking_number.ilike.%${upper}%`)
+  }
+
+  // Last name: match surname (after a space) or a single-word name.
+  orParts.push(`customer_name.ilike.% ${safe}%`)
+  orParts.push(`customer_name.ilike.% ${safe}`)
+  orParts.push(`customer_name.eq.${safe}`)
+
+  if (phone.length >= 4) {
+    orParts.push(`customer_phone.ilike.%${phone}%`)
+  }
+
+  let q = supabase
+    .from('reservations')
+    .select(RES_COLUMNS)
+    .or(orParts.join(','))
+    .order('pickup_time', { ascending: true })
+
+  if (opts?.status) q = q.eq('status', opts.status)
+  if (opts?.limit) q = q.limit(opts.limit)
+
+  const { data, error } = await q
+  if (error) {
+    console.error('[manager] searchReservations:', error.message)
+    return []
+  }
+  return (data ?? []) as unknown as ManagerReservation[]
+}
 
 /** All reservations (staff-gated server-side), soonest pickup first. */
 export async function getReservations(opts?: {

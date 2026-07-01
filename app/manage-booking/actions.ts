@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { checkRateLimit } from '@/lib/security/rateLimit'
 import { sendCancellation } from '@/lib/email/sendCancellation'
+import { normalizeBookingNumber } from '@/lib/bookingNumber'
 
 export async function getBooking(bookingNumber: string, phone: string) {
   // Anti-brute-force: 10 lookups/min/IP. Even with a 32^6 booking code, an
@@ -15,7 +16,7 @@ export async function getBooking(bookingNumber: string, phone: string) {
   const supabase = await createClient()
 
   const { data, error } = await supabase.rpc('get_reservation_by_booking', {
-    p_booking_number: bookingNumber,
+    p_booking_number: normalizeBookingNumber(bookingNumber),
     p_phone: phone,
   })
 
@@ -36,7 +37,7 @@ export async function cancelBooking(bookingNumber: string, phone: string) {
   const supabase = await createClient()
 
   const { data, error } = await supabase.rpc('cancel_guest_reservation', {
-    p_booking_number: bookingNumber,
+    p_booking_number: normalizeBookingNumber(bookingNumber),
     p_phone: phone,
   })
 

@@ -6,6 +6,7 @@ import { calculatePrice } from '@/app/book/actions'
 import { HUMAN_PHONE, type ChatAction, type ChatContext } from './knowledge'
 import { notifyManagement } from './notify'
 import { checkRateLimit } from '@/lib/security/rateLimit'
+import { extractBookingNumber } from '@/lib/bookingNumber'
 
 type ActionResult = { text: string; link?: { href: string; label: string }; context?: ChatContext }
 
@@ -98,9 +99,7 @@ export async function runChatAction(
     }
 
     case 'lookup_booking': {
-      const bookingNumber = query.match(/IO[A-Z0-9]+/i)?.[0]
-      // Strip the booking number first — its date digits (e.g. 20260603) would otherwise
-      // be mis-read as a phone number by the digit regex below.
+      const bookingNumber = extractBookingNumber(query)
       const rest = bookingNumber ? query.replace(bookingNumber, ' ') : query
       const phone = rest.match(/[+(]?\d[\d\s().-]{6,}\d/)?.[0]
       if (bookingNumber && phone) {
@@ -124,7 +123,7 @@ export async function runChatAction(
         }
       }
       return {
-        text: `Sure — share your booking number (starts with PT…) and the phone on the reservation, and I’ll pull up the status.`,
+        text: `Sure — share your booking number (starts with PH…) and the phone on the reservation, and I’ll pull up the status.`,
         link: { href: '/manage-booking', label: 'Manage my booking' },
       }
     }

@@ -52,7 +52,7 @@ export default function ManageBookingPage() {
 
         {!booking ? (
           <form onSubmit={handleSearch} className="mt-10 space-y-4">
-            <input name="booking_number" placeholder="PT20260603XXXXXX" className="w-full px-7 py-4 rounded-2xl text-lg tracking-widest uppercase" required />
+            <input name="booking_number" placeholder="PH2K9M4X7" className="w-full px-7 py-4 rounded-2xl text-lg tracking-widest uppercase" required maxLength={8} />
             <input name="phone" placeholder="Phone number" className="w-full px-7 py-4 rounded-2xl text-lg" required />
             {error && <p className="text-red-400 text-sm">{error}</p>}
             <button type="submit" disabled={loading} className="btn-gold w-full py-5 rounded-full text-sm tracking-[2px] mt-2">

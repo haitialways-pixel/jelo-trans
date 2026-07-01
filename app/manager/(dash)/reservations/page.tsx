@@ -1,8 +1,9 @@
 import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
-import { getReservations, getFleetModels } from '@/lib/manager/data'
+import { getReservations, searchReservations, getFleetModels } from '@/lib/manager/data'
 import { StatusBadge } from '@/components/manager/StatusBadge'
 import { CreateReservationForm } from '@/components/manager/CreateReservationForm'
+import { ReservationSearch } from '@/components/manager/ReservationSearch'
 import { formatDateTime, formatMoney, STATUS_LABELS } from '@/lib/manager/format'
 
 export const dynamic = 'force-dynamic'
@@ -16,15 +17,27 @@ const FILTERS = [
   { key: 'cancelled', label: 'Cancelled' },
 ]
 
+function filterHref(status: string, query: string) {
+  const params = new URLSearchParams()
+  if (status) params.set('status', status)
+  if (query.trim()) params.set('q', query.trim())
+  const qs = params.toString()
+  return qs ? `/manager/reservations?${qs}` : '/manager/reservations'
+}
+
 export default async function ReservationsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>
+  searchParams: Promise<{ status?: string; q?: string }>
 }) {
-  const { status } = await searchParams
+  const { status, q } = await searchParams
   const active = status && STATUS_LABELS[status] ? status : ''
+  const query = (q ?? '').trim()
+
   const [reservations, fleet] = await Promise.all([
-    getReservations(active ? { status: active } : undefined),
+    query
+      ? searchReservations(query, active ? { status: active } : undefined)
+      : getReservations(active ? { status: active } : undefined),
     getFleetModels(),
   ])
 
@@ -33,10 +46,15 @@ export default async function ReservationsPage({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="display text-2xl font-semibold">Reservations</h1>
-          <p className="text-on-surface-variant text-sm mt-1">{reservations.length} result(s)</p>
+          <p className="text-on-surface-variant text-sm mt-1">
+            {reservations.length} result(s)
+            {query ? ` for “${query}”` : ''}
+          </p>
         </div>
         <CreateReservationForm fleet={fleet} />
       </div>
+
+      <ReservationSearch defaultQuery={query} status={active} />
 
       {/* Filter tabs */}
       <div className="flex items-center gap-1.5 overflow-x-auto hide-scrollbar">
@@ -45,7 +63,7 @@ export default async function ReservationsPage({
           return (
             <Link
               key={f.key}
-              href={f.key ? `/manager/reservations?status=${f.key}` : '/manager/reservations'}
+              href={filterHref(f.key, query)}
               className={`whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs transition ${
                 isActive
                   ? 'bg-primary text-black font-medium'
@@ -60,7 +78,7 @@ export default async function ReservationsPage({
 
       {reservations.length === 0 ? (
         <p className="text-on-surface-variant text-sm glass-dark rounded-2xl p-8 text-center">
-          No reservations in this view.
+          {query ? 'No reservations match your search.' : 'No reservations in this view.'}
         </p>
       ) : (
         <div className="glass-dark gold-hairline rounded-2xl divide-y divide-outline-variant/15 overflow-hidden">
@@ -77,6 +95,7 @@ export default async function ReservationsPage({
                 </div>
                 <p className="text-xs text-on-surface-variant truncate mt-0.5">
                   <span className="font-mono">{r.booking_number}</span>
+                  {' · '}{r.customer_phone}
                   {r.source === 'manual' ? ' · Manual' : ''}
                   {' · '}{r.fleet?.name ?? 'No vehicle'}
                   {r.chauffeur_name ? ` · ${r.chauffeur_name}` : ''}
