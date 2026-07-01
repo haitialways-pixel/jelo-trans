@@ -29,6 +29,11 @@ export const STATUS_LABELS: Record<string, string> = {
   cancelled: 'Cancelled',
 }
 
+export const SOURCE_LABELS: Record<string, string> = {
+  web: 'Online',
+  manual: 'Manual',
+}
+
 export const STATUS_STYLES: Record<string, string> = {
   pending: 'bg-zinc-700/40 text-zinc-200 border-zinc-500/40',
   confirmed: 'bg-amber-500/15 text-amber-300 border-amber-500/40',
@@ -65,7 +70,9 @@ export function auditLabel(action: string): string {
     reservation_complete: 'Completed ride',
     reservation_cancel: 'Cancelled reservation',
     reservation_assign: 'Assigned vehicle / chauffeur',
+    reservation_manual_create: 'Created manual reservation',
     vehicle_status: 'Changed vehicle status',
+    manual_unit_assignment: 'Manually assigned vehicle',
   }
   return map[action] ?? action
 }

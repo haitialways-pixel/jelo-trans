@@ -1,9 +1,9 @@
 import * as React from 'react'
 import { sendTemplatedMail } from './mailer'
-import { BookingConfirmedEmail } from '@/lib/emails'
+import { BookingReceivedEmail } from '@/lib/emails'
 import { fmtDate, fmtTime, EMAIL_RE } from './format'
 
-export type BookingEmailInput = {
+export type BookingReceivedInput = {
   to: string
   customerName: string
   bookingNumber: string
@@ -11,22 +11,20 @@ export type BookingEmailInput = {
   pickupAddress: string
   dropoffAddress?: string
   vehicleName?: string
-  chauffeurName?: string | null
-  chauffeurPhone?: string | null
   totalPrice: number
 }
 export type EmailResult = { sent: boolean; reason?: string }
 
-export async function sendBookingConfirmation(i: BookingEmailInput): Promise<EmailResult> {
+export async function sendBookingReceived(i: BookingReceivedInput): Promise<EmailResult> {
   if (!i.to || !EMAIL_RE.test(i.to)) {
-    console.warn('[email] sendBookingConfirmation: invalid recipient', { bookingNumber: i.bookingNumber })
+    console.warn('[email] sendBookingReceived: invalid recipient', { bookingNumber: i.bookingNumber })
     return { sent: false, reason: 'invalid recipient email' }
   }
   const result = await sendTemplatedMail({
     to: i.to,
-    subject: `Your Phalo Transportation booking #${i.bookingNumber} is confirmed`,
+    subject: `We received your Phalo Transportation booking #${i.bookingNumber}`,
     react: (
-      <BookingConfirmedEmail
+      <BookingReceivedEmail
         customerName={i.customerName}
         bookingId={i.bookingNumber}
         pickupLocation={i.pickupAddress}
@@ -34,16 +32,14 @@ export async function sendBookingConfirmation(i: BookingEmailInput): Promise<Ema
         pickupDate={fmtDate(i.pickupTime)}
         pickupTime={fmtTime(i.pickupTime)}
         vehicleType={i.vehicleName}
-        driverName={i.chauffeurName ?? undefined}
-        driverPhone={i.chauffeurPhone ?? undefined}
         totalAmount={i.totalPrice}
       />
     ),
   })
   if (!result.sent) {
-    console.warn('[email] sendBookingConfirmation failed:', result.reason, { bookingNumber: i.bookingNumber, to: i.to })
+    console.warn('[email] sendBookingReceived failed:', result.reason, { bookingNumber: i.bookingNumber, to: i.to })
   } else {
-    console.info('[email] Booking confirmation email sent to customer', { bookingNumber: i.bookingNumber, to: i.to })
+    console.info('[email] Booking received email sent', { bookingNumber: i.bookingNumber, to: i.to })
   }
   return result
 }

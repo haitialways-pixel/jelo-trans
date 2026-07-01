@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
-import { getReservations } from '@/lib/manager/data'
+import { getReservations, getFleetModels } from '@/lib/manager/data'
 import { StatusBadge } from '@/components/manager/StatusBadge'
+import { CreateReservationForm } from '@/components/manager/CreateReservationForm'
 import { formatDateTime, formatMoney, STATUS_LABELS } from '@/lib/manager/format'
 
 export const runtime = 'edge'
@@ -23,13 +24,19 @@ export default async function ReservationsPage({
 }) {
   const { status } = await searchParams
   const active = status && STATUS_LABELS[status] ? status : ''
-  const reservations = await getReservations(active ? { status: active } : undefined)
+  const [reservations, fleet] = await Promise.all([
+    getReservations(active ? { status: active } : undefined),
+    getFleetModels(),
+  ])
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="display text-2xl font-semibold">Reservations</h1>
-        <p className="text-on-surface-variant text-sm mt-1">{reservations.length} result(s)</p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="display text-2xl font-semibold">Reservations</h1>
+          <p className="text-on-surface-variant text-sm mt-1">{reservations.length} result(s)</p>
+        </div>
+        <CreateReservationForm fleet={fleet} />
       </div>
 
       {/* Filter tabs */}
@@ -70,7 +77,9 @@ export default async function ReservationsPage({
                   <StatusBadge status={r.status} />
                 </div>
                 <p className="text-xs text-on-surface-variant truncate mt-0.5">
-                  <span className="font-mono">{r.booking_number}</span> · {r.fleet?.name ?? 'No vehicle'}
+                  <span className="font-mono">{r.booking_number}</span>
+                  {r.source === 'manual' ? ' · Manual' : ''}
+                  {' · '}{r.fleet?.name ?? 'No vehicle'}
                   {r.chauffeur_name ? ` · ${r.chauffeur_name}` : ''}
                 </p>
               </div>

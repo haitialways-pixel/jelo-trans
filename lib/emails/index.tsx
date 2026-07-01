@@ -68,25 +68,84 @@ const EmailLayout = ({ children, previewText }: { children: React.ReactNode; pre
   </Html>
 );
 
-// 1. Booking Confirmed
+// 1. Booking Received (pending manager review)
+export const BookingReceivedEmail = (props: BaseProps) => (
+  <EmailLayout previewText="We received your reservation request">
+    <Heading style={{ color: '#1f2937' }}>📋 Reservation Received</Heading>
+    <Text>Dear {props.customerName},</Text>
+    <Text>
+      Thank you for choosing <strong>Phalo Transportation</strong>. We have received your reservation
+      request and our team is reviewing it now.
+    </Text>
+    <Text>
+      <strong>A confirmation email with full trip details will follow shortly</strong> once your
+      reservation is approved by our manager.
+    </Text>
+
+    <Section>
+      <Text><strong>Booking ID:</strong> #{props.bookingId}</Text>
+      {props.pickupLocation && (
+        <Text><strong>Pickup:</strong> {props.pickupLocation} on {props.pickupDate} at {props.pickupTime}</Text>
+      )}
+      {props.dropoffLocation && <Text><strong>Drop-off:</strong> {props.dropoffLocation}</Text>}
+      {props.vehicleType && <Text><strong>Vehicle:</strong> {props.vehicleType}</Text>}
+      {props.totalAmount != null && <Text><strong>Estimated Total:</strong> ${props.totalAmount}</Text>}
+    </Section>
+
+    <Text>Questions? Call us at 678-478-3506.</Text>
+  </EmailLayout>
+);
+
+// 2. Booking Confirmed (after manager approval)
 export const BookingConfirmedEmail = (props: BaseProps) => (
   <EmailLayout previewText="Your reservation has been confirmed!">
     <Heading style={{ color: '#1f2937' }}>✅ Your Reservation is Confirmed!</Heading>
     <Text>Dear {props.customerName},</Text>
-    <Text>Thank you for choosing <strong>Phalo Transportation</strong>. Your booking has been successfully confirmed.</Text>
+    <Text>
+      Great news — your <strong>Phalo Transportation</strong> reservation has been confirmed by our team.
+    </Text>
 
     <Section>
       <Text><strong>Booking ID:</strong> #{props.bookingId}</Text>
       <Text><strong>Pickup:</strong> {props.pickupLocation} on {props.pickupDate} at {props.pickupTime}</Text>
-      <Text><strong>Vehicle:</strong> {props.vehicleType}</Text>
-      {props.totalAmount && <Text><strong>Total Amount:</strong> ${props.totalAmount}</Text>}
+      {props.dropoffLocation && <Text><strong>Drop-off:</strong> {props.dropoffLocation}</Text>}
+      {props.vehicleType && <Text><strong>Vehicle:</strong> {props.vehicleType}</Text>}
+      {props.driverName && (
+        <Text>
+          <strong>Chauffeur:</strong> {props.driverName}
+          {props.driverPhone ? ` (${props.driverPhone})` : ''}
+        </Text>
+      )}
+      {props.totalAmount != null && <Text><strong>Total Amount:</strong> ${props.totalAmount}</Text>}
     </Section>
 
     <Text>We look forward to providing you with excellent service.</Text>
   </EmailLayout>
 );
 
-// 2. Chauffeur En Route
+// 3. Driver dispatch notification
+export const DriverDispatchEmail = (props: BaseProps & { passengerCount?: number; specialRequests?: string }) => (
+  <EmailLayout previewText={`New dispatch — Booking #${props.bookingId}`}>
+    <Heading style={{ color: '#1f2937' }}>🚗 New Trip Assignment</Heading>
+    <Text>Hello{props.driverName ? ` ${props.driverName}` : ''},</Text>
+    <Text>You have been assigned to the following reservation:</Text>
+
+    <Section>
+      <Text><strong>Booking ID:</strong> #{props.bookingId}</Text>
+      <Text><strong>Customer:</strong> {props.customerName}</Text>
+      <Text><strong>Pickup:</strong> {props.pickupLocation} on {props.pickupDate} at {props.pickupTime}</Text>
+      {props.dropoffLocation && <Text><strong>Drop-off:</strong> {props.dropoffLocation}</Text>}
+      {props.vehicleType && <Text><strong>Vehicle:</strong> {props.vehicleType}</Text>}
+      {props.passengerCount != null && <Text><strong>Passengers:</strong> {props.passengerCount}</Text>}
+      {props.specialRequests && <Text><strong>Special requests:</strong> {props.specialRequests}</Text>}
+      {props.totalAmount != null && <Text><strong>Total fare:</strong> ${props.totalAmount}</Text>}
+    </Section>
+
+    <Text>Please confirm you are available and proceed to the pickup location on time.</Text>
+  </EmailLayout>
+);
+
+// 4. Chauffeur En Route
 export const ChauffeurEnRouteEmail = (props: BaseProps) => (
   <EmailLayout previewText="Your driver is on the way!">
     <Heading style={{ color: '#eab308' }}>🚗 Chauffeur is En Route</Heading>
@@ -101,7 +160,7 @@ export const ChauffeurEnRouteEmail = (props: BaseProps) => (
   </EmailLayout>
 );
 
-// 3. Arrived at Pickup
+// 5. Arrived at Pickup
 export const ArrivedAtPickupEmail = (props: BaseProps) => (
   <EmailLayout previewText="Driver has arrived at pickup">
     <Heading style={{ color: '#10b981' }}>📍 Driver Has Arrived</Heading>
@@ -115,7 +174,7 @@ export const ArrivedAtPickupEmail = (props: BaseProps) => (
   </EmailLayout>
 );
 
-// 4. Passenger on Board
+// 6. Passenger on Board
 export const PassengerOnBoardEmail = (props: BaseProps) => (
   <EmailLayout previewText="You are now on board">
     <Heading style={{ color: '#3b82f6' }}>🧳 You Are On Board</Heading>
@@ -129,7 +188,7 @@ export const PassengerOnBoardEmail = (props: BaseProps) => (
   </EmailLayout>
 );
 
-// 5. Arrived at Destination
+// 7. Arrived at Destination
 export const ArrivedAtDestinationEmail = (props: BaseProps) => (
   <EmailLayout previewText="You have arrived at your destination">
     <Heading style={{ color: '#8b5cf6' }}>🏁 Arrived at Destination</Heading>
@@ -139,7 +198,7 @@ export const ArrivedAtDestinationEmail = (props: BaseProps) => (
   </EmailLayout>
 );
 
-// 6. Ride Completed + Payment Receipt
+// 8. Ride Completed + Payment Receipt
 export const RideCompletedEmail = (props: BaseProps) => (
   <EmailLayout previewText="Ride Completed - Thank You!">
     <Heading style={{ color: '#10b981' }}>🎉 Ride Completed - Thank You!</Heading>
@@ -167,7 +226,7 @@ export const RideCompletedEmail = (props: BaseProps) => (
   </EmailLayout>
 );
 
-// 7. Cancellation
+// 9. Cancellation
 export const CancellationEmail = (props: BaseProps) => (
   <EmailLayout previewText="Your reservation has been cancelled">
     <Heading style={{ color: '#ef4444' }}>❌ Reservation Cancelled</Heading>

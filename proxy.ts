@@ -30,16 +30,19 @@ export async function proxy(request: NextRequest) {
     },
   )
 
+  // Refresh the session on every manager request so server components see valid cookies.
   let user = null
   try {
     const {
       data: { user: authUser },
+      error: authError,
     } = await supabase.auth.getUser()
+    if (authError) {
+      console.warn('[proxy] auth.getUser error:', authError.message)
+    }
     user = authUser
   } catch (error) {
-    // Edge runtime network errors: let the request through.
-    // The server-side requireStaff() guard will enforce auth.
-    console.error('[proxy] auth.getUser failed (edge runtime):', error instanceof Error ? error.message : error)
+    console.error('[proxy] auth.getUser failed:', error instanceof Error ? error.message : error)
   }
 
   const { pathname } = request.nextUrl

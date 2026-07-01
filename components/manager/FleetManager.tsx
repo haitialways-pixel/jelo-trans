@@ -91,6 +91,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
   // State for adding a chauffeur
   const [chauffeurName, setChauffeurName] = useState('')
   const [chauffeurPhone, setChauffeurPhone] = useState('')
+  const [chauffeurEmail, setChauffeurEmail] = useState('')
 
   const handleCreateClass = () => {
     if (!className.trim()) {
@@ -243,11 +244,16 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
       return
     }
     start(async () => {
-      const res = await addChauffeur(chauffeurName.trim(), chauffeurPhone.trim())
+      const res = await addChauffeur(
+        chauffeurName.trim(),
+        chauffeurPhone.trim(),
+        chauffeurEmail.trim(),
+      )
       if (res.ok) {
         toast.success('Chauffeur added')
         setChauffeurName('')
         setChauffeurPhone('')
+        setChauffeurEmail('')
         router.refresh()
       } else {
         toast.error(res.error)
@@ -800,12 +806,23 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
                 />
               </div>
               <div className="space-y-1">
-                <label className="block text-[11px] text-on-surface-variant uppercase font-medium">Phone Number (Optional)</label>
+                <label className="block text-[11px] text-on-surface-variant uppercase font-medium">Phone (for SMS dispatch)</label>
                 <input
                   type="text"
                   placeholder="e.g. +1 (555) 019-2834"
                   value={chauffeurPhone}
                   onChange={(e) => setChauffeurPhone(e.target.value)}
+                  className="w-full rounded-lg px-3 py-2 text-xs text-white"
+                  disabled={pending}
+                />
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <label className="block text-[11px] text-on-surface-variant uppercase font-medium">Email (for dispatch notifications)</label>
+                <input
+                  type="email"
+                  placeholder="driver@example.com"
+                  value={chauffeurEmail}
+                  onChange={(e) => setChauffeurEmail(e.target.value)}
                   className="w-full rounded-lg px-3 py-2 text-xs text-white"
                   disabled={pending}
                 />
@@ -839,7 +856,9 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
                       <Users className="w-4 h-4 text-on-surface-variant shrink-0" />
                       <div>
                         <p className="font-medium text-sm text-white">{c.name}</p>
-                        {c.phone && <p className="text-xs text-on-surface-variant mt-0.5">{c.phone}</p>}
+                        <p className="text-xs text-on-surface-variant mt-0.5">
+                          {[c.phone, c.email].filter(Boolean).join(' · ') || 'No contact on file'}
+                        </p>
                       </div>
                     </div>
                     <button

@@ -1,8 +1,9 @@
 'use client'
 
-import { Suspense, useState } from 'react'
+import { Suspense, useActionState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { managerLogin, type LoginState } from './actions'
 import { Lock, Loader2 } from 'lucide-react'
 
 export default function ManagerLoginPage() {
@@ -16,26 +17,14 @@ export default function ManagerLoginPage() {
 function LoginForm() {
   const params = useSearchParams()
   const notStaff = params.get('error') === 'not_staff'
+  const [state, formAction, pending] = useActionState<LoginState, FormData>(managerLogin, {})
 
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
-
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
-    const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) {
-      setLoading(false)
-      setError('Invalid email or password.')
-      return
+  useEffect(() => {
+    if (notStaff) {
+      const supabase = createClient()
+      supabase.auth.signOut().catch(() => {})
     }
-    // Full navigation so the server layout immediately sees the new auth cookie.
-    window.location.href = '/manager'
-  }
+  }, [notStaff])
 
   return (
     <div className="min-h-screen bg-background text-on-surface flex items-center justify-center px-6">
@@ -48,7 +37,7 @@ function LoginForm() {
           <p className="text-on-surface-variant text-sm mt-1">Phalo Transportation — staff only</p>
         </div>
 
-        <form onSubmit={onSubmit} className="glass-dark gold-hairline rounded-2xl p-6 space-y-4">
+        <form action={formAction} className="glass-dark gold-hairline rounded-2xl p-6 space-y-4">
           {notStaff && (
             <p className="text-red-300 text-xs bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">
               This account is not authorized for the manager area.
@@ -59,10 +48,9 @@ function LoginForm() {
             <label className="block text-xs tracking-wide text-on-surface-variant mb-1.5">Email</label>
             <input
               type="email"
+              name="email"
               required
               autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
               className="w-full rounded-lg px-3 py-2.5 text-sm"
               placeholder="you@phalotransportation.com"
             />
@@ -72,24 +60,27 @@ function LoginForm() {
             <label className="block text-xs tracking-wide text-on-surface-variant mb-1.5">Password</label>
             <input
               type="password"
+              name="password"
               required
               autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
               className="w-full rounded-lg px-3 py-2.5 text-sm"
               placeholder="••••••••"
             />
           </div>
 
-          {error && <p className="text-red-300 text-xs">{error}</p>}
+          {state.error && (
+            <p className="text-red-300 text-xs bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">
+              {state.error}
+            </p>
+          )}
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={pending}
             className="gold-shimmer w-full flex items-center justify-center gap-2 font-semibold tracking-[0.1em] text-sm py-3 rounded-xl disabled:opacity-60"
           >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-            {loading ? 'SIGNING IN…' : 'SIGN IN'}
+            {pending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+            {pending ? 'SIGNING IN…' : 'SIGN IN'}
           </button>
         </form>
 

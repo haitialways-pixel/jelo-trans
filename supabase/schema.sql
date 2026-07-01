@@ -16,15 +16,6 @@
 -- Security: anon/customers NEVER touch tables directly. Guests act through
 -- SECURITY DEFINER RPCs; staff read via their own JWT (RLS + is_staff()) and
 -- write via audited SECURITY DEFINER RPCs or RLS-gated direct writes.
---
--- IMPORTANT (external to this DB):
---   The Google Maps integration (address autocomplete + distance) lives in the
---   Next.js app at /api/places/*. It requires a SERVER-ONLY env var named
---   GOOGLE_MAPS_API_KEY (with Places API + Distance Matrix API enabled) to be
---   set on the *app host* (Vercel, Cloudflare Pages/Workers, etc.), NOT inside
---   the database. Missing key → "Google Maps API key is missing on the server".
---   See .env.example, HANDOFF_README.md, and your hosting dashboard.
---   Supabase keys (URL + service_role) are also required on the app host.
 -- ============================================================================
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
@@ -61,6 +52,9 @@ DROP FUNCTION IF EXISTS public.create_reservation(text, text, text, text, text, 
 DROP FUNCTION IF EXISTS public.create_support_request(text, text, text, text, text, jsonb);
 DROP FUNCTION IF EXISTS public.staff_advance_reservation(uuid, text);
 DROP FUNCTION IF EXISTS public.staff_assign_reservation(uuid, uuid, text);
+DROP FUNCTION IF EXISTS public.staff_assign_reservation(uuid, uuid, text, uuid);
+DROP FUNCTION IF EXISTS public.staff_create_reservation(text, text, text, text, text, timestamptz, uuid, integer, integer, numeric, text, numeric, numeric);
+DROP FUNCTION IF EXISTS public.get_my_staff_profile();
 DROP FUNCTION IF EXISTS public.staff_set_unit_status(uuid, text);
 DROP FUNCTION IF EXISTS public.check_rate_limit(text, text, int, int);
 DROP FUNCTION IF EXISTS public.create_notification(text, text, text, uuid, text);
@@ -133,6 +127,8 @@ CREATE TABLE public.reservations (
   payment_status text NOT NULL DEFAULT 'unpaid' CHECK (payment_status IN ('unpaid', 'paid', 'refunded', 'partial')),
   special_requests text,
   chauffeur_name text,
+  chauffeur_id uuid REFERENCES public.chauffeurs(id) ON DELETE SET NULL,
+  source text NOT NULL DEFAULT 'web' CHECK (source IN ('web', 'manual')),
   -- Stripe (deposit + balance)
   stripe_customer_id        text,
   stripe_payment_method_id  text,
@@ -188,6 +184,9 @@ CREATE TABLE public.chauffeurs (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name text NOT NULL,
   phone text,
+  email text,
+  notify_email boolean NOT NULL DEFAULT true,
+  notify_sms boolean NOT NULL DEFAULT true,
   status text NOT NULL DEFAULT 'available' CHECK (status IN ('available','busy','off_duty')),
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
@@ -444,7 +443,6 @@ GRANT EXECUTE ON FUNCTION public.cancel_guest_reservation(text, text) TO anon, a
 
 -- Availability — UNIT-COUNT-AWARE. A model is free if its overlapping active
 -- bookings are fewer than its operational unit count.
--- If no vehicle_units rows exist at all for the model, we conservatively allow 1.
 CREATE OR REPLACE FUNCTION public.check_vehicle_availability(
   p_vehicle_id uuid, p_start timestamptz, p_end timestamptz
 ) RETURNS boolean
@@ -456,12 +454,10 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
          AND r.pickup_time < p_end
          AND r.pickup_time + (r.duration_hours * interval '1 hour') > p_start)
     <
-    CASE
-      WHEN EXISTS (SELECT 1 FROM public.vehicle_units u WHERE u.model_id = p_vehicle_id)
-        THEN (SELECT count(*) FROM public.vehicle_units u
-              WHERE u.model_id = p_vehicle_id AND u.status IN ('available', 'in_service'))
-      ELSE 1
-    END
+    GREATEST(
+      (SELECT count(*) FROM public.vehicle_units u
+         WHERE u.model_id = p_vehicle_id AND u.status IN ('available', 'in_service')),
+      1)
   );
 $$;
 GRANT EXECUTE ON FUNCTION public.check_vehicle_availability(uuid, timestamptz, timestamptz) TO anon, authenticated;
@@ -513,14 +509,9 @@ BEGIN
 
   v_end := p_pickup_time + (v_duration * interval '1 hour');
 
-  -- Count only units that are ready for service. If the model has *no* vehicle_units rows defined at all,
-  -- fall back to allowing 1 (legacy / simple setups). Otherwise respect the actual ready count (may be 0).
   SELECT count(*) INTO v_units FROM public.vehicle_units
     WHERE model_id = p_vehicle_id AND status IN ('available', 'in_service');
-
-  IF NOT EXISTS (SELECT 1 FROM public.vehicle_units WHERE model_id = p_vehicle_id) THEN
-    v_units := 1;
-  END IF;
+  IF v_units = 0 THEN v_units := 1; END IF;
 
   SELECT count(*) INTO v_booked FROM public.reservations r
     WHERE r.vehicle_id = p_vehicle_id
@@ -662,31 +653,122 @@ REVOKE ALL ON FUNCTION public.staff_advance_reservation(uuid, text) FROM public,
 GRANT  EXECUTE ON FUNCTION public.staff_advance_reservation(uuid, text) TO authenticated;
 
 -- Assign a physical unit (+ chauffeur). Model is derived from the unit.
-CREATE OR REPLACE FUNCTION public.staff_assign_reservation(p_reservation_id uuid, p_unit_id uuid, p_chauffeur_name text)
+CREATE OR REPLACE FUNCTION public.staff_assign_reservation(
+  p_reservation_id uuid,
+  p_unit_id uuid,
+  p_chauffeur_name text DEFAULT NULL,
+  p_chauffeur_id uuid DEFAULT NULL
+)
 RETURNS public.reservations
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE v_res public.reservations; v_model uuid;
+DECLARE
+  v_res public.reservations;
+  v_model uuid;
+  v_chauffeur_name text;
 BEGIN
   IF NOT public.is_staff() THEN RAISE EXCEPTION 'Not authorized'; END IF;
+
+  IF p_chauffeur_id IS NOT NULL THEN
+    SELECT name INTO v_chauffeur_name FROM public.chauffeurs WHERE id = p_chauffeur_id;
+    IF v_chauffeur_name IS NULL THEN RAISE EXCEPTION 'Chauffeur not found'; END IF;
+  ELSE
+    v_chauffeur_name := nullif(btrim(p_chauffeur_name), '');
+  END IF;
+
   IF p_unit_id IS NOT NULL THEN
     SELECT model_id INTO v_model FROM public.vehicle_units WHERE id = p_unit_id;
     IF v_model IS NULL THEN RAISE EXCEPTION 'Unit not found'; END IF;
   END IF;
+
   UPDATE public.reservations
      SET assigned_unit_id = p_unit_id,
          vehicle_id       = COALESCE(v_model, vehicle_id),
-         chauffeur_name   = NULLIF(btrim(p_chauffeur_name), ''),
+         chauffeur_id     = p_chauffeur_id,
+         chauffeur_name   = v_chauffeur_name,
          updated_at       = now()
    WHERE id = p_reservation_id
    RETURNING * INTO v_res;
   IF NOT FOUND THEN RAISE EXCEPTION 'Reservation not found'; END IF;
   PERFORM public.write_audit('reservation_assign', p_reservation_id,
-    jsonb_build_object('unit_id', p_unit_id, 'chauffeur', v_res.chauffeur_name));
+    jsonb_build_object('unit_id', p_unit_id, 'chauffeur_id', p_chauffeur_id, 'chauffeur', v_res.chauffeur_name));
   RETURN v_res;
 END;
 $$;
-REVOKE ALL ON FUNCTION public.staff_assign_reservation(uuid, uuid, text) FROM public, anon;
-GRANT  EXECUTE ON FUNCTION public.staff_assign_reservation(uuid, uuid, text) TO authenticated;
+REVOKE ALL ON FUNCTION public.staff_assign_reservation(uuid, uuid, text, uuid) FROM public, anon;
+GRANT  EXECUTE ON FUNCTION public.staff_assign_reservation(uuid, uuid, text, uuid) TO authenticated;
+
+-- Staff manual reservation (manager sets price).
+CREATE OR REPLACE FUNCTION public.staff_create_reservation(
+  p_customer_name    text,
+  p_customer_email   text,
+  p_customer_phone   text,
+  p_pickup_address   text,
+  p_dropoff_address  text,
+  p_pickup_time      timestamptz,
+  p_vehicle_id       uuid,
+  p_passengers       integer,
+  p_luggage          integer,
+  p_duration_hours   numeric,
+  p_special_requests text,
+  p_total_price      numeric,
+  p_distance_miles   numeric DEFAULT NULL
+)
+RETURNS public.reservations
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_res public.reservations;
+BEGIN
+  IF NOT public.is_staff() THEN RAISE EXCEPTION 'Not authorized'; END IF;
+  IF coalesce(btrim(p_customer_name), '')  = '' THEN RAISE EXCEPTION 'Customer name is required'; END IF;
+  IF coalesce(btrim(p_customer_email), '') = '' THEN RAISE EXCEPTION 'Customer email is required'; END IF;
+  IF coalesce(btrim(p_customer_phone), '') = '' THEN RAISE EXCEPTION 'Customer phone is required'; END IF;
+  IF p_total_price IS NULL OR p_total_price < 0 THEN RAISE EXCEPTION 'Valid price is required'; END IF;
+
+  INSERT INTO public.reservations (
+    customer_name, customer_email, customer_phone,
+    pickup_address, dropoff_address, pickup_time,
+    vehicle_id, passengers, luggage, duration_hours, distance_miles,
+    total_price, status, payment_status, special_requests, source
+  ) VALUES (
+    btrim(p_customer_name), lower(btrim(p_customer_email)), btrim(p_customer_phone),
+    btrim(p_pickup_address), btrim(p_dropoff_address), p_pickup_time,
+    p_vehicle_id,
+    greatest(coalesce(p_passengers, 1), 1),
+    greatest(coalesce(p_luggage, 0), 0),
+    greatest(coalesce(p_duration_hours, 3.0), 0.25),
+    p_distance_miles,
+    round(p_total_price, 2),
+    'pending', 'unpaid',
+    nullif(btrim(p_special_requests), ''),
+    'manual'
+  )
+  RETURNING * INTO v_res;
+
+  PERFORM public.write_audit('reservation_manual_create', v_res.id,
+    jsonb_build_object('booking_number', v_res.booking_number, 'total_price', v_res.total_price));
+
+  BEGIN
+    PERFORM public.create_notification(
+      'new_booking',
+      '📝 Manual booking ' || v_res.booking_number,
+      v_res.customer_name || ' · ' || v_res.pickup_address || ' → ' || v_res.dropoff_address,
+      v_res.id, 'info'
+    );
+  EXCEPTION WHEN OTHERS THEN /* swallow */ END;
+
+  RETURN v_res;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.staff_create_reservation(text, text, text, text, text, timestamptz, uuid, integer, integer, numeric, text, numeric, numeric) FROM public, anon;
+GRANT EXECUTE ON FUNCTION public.staff_create_reservation(text, text, text, text, text, timestamptz, uuid, integer, integer, numeric, text, numeric, numeric) TO authenticated;
+
+-- Auth helper: avoids circular RLS on staff table.
+CREATE OR REPLACE FUNCTION public.get_my_staff_profile()
+RETURNS TABLE (full_name text, role text)
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT s.full_name, s.role FROM public.staff s WHERE s.id = auth.uid();
+$$;
+REVOKE ALL ON FUNCTION public.get_my_staff_profile() FROM public, anon;
+GRANT EXECUTE ON FUNCTION public.get_my_staff_profile() TO authenticated;
 
 -- Per-unit operational status (available/in_service/maintenance/unavailable).
 CREATE OR REPLACE FUNCTION public.staff_set_unit_status(p_unit_id uuid, p_status text)
@@ -884,3 +966,70 @@ UNION ALL SELECT id, 'Chevrolet Suburban #2',  2023 FROM public.fleet WHERE name
 UNION ALL SELECT id, 'GMC Yukon XL',           2023 FROM public.fleet WHERE name = 'Luxury SUV'
 UNION ALL SELECT id, 'Cadillac Escalade',      2024 FROM public.fleet WHERE name = 'Luxury SUV'
 UNION ALL SELECT id, 'Mercedes-Benz Sprinter', 2024 FROM public.fleet WHERE name = 'Luxury Sprinter Van';
+
+-- ============================================================================
+-- NEW RECOMMENDED FEATURES
+-- ============================================================================
+
+-- Archive past reservations
+ALTER TABLE public.reservations 
+ADD COLUMN IF NOT EXISTS archived boolean NOT NULL DEFAULT false,
+ADD COLUMN IF NOT EXISTS archived_at timestamptz;
+
+CREATE INDEX IF NOT EXISTS idx_reservations_archived ON public.reservations (archived, completed_at DESC);
+
+-- Function to archive old reservations
+CREATE OR REPLACE FUNCTION public.archive_old_reservations(days_old integer DEFAULT 90)
+RETURNS integer
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE count integer;
+BEGIN
+  UPDATE public.reservations 
+  SET archived = true, 
+      archived_at = now()
+  WHERE status IN ('completed', 'cancelled')
+    AND completed_at < now() - (days_old * interval '1 day')
+    AND archived = false;
+
+  GET DIAGNOSTICS count = ROW_COUNT;
+  RETURN count;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.archive_old_reservations(integer) FROM public, anon;
+GRANT EXECUTE ON FUNCTION public.archive_old_reservations(integer) TO authenticated;
+
+-- Manual vehicle/driver assignment
+CREATE OR REPLACE FUNCTION public.staff_assign_unit(
+  p_reservation_id uuid,
+  p_unit_id uuid,
+  p_chauffeur_name text DEFAULT NULL
+)
+RETURNS public.reservations
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_res public.reservations;
+BEGIN
+  IF NOT public.is_staff() THEN 
+    RAISE EXCEPTION 'Not authorized';
+  END IF;
+
+  UPDATE public.reservations
+     SET assigned_unit_id = p_unit_id,
+         chauffeur_name   = NULLIF(btrim(p_chauffeur_name), ''),
+         updated_at       = now()
+   WHERE id = p_reservation_id
+   RETURNING * INTO v_res;
+
+  IF NOT FOUND THEN 
+    RAISE EXCEPTION 'Reservation not found';
+  END IF;
+
+  PERFORM public.write_audit('manual_unit_assignment', p_reservation_id,
+    jsonb_build_object('unit_id', p_unit_id, 'chauffeur', v_res.chauffeur_name));
+
+  RETURN v_res;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.staff_assign_unit(uuid, uuid, text) FROM public, anon;
+GRANT EXECUTE ON FUNCTION public.staff_assign_unit(uuid, uuid, text) TO authenticated;

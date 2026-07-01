@@ -225,8 +225,10 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
       <div className="card p-10 max-w-lg mx-auto">
         <div className="text-center">
           <div className="text-6xl mb-6 text-primary">✓</div>
-          <h2 className="text-4xl tracking-tight mb-2">Booking Confirmed!</h2>
-          <p className="text-on-surface-variant text-sm mb-4">Your reservation is registered. Here are the details:</p>
+          <h2 className="text-4xl tracking-tight mb-2">Booking Received!</h2>
+          <p className="text-on-surface-variant text-sm mb-4">
+            Your reservation request is registered. A manager will review it and send a confirmation shortly.
+          </p>
           <p className="text-primary text-3xl font-mono mb-8">{bookingNumber}</p>
         </div>
 
@@ -251,10 +253,11 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
 
         <p className="text-on-surface-variant text-sm mt-6 border-t border-outline-variant/30 pt-6">
           {paid
-            ? `Your 10% deposit is paid — the balance is charged automatically after your ride. A confirmation and receipt are on their way to ${formData.customerEmail}. `
-            : emailSent
-              ? `A confirmation email is on its way to ${formData.customerEmail}. `
-              : ''}
+            ? `Your 10% deposit is paid — the balance is charged automatically after your ride. `
+            : ''}
+          {emailSent
+            ? `A booking received email is on its way to ${formData.customerEmail}. You will receive a separate confirmation once our team approves your reservation. `
+            : ''}
           Keep your booking number safe — you will need it together with your phone number to view or
           cancel your booking.
         </p>

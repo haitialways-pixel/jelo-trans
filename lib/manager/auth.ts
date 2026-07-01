@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdminClient, isAdminConfigured } from '@/lib/supabase/admin'
 
 export type StaffSession = {
   userId: string
@@ -13,27 +13,58 @@ async function resolveStaffSession(): Promise<StaffSession | null> {
   const supabase = await createClient()
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser()
 
+  if (userError) {
+    console.warn('[auth] getUser failed:', userError.message)
+    return null
+  }
   if (!user) return null
 
-  // Staff registry is managed out-of-band; read via service role after session
-  // is verified so RLS quirks cannot block legitimate staff members.
-  const admin = createAdminClient()
-  const { data: staffRow, error } = await admin
-    .from('staff')
-    .select('full_name, role')
-    .eq('id', user.id)
-    .maybeSingle()
+  // Prefer SECURITY DEFINER RPC — avoids circular RLS on staff table and does not
+  // require the service role key for the auth gate itself.
+  const { data: profileRows, error: profileError } = await supabase.rpc('get_my_staff_profile')
+  const profile = Array.isArray(profileRows) ? profileRows[0] : profileRows
 
-  if (error || !staffRow) return null
-
-  return {
-    userId: user.id,
-    email: user.email ?? null,
-    fullName: staffRow.full_name,
-    role: staffRow.role,
+  if (!profileError && profile) {
+    return {
+      userId: user.id,
+      email: user.email ?? null,
+      fullName: profile.full_name,
+      role: profile.role,
+    }
   }
+
+  if (profileError) {
+    console.warn('[auth] get_my_staff_profile RPC failed:', profileError.message)
+  }
+
+  // Fallback: service-role lookup (for projects that have not run the migration yet).
+  if (isAdminConfigured()) {
+    try {
+      const admin = createAdminClient()
+      const { data: staffRow, error } = await admin
+        .from('staff')
+        .select('full_name, role')
+        .eq('id', user.id)
+        .maybeSingle()
+
+      if (!error && staffRow) {
+        return {
+          userId: user.id,
+          email: user.email ?? null,
+          fullName: staffRow.full_name,
+          role: staffRow.role,
+        }
+      }
+      if (error) console.warn('[auth] admin staff lookup failed:', error.message)
+    } catch (e) {
+      console.warn('[auth] admin client unavailable:', e instanceof Error ? e.message : e)
+    }
+  }
+
+  return null
 }
 
 /**
@@ -47,9 +78,6 @@ export async function requireStaff(): Promise<StaffSession> {
     const {
       data: { user },
     } = await supabase.auth.getUser()
-    // Do not sign out here — Server Components cannot reliably clear auth
-    // cookies (especially on edge). The login page signs out client-side when
-    // it receives ?error=not_staff so the user can try another account.
     redirect(user ? '/manager/login?error=not_staff' : '/manager/login')
   }
   return session
@@ -60,4 +88,46 @@ export async function assertStaff(): Promise<StaffSession> {
   const session = await resolveStaffSession()
   if (!session) throw new Error('Not authenticated or not authorized')
   return session
+}
+
+/** Used by the login server action after sign-in. */
+export async function verifyStaffMembership(userId: string): Promise<StaffSession | null> {
+  const supabase = await createClient()
+  const { data: profileRows, error } = await supabase.rpc('get_my_staff_profile')
+  if (!error && profileRows) {
+    const profile = Array.isArray(profileRows) ? profileRows[0] : profileRows
+    if (profile) {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      return {
+        userId,
+        email: user?.email ?? null,
+        fullName: profile.full_name,
+        role: profile.role,
+      }
+    }
+  }
+
+  if (isAdminConfigured()) {
+    const admin = createAdminClient()
+    const { data: staffRow } = await admin
+      .from('staff')
+      .select('full_name, role')
+      .eq('id', userId)
+      .maybeSingle()
+    if (staffRow) {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      return {
+        userId,
+        email: user?.email ?? null,
+        fullName: staffRow.full_name,
+        role: staffRow.role,
+      }
+    }
+  }
+
+  return null
 }

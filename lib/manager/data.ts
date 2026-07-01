@@ -21,6 +21,8 @@ export type ManagerReservation = {
   luggage: number
   duration_hours: number
   chauffeur_name: string | null
+  chauffeur_id: string | null
+  source: string
   vehicle_id: string | null
   dispatched_at: string | null
   arrived_pickup_at: string | null
@@ -36,7 +38,7 @@ export type ManagerReservation = {
 }
 
 const RES_COLUMNS =
-  'id, booking_number, customer_name, customer_email, customer_phone, pickup_address, dropoff_address, pickup_time, status, payment_status, deposit_amount, balance_amount, deposit_paid_at, balance_paid_at, total_price, passengers, luggage, duration_hours, chauffeur_name, vehicle_id, assigned_unit_id, dispatched_at, arrived_pickup_at, onboard_at, arrived_dropoff_at, completed_at, special_requests, created_at, distance_miles, fleet:vehicle_id (name, type), assigned_unit:assigned_unit_id (label, year)'
+  'id, booking_number, customer_name, customer_email, customer_phone, pickup_address, dropoff_address, pickup_time, status, payment_status, deposit_amount, balance_amount, deposit_paid_at, balance_paid_at, total_price, passengers, luggage, duration_hours, chauffeur_name, chauffeur_id, source, vehicle_id, assigned_unit_id, dispatched_at, arrived_pickup_at, onboard_at, arrived_dropoff_at, completed_at, special_requests, created_at, distance_miles, fleet:vehicle_id (name, type), assigned_unit:assigned_unit_id (label, year)'
 
 /** All reservations (staff-gated server-side), soonest pickup first. */
 export async function getReservations(opts?: {
@@ -255,6 +257,9 @@ export type Chauffeur = {
   id: string
   name: string
   phone: string | null
+  email: string | null
+  notify_email: boolean
+  notify_sms: boolean
   status: string
   created_at: string
 }

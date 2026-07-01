@@ -4,7 +4,11 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { assertStaff } from '@/lib/manager/auth'
 import { staffDb } from '@/lib/manager/db'
+import { sendBookingConfirmation } from '@/lib/email/sendBookingConfirmation'
+import { sendBookingReceived } from '@/lib/email/sendBookingReceived'
 import { sendChauffeurEnRoute } from '@/lib/email/sendChauffeurEnRoute'
+import { notifyDriverDispatch } from '@/lib/manager/dispatch'
+import type { Chauffeur } from '@/lib/manager/data'
 import { sendArrivedAtPickup } from '@/lib/email/sendArrivedAtPickup'
 import { sendPassengerOnBoard } from '@/lib/email/sendPassengerOnBoard'
 import { sendArrivedAtDestination } from '@/lib/email/sendArrivedAtDestination'
@@ -102,31 +106,57 @@ export async function advanceReservation(id: string, stage: Stage): Promise<Acti
       }
     }
 
-    // Best-effort customer notifications — one email per lifecycle stage.
+    // Best-effort notifications — one email per lifecycle stage.
     // Must NEVER block or fail the action.
-    if (res?.customer_email) {
-      // Pull the vehicle name (joined from fleet) so emails can show "Premium Executive"
-      // rather than a bare UUID. Best-effort — undefined if the join fails.
-      let vehicleName: string | null = null
-      if (res.vehicle_id) {
-        const { data: v } = await admin
-          .from('fleet')
-          .select('name')
-          .eq('id', res.vehicle_id)
-          .maybeSingle()
-        vehicleName = v?.name ?? null
-      }
+    let vehicleName: string | null = null
+    if (res?.vehicle_id) {
+      const { data: v } = await admin
+        .from('fleet')
+        .select('name')
+        .eq('id', res.vehicle_id)
+        .maybeSingle()
+      vehicleName = v?.name ?? null
+    }
 
+    let chauffeurContact: Chauffeur | null = null
+    if (res?.chauffeur_id) {
+      const { data: c } = await admin.from('chauffeurs').select('*').eq('id', res.chauffeur_id).maybeSingle()
+      chauffeurContact = c as Chauffeur | null
+    } else if (res?.chauffeur_name) {
+      const { data: c } = await admin
+        .from('chauffeurs')
+        .select('*')
+        .eq('name', res.chauffeur_name)
+        .maybeSingle()
+      chauffeurContact = c as Chauffeur | null
+    }
+
+    if (res?.customer_email) {
       const common = {
         to: res.customer_email as string,
         customerName: res.customer_name as string,
         bookingNumber: res.booking_number as string,
         vehicleName,
         chauffeurName: res.chauffeur_name as string | null,
+        chauffeurPhone: chauffeurContact?.phone ?? null,
       }
 
       try {
         switch (stage) {
+          case 'confirm':
+            await sendBookingConfirmation({
+              to: common.to,
+              customerName: common.customerName,
+              bookingNumber: common.bookingNumber,
+              pickupTime: res.pickup_time,
+              pickupAddress: res.pickup_address,
+              dropoffAddress: res.dropoff_address,
+              vehicleName: vehicleName ?? undefined,
+              chauffeurName: common.chauffeurName,
+              chauffeurPhone: common.chauffeurPhone,
+              totalPrice: Number(res.total_price),
+            })
+            break
           case 'dispatch':
             await sendChauffeurEnRoute({
               ...common,
@@ -167,10 +197,21 @@ export async function advanceReservation(id: string, stage: Stage): Promise<Acti
               cancellationReason: 'Cancelled by Phalo Transportation',
             })
             break
-          // 'confirm' emits no email — the BookingConfirmedEmail is sent at booking creation.
         }
-      } catch {
-        // swallow — the lifecycle transition already succeeded and is audited.
+      } catch (e) {
+        console.error(`[advanceReservation] customer email failed (${stage}):`, e)
+      }
+    }
+
+    if (stage === 'dispatch' && chauffeurContact) {
+      try {
+        await notifyDriverDispatch({
+          reservation: res,
+          chauffeur: chauffeurContact,
+          vehicleName,
+        })
+      } catch (e) {
+        console.error('[advanceReservation] driver dispatch notification failed:', e)
       }
     }
 
@@ -188,6 +229,7 @@ export async function assignReservation(
   id: string,
   unitId: string | null,
   chauffeurName: string,
+  chauffeurId: string | null = null,
 ): Promise<ActionResult> {
   try {
     await assertStaff()
@@ -196,6 +238,7 @@ export async function assignReservation(
       p_reservation_id: id,
       p_unit_id: unitId,
       p_chauffeur_name: chauffeurName,
+      p_chauffeur_id: chauffeurId,
     })
     if (error) return { ok: false, error: error.message }
 
@@ -389,13 +432,131 @@ export async function deleteFleetModel(modelId: string): Promise<ActionResult> {
   }
 }
 
+/** Create a reservation manually from the manager portal. */
+export async function createManualReservation(input: {
+  customerName: string
+  customerEmail: string
+  customerPhone: string
+  pickupAddress: string
+  dropoffAddress: string
+  pickupTime: string
+  vehicleId: string
+  passengers: number
+  luggage: number
+  durationHours: number
+  specialRequests?: string
+  totalPrice: number
+  distanceMiles?: number
+  notifyCustomer?: boolean
+}): Promise<ActionResult & { bookingNumber?: string }> {
+  try {
+    await assertStaff()
+    const supabase = await createClient()
+    const { data, error } = await supabase.rpc('staff_create_reservation', {
+      p_customer_name: input.customerName,
+      p_customer_email: input.customerEmail,
+      p_customer_phone: input.customerPhone,
+      p_pickup_address: input.pickupAddress,
+      p_dropoff_address: input.dropoffAddress,
+      p_pickup_time: input.pickupTime,
+      p_vehicle_id: input.vehicleId,
+      p_passengers: input.passengers,
+      p_luggage: input.luggage,
+      p_duration_hours: input.durationHours,
+      p_special_requests: input.specialRequests ?? null,
+      p_total_price: input.totalPrice,
+      p_distance_miles: input.distanceMiles ?? null,
+    })
+    if (error) return { ok: false, error: error.message }
+
+    const res = Array.isArray(data) ? data[0] : data
+    const bookingNumber = res?.booking_number as string | undefined
+
+    if (input.notifyCustomer !== false && res?.customer_email) {
+      try {
+        const admin = await staffDb()
+        const { data: v } = await admin.from('fleet').select('name').eq('id', res.vehicle_id).maybeSingle()
+        await sendBookingReceived({
+          to: res.customer_email,
+          customerName: res.customer_name,
+          bookingNumber: bookingNumber!,
+          pickupTime: res.pickup_time,
+          pickupAddress: res.pickup_address,
+          dropoffAddress: res.dropoff_address,
+          vehicleName: v?.name,
+          totalPrice: Number(res.total_price),
+        })
+      } catch (e) {
+        console.error('[createManualReservation] customer email failed:', e)
+      }
+    }
+
+    revalidatePath('/manager')
+    revalidatePath('/manager/reservations')
+    return { ok: true, bookingNumber }
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Action failed' }
+  }
+}
+
+/** Dispatch driver notifications without advancing lifecycle (re-send). */
+export async function sendDriverDispatchNotification(id: string): Promise<ActionResult> {
+  try {
+    await assertStaff()
+    const admin = await staffDb()
+    const { data: res, error } = await admin
+      .from('reservations')
+      .select(
+        '*, fleet:vehicle_id (name), assigned_unit:assigned_unit_id (label)',
+      )
+      .eq('id', id)
+      .maybeSingle()
+    if (error || !res) return { ok: false, error: 'Reservation not found' }
+
+    let chauffeur: Chauffeur | null = null
+    if (res.chauffeur_id) {
+      const { data: c } = await admin.from('chauffeurs').select('*').eq('id', res.chauffeur_id).maybeSingle()
+      chauffeur = c as Chauffeur | null
+    } else if (res.chauffeur_name) {
+      const { data: c } = await admin.from('chauffeurs').select('*').eq('name', res.chauffeur_name).maybeSingle()
+      chauffeur = c as Chauffeur | null
+    }
+
+    if (!chauffeur) {
+      return { ok: false, error: 'Assign a chauffeur from the driver list before dispatching.' }
+    }
+
+    await notifyDriverDispatch({
+      reservation: res as unknown as import('@/lib/manager/data').ManagerReservation,
+      chauffeur,
+      vehicleName: (res as { fleet?: { name?: string } }).fleet?.name ?? null,
+    })
+
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Dispatch failed' }
+  }
+}
+
 /** Add a new chauffeur. */
-export async function addChauffeur(name: string, phone: string): Promise<ActionResult> {
+export async function addChauffeur(
+  name: string,
+  phone: string,
+  email: string = '',
+  notifyEmail = true,
+  notifySms = true,
+): Promise<ActionResult> {
   try {
     const supabase = await staffDb()
     const { error } = await supabase
       .from('chauffeurs')
-      .insert({ name, phone })
+      .insert({
+        name,
+        phone: phone || null,
+        email: email || null,
+        notify_email: notifyEmail,
+        notify_sms: notifySms,
+      })
 
     if (error) return { ok: false, error: error.message }
 
