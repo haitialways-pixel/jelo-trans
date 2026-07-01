@@ -5,14 +5,14 @@ import { createClient } from '@/lib/supabase/server'
 import { assertStaff } from '@/lib/manager/auth'
 import { staffDb } from '@/lib/manager/db'
 import { sendBookingReceived } from '@/lib/email/sendBookingReceived'
-import { queueLifecycleEmails } from '@/lib/manager/lifecycleEmails'
+import { sendLifecycleEmails } from '@/lib/manager/lifecycleEmails'
 import { notifyDriverDispatch, dispatchDeliveryError } from '@/lib/manager/dispatch'
 import type { Chauffeur, ManagerReservation } from '@/lib/manager/data'
 import { isStripeConfigured } from '@/lib/stripe/server'
 import { chargeBalance } from '@/lib/stripe/payments'
 import { notifyManagement } from '@/lib/chatbot/notify'
 
-export type ActionResult = { ok: true } | { ok: false; error: string }
+export type ActionResult = { ok: true; warning?: string } | { ok: false; error: string }
 
 const VALID_STAGES = [
   'confirm',
@@ -129,18 +129,96 @@ export async function advanceReservation(id: string, stage: Stage): Promise<Acti
     revalidatePath('/manager/reservations')
     revalidatePath(`/manager/reservations/${id}`)
 
+    let warning: string | undefined
     if (res) {
-      queueLifecycleEmails({
-        stage,
-        res: res as ManagerReservation,
-        vehicleName,
-        chauffeurContact,
-      })
+      try {
+        const emailResult = await sendLifecycleEmails({
+          stage,
+          res: res as ManagerReservation,
+          vehicleName,
+          chauffeurContact,
+        })
+        if (!emailResult.sent) {
+          const detail = emailResult.reason ?? 'unknown error'
+          if (stage === 'confirm') {
+            warning = `Reservation confirmed, but customer email failed: ${detail}`
+          } else {
+            console.warn('[advanceReservation] lifecycle email not sent:', { stage, detail })
+          }
+        }
+      } catch (e) {
+        console.error('[advanceReservation] lifecycle email failed:', e)
+        if (stage === 'confirm') {
+          warning = 'Reservation confirmed, but confirmation email could not be sent.'
+        }
+      }
+    }
+
+    return warning ? { ok: true, warning } : { ok: true }
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Action failed' }
+  }
+}
+
+/** Re-send the customer confirmation email without changing reservation status. */
+export async function resendConfirmationEmail(id: string): Promise<ActionResult> {
+  try {
+    await assertStaff()
+    const admin = await staffDb()
+
+    const { data: res, error } = await admin
+      .from('reservations')
+      .select('*, fleet:vehicle_id (name, type), assigned_unit:assigned_unit_id (label, year)')
+      .eq('id', id)
+      .maybeSingle()
+    if (error || !res) return { ok: false, error: 'Reservation not found' }
+
+    if (res.status === 'pending') {
+      return { ok: false, error: 'Use Confirm reservation first — that sends the initial confirmation email.' }
+    }
+    if (res.status === 'cancelled') {
+      return { ok: false, error: 'Cannot resend confirmation for a cancelled reservation.' }
+    }
+    if (res.status === 'completed') {
+      return { ok: false, error: 'This ride is completed — confirmation resend is not available.' }
+    }
+
+    let vehicleName: string | null = (res as { fleet?: { name?: string } }).fleet?.name ?? null
+    if (!vehicleName && res.vehicle_id) {
+      const { data: v } = await admin.from('fleet').select('name').eq('id', res.vehicle_id).maybeSingle()
+      vehicleName = v?.name ?? null
+    }
+
+    let chauffeurContact: Chauffeur | null = null
+    if (res.chauffeur_id) {
+      const { data: c } = await admin.from('chauffeurs').select('*').eq('id', res.chauffeur_id).maybeSingle()
+      chauffeurContact = c as Chauffeur | null
+    } else if (res.chauffeur_name) {
+      const { data: c } = await admin
+        .from('chauffeurs')
+        .select('*')
+        .eq('name', res.chauffeur_name)
+        .maybeSingle()
+      chauffeurContact = c as Chauffeur | null
+    }
+
+    const emailResult = await sendLifecycleEmails({
+      stage: 'confirm',
+      res: res as unknown as ManagerReservation,
+      vehicleName,
+      chauffeurContact,
+    })
+
+    if (!emailResult.sent) {
+      return {
+        ok: false,
+        error: `Confirmation email failed: ${emailResult.reason ?? 'unknown error'}`,
+      }
     }
 
     return { ok: true }
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : 'Action failed' }
+    return { ok: false, error: e instanceof Error ? e.message : 'Resend failed' }
   }
 }
 

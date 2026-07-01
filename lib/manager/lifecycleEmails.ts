@@ -7,6 +7,7 @@ import { sendRideComplete } from '@/lib/email/sendRideComplete'
 import { sendCancellation } from '@/lib/email/sendCancellation'
 import { notifyDriverDispatch } from '@/lib/manager/dispatch'
 import type { Chauffeur, ManagerReservation } from '@/lib/manager/data'
+
 type LifecycleStage =
   | 'confirm'
   | 'dispatch'
@@ -23,18 +24,26 @@ type SendInput = {
   chauffeurContact: Chauffeur | null
 }
 
-/** Fire-and-forget lifecycle emails — must never block server actions. */
-export function queueLifecycleEmails(input: SendInput): void {
-  void sendLifecycleEmails(input).catch((e) => {
-    console.error('[lifecycleEmails] background send failed:', e)
-  })
-}
+export type LifecycleEmailResult = { sent: boolean; reason?: string }
 
-async function sendLifecycleEmails({ stage, res, vehicleName, chauffeurContact }: SendInput) {
-  if (!res.customer_email) return
+/**
+ * Send lifecycle email for a reservation stage.
+ * Must be awaited in server actions — Vercel terminates the function after the
+ * response if this is fire-and-forget.
+ */
+export async function sendLifecycleEmails({
+  stage,
+  res,
+  vehicleName,
+  chauffeurContact,
+}: SendInput): Promise<LifecycleEmailResult> {
+  if (!res.customer_email?.trim()) {
+    console.warn('[lifecycleEmails] no customer email', { bookingNumber: res.booking_number, stage })
+    return { sent: false, reason: 'no customer email on reservation' }
+  }
 
   const common = {
-    to: res.customer_email,
+    to: res.customer_email.trim(),
     customerName: res.customer_name,
     bookingNumber: res.booking_number,
     vehicleName,
@@ -44,7 +53,7 @@ async function sendLifecycleEmails({ stage, res, vehicleName, chauffeurContact }
 
   switch (stage) {
     case 'confirm':
-      await sendBookingConfirmation({
+      return sendBookingConfirmation({
         to: common.to,
         customerName: common.customerName,
         bookingNumber: common.bookingNumber,
@@ -56,9 +65,8 @@ async function sendLifecycleEmails({ stage, res, vehicleName, chauffeurContact }
         chauffeurPhone: common.chauffeurPhone,
         totalPrice: Number(res.total_price),
       })
-      break
-    case 'dispatch':
-      await sendChauffeurEnRoute({
+    case 'dispatch': {
+      const enRoute = await sendChauffeurEnRoute({
         ...common,
         pickupAddress: res.pickup_address,
         pickupTime: res.pickup_time,
@@ -73,22 +81,20 @@ async function sendLifecycleEmails({ stage, res, vehicleName, chauffeurContact }
           console.warn('[lifecycleEmails] driver dispatch not delivered:', dispatchResult)
         }
       }
-      break
+      return enRoute
+    }
     case 'arrive_pickup':
-      await sendArrivedAtPickup(common)
-      break
+      return sendArrivedAtPickup(common)
     case 'onboard':
-      await sendPassengerOnBoard(common)
-      break
+      return sendPassengerOnBoard(common)
     case 'arrive_dropoff':
-      await sendArrivedAtDestination({
+      return sendArrivedAtDestination({
         to: common.to,
         customerName: common.customerName,
         bookingNumber: common.bookingNumber,
       })
-      break
     case 'complete':
-      await sendRideComplete({
+      return sendRideComplete({
         ...common,
         pickupAddress: res.pickup_address,
         dropoffAddress: res.dropoff_address,
@@ -98,14 +104,14 @@ async function sendLifecycleEmails({ stage, res, vehicleName, chauffeurContact }
         paymentMethod: res.payment_status === 'paid' ? 'Card on file' : null,
         completedAt: res.completed_at ?? new Date().toISOString(),
       })
-      break
     case 'cancel':
-      await sendCancellation({
+      return sendCancellation({
         to: common.to,
         customerName: common.customerName,
         bookingNumber: common.bookingNumber,
         cancellationReason: 'Cancelled by Phalo Transportation',
       })
-      break
+    default:
+      return { sent: false, reason: `unknown stage: ${stage}` }
   }
 }

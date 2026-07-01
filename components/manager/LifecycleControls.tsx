@@ -3,8 +3,8 @@
 import { useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { Check, Loader2, ChevronRight, Ban, CheckCircle2 } from 'lucide-react'
-import { advanceReservation, type Stage } from '@/lib/manager/actions'
+import { Check, Loader2, ChevronRight, Ban, CheckCircle2, Mail } from 'lucide-react'
+import { advanceReservation, resendConfirmationEmail, type Stage } from '@/lib/manager/actions'
 import { formatDateTime } from '@/lib/manager/format'
 import type { ManagerReservation } from '@/lib/manager/data'
 
@@ -21,14 +21,32 @@ export function LifecycleControls({ r }: { r: ManagerReservation }) {
   const router = useRouter()
   const terminal = r.status === 'cancelled' || r.status === 'completed'
 
+  const canResendConfirmation = r.status === 'confirmed' || r.status === 'in_progress'
+
   function run(stage: Stage, confirmMsg?: string) {
     if (confirmMsg && !window.confirm(confirmMsg)) return
     start(async () => {
       try {
         const res = await advanceReservation(r.id, stage)
         if (res.ok) {
-          toast.success('Reservation updated')
+          if (res.warning) toast.warning(res.warning)
+          else toast.success('Reservation updated')
           router.refresh()
+        } else {
+          toast.error(res.error)
+        }
+      } catch {
+        toast.error('Request failed — try refreshing the page.')
+      }
+    })
+  }
+
+  function resendConfirmation() {
+    start(async () => {
+      try {
+        const res = await resendConfirmationEmail(r.id)
+        if (res.ok) {
+          toast.success(`Confirmation email sent to ${r.customer_email}`)
         } else {
           toast.error(res.error)
         }
@@ -66,6 +84,17 @@ export function LifecycleControls({ r }: { r: ManagerReservation }) {
         >
           {pending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
           Confirm reservation
+        </button>
+      )}
+
+      {canResendConfirmation && (
+        <button
+          onClick={resendConfirmation}
+          disabled={pending}
+          className="w-full flex items-center justify-center gap-2 rounded-xl border border-primary/30 text-primary hover:bg-primary/10 text-sm font-medium py-2.5 transition disabled:opacity-50"
+        >
+          {pending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
+          Resend confirmation email
         </button>
       )}
 
