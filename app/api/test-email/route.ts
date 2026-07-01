@@ -1,5 +1,5 @@
 // app/api/test-email/route.ts
-import { sendMail } from '@/lib/email/mailer'
+import { getMailFromAddress, getMailSetupHint, isMailConfigured, isResendSandboxMode, sendMail } from '@/lib/email/mailer'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
@@ -24,15 +24,20 @@ export async function GET(request: Request) {
       message: result.sent
         ? `Test email sent to ${testEmail}`
         : 'Failed to send email',
-      configured: Boolean(process.env.RESEND_API_KEY),
-      from: process.env.BOOKING_FROM_EMAIL ?? '(using Resend onboarding fallback)',
+      configured: isMailConfigured(),
+      from: getMailFromAddress(),
+      sandboxMode: isResendSandboxMode(),
+      setupHint: getMailSetupHint(),
       details: result,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Test email error:', error)
     return NextResponse.json({
       success: false,
-      error: error.message
+      error: error instanceof Error ? error.message : 'Unknown error',
+      from: getMailFromAddress(),
+      sandboxMode: isResendSandboxMode(),
+      setupHint: getMailSetupHint(),
     }, { status: 500 })
   }
 }

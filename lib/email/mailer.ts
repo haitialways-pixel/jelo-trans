@@ -8,6 +8,7 @@ let _resend: Resend | null = null
 const RENDER_TIMEOUT_MS = 30_000
 const SEND_TIMEOUT_MS = 15_000
 const FROM_FALLBACK = 'Phalo Transportation <onboarding@resend.dev>'
+const SANDBOX_FROM = 'onboarding@resend.dev'
 
 function getResend(): Resend | null {
   const key = process.env.RESEND_API_KEY
@@ -19,12 +20,49 @@ function getResend(): Resend | null {
   return _resend
 }
 
-function resolveFromAddress(): string {
+function useSandboxFrom(): boolean {
+  const flag = process.env.RESEND_USE_SANDBOX_FROM?.trim().toLowerCase()
+  return flag === '1' || flag === 'true' || flag === 'yes'
+}
+
+/** Resolved sender used for all outbound mail. */
+export function getMailFromAddress(): string {
+  if (useSandboxFrom()) return FROM_FALLBACK
+
   const configured = process.env.BOOKING_FROM_EMAIL?.trim()
   if (!configured) return FROM_FALLBACK
   // Resend accepts "Name <email@domain.com>" or bare email.
   if (configured.includes('@')) return configured
   return FROM_FALLBACK
+}
+
+/** True when sending via Resend's test sender (no custom domain verified yet). */
+export function isResendSandboxMode(): boolean {
+  return getMailFromAddress().includes(SANDBOX_FROM)
+}
+
+function friendlyResendError(message: string, from: string, to: string): string {
+  const lower = message.toLowerCase()
+
+  if (lower.includes('domain') && (lower.includes('verified') || lower.includes('not found'))) {
+    return (
+      `Sender domain is not verified in Resend (${from}). ` +
+      `Until your domain is verified, set RESEND_USE_SANDBOX_FROM=true and ` +
+      `BOOKING_FROM_EMAIL="Phalo Transportation <onboarding@resend.dev>" in Vercel env vars.`
+    )
+  }
+
+  if (
+    from.includes(SANDBOX_FROM) &&
+    (lower.includes('only send') || lower.includes('testing') || lower.includes('your own'))
+  ) {
+    return (
+      `Resend sandbox: emails can only be delivered to your Resend account email until a domain is verified. ` +
+      `Cannot send to ${to}. Add the driver's email as a chauffeur contact after domain verification.`
+    )
+  }
+
+  return message
 }
 
 async function withTimeout<T>(
@@ -72,7 +110,7 @@ export async function sendTemplatedMail(input: {
   const r = getResend()
   if (!r) return { sent: false, reason: 'Resend not configured (RESEND_API_KEY missing)' }
 
-  const from = resolveFromAddress()
+  const from = getMailFromAddress()
   try {
     const html = await withTimeout(render(input.react), 'render email', RENDER_TIMEOUT_MS)
     const text = htmlToPlainText(html)
@@ -90,14 +128,15 @@ export async function sendTemplatedMail(input: {
     )
 
     if (result.error) {
-      console.error('[email] Resend API error:', result.error.message, { to: input.to, from })
-      return { sent: false, reason: result.error.message }
+      const reason = friendlyResendError(result.error.message, from, input.to)
+      console.error('[email] Resend API error:', reason, { to: input.to, from })
+      return { sent: false, reason }
     }
 
     console.info('[email] sent', { to: input.to, subject: input.subject, id: result.data?.id })
     return { sent: true, id: result.data?.id }
   } catch (e) {
-    const reason = e instanceof Error ? e.message : 'send failed'
+    const reason = friendlyResendError(e instanceof Error ? e.message : 'send failed', from, input.to)
     console.error('[email] send failed:', reason, { to: input.to, from })
     return { sent: false, reason }
   }
@@ -112,7 +151,7 @@ export async function sendMail(input: {
   const r = getResend()
   if (!r) return { sent: false, reason: 'Resend not configured' }
 
-  const from = resolveFromAddress()
+  const from = getMailFromAddress()
   try {
     const result = await withTimeout(
       r.emails.send({
@@ -125,13 +164,14 @@ export async function sendMail(input: {
       'resend send',
     )
     if (result.error) {
-      console.error('[email] Resend API error:', result.error.message, { to: input.to, from })
-      return { sent: false, reason: result.error.message }
+      const reason = friendlyResendError(result.error.message, from, input.to)
+      console.error('[email] Resend API error:', reason, { to: input.to, from })
+      return { sent: false, reason }
     }
     console.info('[email] sent', { to: input.to, subject: input.subject, id: result.data?.id })
     return { sent: true, id: result.data?.id }
   } catch (e) {
-    const reason = e instanceof Error ? e.message : 'send failed'
+    const reason = friendlyResendError(e instanceof Error ? e.message : 'send failed', from, input.to)
     console.error('[email] send failed:', reason, { to: input.to, from })
     return { sent: false, reason }
   }
@@ -139,4 +179,15 @@ export async function sendMail(input: {
 
 export function isMailConfigured(): boolean {
   return Boolean(process.env.RESEND_API_KEY)
+}
+
+export function getMailSetupHint(): string | null {
+  if (!isMailConfigured()) return 'RESEND_API_KEY is not set in Vercel environment variables.'
+  if (isResendSandboxMode()) {
+    return (
+      'Resend sandbox mode: only your Resend account email can receive mail until you verify a custom domain. ' +
+      'Verify phalotrans.com (or your domain) in Resend, then set BOOKING_FROM_EMAIL to that domain and remove RESEND_USE_SANDBOX_FROM.'
+    )
+  }
+  return null
 }

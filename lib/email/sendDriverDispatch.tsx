@@ -81,7 +81,7 @@ function buildDriverDispatchContent(i: DriverDispatchInput): { html: string; tex
   return { html, text }
 }
 
-/** Driver dispatch uses plain HTML (no React Email render) for reliability on Cloudflare Workers. */
+/** Driver dispatch uses plain HTML (no React Email render) for fast, reliable delivery. */
 export async function sendDriverDispatch(i: DriverDispatchInput): Promise<EmailResult> {
   const to = i.to.trim()
   if (!to || !EMAIL_RE.test(to)) {
