@@ -33,6 +33,8 @@ export async function proxy(request: NextRequest) {
   // Refresh the session on every manager request so server components see valid cookies.
   let user = null
   try {
+    // getSession refreshes expired tokens into Set-Cookie; getUser validates the JWT.
+    await supabase.auth.getSession()
     const {
       data: { user: authUser },
       error: authError,

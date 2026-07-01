@@ -17,7 +17,6 @@ import { LifecycleControls } from '@/components/manager/LifecycleControls'
 import { AssignForm } from '@/components/manager/AssignForm'
 import { formatDateTime, formatMoney, PAYMENT_LABELS, SOURCE_LABELS, auditLabel } from '@/lib/manager/format'
 
-export const runtime = 'edge'
 export const dynamic = 'force-dynamic'
 
 export default async function ReservationDetail({ params }: { params: Promise<{ id: string }> }) {

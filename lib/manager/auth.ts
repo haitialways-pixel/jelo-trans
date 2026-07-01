@@ -37,7 +37,12 @@ async function resolveStaffSession(): Promise<StaffSession | null> {
   }
 
   if (profileError) {
-    console.warn('[auth] get_my_staff_profile RPC failed:', profileError.message)
+    const hint =
+      profileError.message.includes('get_my_staff_profile') ||
+      profileError.code === 'PGRST202'
+        ? ' — run supabase/migrations/20260701_manual_dispatch_auth.sql on your Supabase project'
+        : ''
+    console.warn('[auth] get_my_staff_profile RPC failed:', profileError.message + hint)
   }
 
   // Fallback: service-role lookup (for projects that have not run the migration yet).
@@ -90,10 +95,17 @@ export async function assertStaff(): Promise<StaffSession> {
   return session
 }
 
-/** Used by the login server action after sign-in. */
+/** Used after browser sign-in to confirm staff registry membership. */
 export async function verifyStaffMembership(userId: string): Promise<StaffSession | null> {
   const supabase = await createClient()
   const { data: profileRows, error } = await supabase.rpc('get_my_staff_profile')
+  if (error) {
+    const hint =
+      error.message.includes('get_my_staff_profile') || error.code === 'PGRST202'
+        ? ' — run supabase/migrations/20260701_manual_dispatch_auth.sql'
+        : ''
+    console.warn('[auth] verifyStaffMembership RPC failed:', error.message + hint)
+  }
   if (!error && profileRows) {
     const profile = Array.isArray(profileRows) ? profileRows[0] : profileRows
     if (profile) {

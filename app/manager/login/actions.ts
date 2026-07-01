@@ -1,38 +1,29 @@
 'use server'
 
-import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { verifyStaffMembership } from '@/lib/manager/auth'
 
 export type LoginState = { error?: string }
 
-export async function managerLogin(
-  _prev: LoginState,
-  formData: FormData,
-): Promise<LoginState> {
-  const email = String(formData.get('email') ?? '').trim()
-  const password = String(formData.get('password') ?? '')
-
-  if (!email || !password) {
-    return { error: 'Email and password are required.' }
-  }
-
+/** Called after the browser client establishes the session (reliable on Cloudflare). */
+export async function verifyStaffAccess(): Promise<LoginState> {
   const supabase = await createClient()
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser()
 
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-
-  if (error) {
-    console.warn('[auth] signInWithPassword failed:', error.message, { email })
-    return { error: 'Invalid email or password.' }
+  if (userError || !user) {
+    console.warn('[auth] verifyStaffAccess: no session', userError?.message)
+    return {
+      error:
+        'Session could not be established. If this persists after deploy, confirm NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY match your Supabase project.',
+    }
   }
 
-  if (!data.user) {
-    return { error: 'Sign-in succeeded but no user session was returned.' }
-  }
-
-  const staff = await verifyStaffMembership(data.user.id)
+  const staff = await verifyStaffMembership(user.id)
   if (!staff) {
-    console.warn('[auth] user authenticated but not in staff registry:', data.user.id, email)
+    console.warn('[auth] verifyStaffAccess: not in staff registry', user.id, user.email)
     await supabase.auth.signOut()
     return {
       error:
@@ -40,6 +31,6 @@ export async function managerLogin(
     }
   }
 
-  console.info('[auth] manager login success:', email, staff.role)
-  redirect('/manager')
+  console.info('[auth] staff session verified:', user.email, staff.role)
+  return {}
 }

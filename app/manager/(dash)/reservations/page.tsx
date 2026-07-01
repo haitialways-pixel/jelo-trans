@@ -5,7 +5,6 @@ import { StatusBadge } from '@/components/manager/StatusBadge'
 import { CreateReservationForm } from '@/components/manager/CreateReservationForm'
 import { formatDateTime, formatMoney, STATUS_LABELS } from '@/lib/manager/format'
 
-export const runtime = 'edge'
 export const dynamic = 'force-dynamic'
 
 const FILTERS = [

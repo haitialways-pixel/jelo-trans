@@ -33,7 +33,7 @@ export type ManagerNotification = {
 
 /** Most recent notifications (default 30). */
 export async function getRecentNotifications(limit = 30): Promise<ManagerNotification[]> {
-  const supabase = await staffDb()
+  const supabase = await staffDb() // session + RLS, or service role when configured
   const { data, error } = await supabase
     .from('notifications')
     .select('id, kind, title, body, reservation_id, severity, read_at, created_at')

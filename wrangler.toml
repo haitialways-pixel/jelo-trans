@@ -27,5 +27,12 @@ name = "phalo-transportation"
 #    "Google Maps API key is missing on the server" during local CF testing.)
 #
 # After changing secrets you usually need a fresh deploy.
+#
+# Manager login requires these at minimum (Dashboard → Settings → Environment variables):
+#   NEXT_PUBLIC_SUPABASE_URL
+#   NEXT_PUBLIC_SUPABASE_ANON_KEY
+# SUPABASE_SERVICE_ROLE_KEY is recommended but no longer required for manager reads
+# (the app falls back to session + RLS). Stripe webhooks/payments still need it.
+#
 # See HANDOFF_README.md "Deploying to Cloudflare" section for full steps.
 # ----------------------------------------------------------------------------
