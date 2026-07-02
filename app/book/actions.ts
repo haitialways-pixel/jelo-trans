@@ -57,18 +57,32 @@ export async function calculatePrice(data: {
       ? Number(data.gratuityPercent)
       : DEFAULT_GRATUITY_PERCENT
 
+    if (!data.vehicleId?.trim()) {
+      return { error: 'Please select a vehicle before continuing.' }
+    }
+
     const { data: vehicle, error } = await supabase
       .from('fleet')
-      .select('id, name, base_price, price_per_mile, minimum_price')
+      .select('id, name, base_price, price_per_mile, minimum_price, status')
       .eq('id', data.vehicleId)
-      .single()
+      .eq('status', 'available')
+      .maybeSingle()
 
     if (error) {
-      return { error: `Database error: ${error.message}` }
+      console.error('[calculatePrice] fleet lookup failed:', error.message, { vehicleId: data.vehicleId })
+      return {
+        error:
+          error.code === 'PGRST116'
+            ? 'This vehicle is no longer available. Please refresh the page and choose again.'
+            : `Could not load vehicle pricing (${error.message}). Please refresh and try again.`,
+      }
     }
 
     if (!vehicle) {
-      return { error: 'Selected vehicle not found in the database' }
+      return {
+        error:
+          'This vehicle is no longer available. Please refresh the booking page and select a vehicle again.',
+      }
     }
 
     if (!vehicle.base_price || vehicle.base_price <= 0) {
@@ -146,7 +160,21 @@ export async function createReservation(formData: any) {
     })
 
     if (error) {
-      return { success: false, error: `Failed to create reservation: ${error.message}` }
+      const msg = error.message ?? ''
+      if (msg.includes('Gratuity must be')) {
+        return { success: false, error: msg }
+      }
+      if (msg.includes('create_reservation') || msg.includes('p_gratuity_percent')) {
+        return {
+          success: false,
+          error:
+            'Booking system needs a database update (gratuity migration). Please call us to book, or ask your administrator to run supabase/migrations/20260702_gratuity.sql.',
+        }
+      }
+      if (msg.includes('not available')) {
+        return { success: false, error: msg }
+      }
+      return { success: false, error: `Failed to create reservation: ${msg}` }
     }
 
     revalidatePath('/manage-booking')

@@ -1,13 +1,13 @@
 import { Navbar } from '@/components/shared/Navbar'
 import { Footer } from '@/components/shared/Footer'
 import { BookingWizardLazy } from '@/components/booking/BookingWizardLazy'
-import { getBookableFleet } from '@/lib/fleet'
+import { getBookableFleetForBooking } from '@/lib/fleet'
 
 export const runtime = 'edge'
-export const revalidate = 300
+export const dynamic = 'force-dynamic'
 
 export default async function BookPage() {
-  const vehicles = await getBookableFleet()
+  const vehicles = await getBookableFleetForBooking()
 
   return (
     <div className="bg-background min-h-screen text-on-surface">

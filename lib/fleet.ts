@@ -56,6 +56,7 @@ function normalizeVehicle(row: FleetRow): Vehicle {
 async function fetchFleetRows(
   select: string,
   searchParams: Record<string, string>,
+  options?: { fresh?: boolean },
 ): Promise<Vehicle[]> {
   const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -72,7 +73,9 @@ async function fetchFleetRows(
       apikey: anonKey,
       Authorization: `Bearer ${anonKey}`,
     },
-    next: { revalidate: FLEET_REVALIDATE_SECONDS, tags: ['fleet'] },
+    ...(options?.fresh
+      ? { cache: 'no-store' as const }
+      : { next: { revalidate: FLEET_REVALIDATE_SECONDS, tags: ['fleet'] } }),
   })
 
   if (!response.ok) return []
@@ -104,7 +107,7 @@ export const getFeaturedFleet = cache(async (limit = 4): Promise<Vehicle[]> => {
   })
 })
 
-/** Slim fleet payload for the booking wizard. */
+/** Slim fleet payload for the booking wizard (cached — marketing pages). */
 export const getBookableFleet = cache(async (): Promise<BookableVehicle[]> => {
   const rows = await fetchFleetRows(BOOKING_COLUMNS, {
     order: 'base_price.asc',
@@ -118,3 +121,20 @@ export const getBookableFleet = cache(async (): Promise<BookableVehicle[]> => {
     image_url,
   }))
 })
+
+/** Always-fresh fleet for /book — avoids stale vehicle IDs after DB reseeds or manager edits. */
+export async function getBookableFleetForBooking(): Promise<BookableVehicle[]> {
+  const rows = await fetchFleetRows(
+    BOOKING_COLUMNS,
+    { order: 'base_price.asc' },
+    { fresh: true },
+  )
+  return rows.map(({ id, name, capacity, base_price, price_per_mile, image_url }) => ({
+    id,
+    name,
+    capacity,
+    base_price,
+    price_per_mile,
+    image_url,
+  }))
+}
