@@ -17,6 +17,7 @@ BOOKING_FROM_ADDRESS=bookings@vipodyssey.com
 DISPATCH_FROM_NAME=Trip Dispatch - Imperial Odyssey
 DISPATCH_FROM_ADDRESS=no-reply@vipodyssey.com
 DISPATCH_REPLY_TO_EMAIL=concierge@vipodyssey.com
+MANAGEMENT_EMAIL=info.phalotrans@gmail.com
 SITE_URL=https://vipodyssey.com
 
 # Public ones (if your preview build needs them at runtime):
