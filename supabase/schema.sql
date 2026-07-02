@@ -574,7 +574,7 @@ BEGIN
   IF coalesce(btrim(p_customer_name), '')  = '' THEN RAISE EXCEPTION 'Customer name is required'; END IF;
   IF coalesce(btrim(p_customer_email), '') = '' THEN RAISE EXCEPTION 'Customer email is required'; END IF;
   IF coalesce(btrim(p_customer_phone), '') = '' THEN RAISE EXCEPTION 'Customer phone is required'; END IF;
-  IF p_pickup_time IS NULL OR p_pickup_time < now() + interval '15 minutes' THEN
+  IF p_pickup_time IS NULL OR p_pickup_time < now() + interval '14 minutes' THEN
     RAISE EXCEPTION 'Pickup must be at least 15 minutes from now';
   END IF;
 
@@ -870,7 +870,11 @@ GRANT  EXECUTE ON FUNCTION public.staff_set_unit_status(uuid, text) TO authentic
 -- Cleanup: opportunistic inside the function (~5%/call), keeping the table bounded.
 -- ============================================================================
 CREATE OR REPLACE FUNCTION public.check_rate_limit(
-  p_ip text, p_action text, p_max int, p_window_seconds int
+  p_ip text,
+  p_action text,
+  p_max int,
+  p_window_seconds int,
+  p_record boolean DEFAULT true
 ) RETURNS boolean
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE
@@ -885,7 +889,9 @@ BEGIN
     RETURN false;
   END IF;
 
-  INSERT INTO public.api_attempts (ip, action) VALUES (p_ip, p_action);
+  IF coalesce(p_record, true) THEN
+    INSERT INTO public.api_attempts (ip, action) VALUES (p_ip, p_action);
+  END IF;
 
   IF random() < 0.05 THEN
     DELETE FROM public.api_attempts WHERE created_at < now() - interval '1 hour';
@@ -894,7 +900,7 @@ BEGIN
   RETURN true;
 END;
 $$;
-REVOKE ALL ON FUNCTION public.check_rate_limit(text, text, int, int) FROM public, anon, authenticated;
+REVOKE ALL ON FUNCTION public.check_rate_limit(text, text, int, int, boolean) FROM public, anon, authenticated;
 
 -- ============================================================================
 -- NOTIFICATIONS HELPER — called from inside other SECURITY DEFINER fns to record

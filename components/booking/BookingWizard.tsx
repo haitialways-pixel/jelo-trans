@@ -16,7 +16,11 @@ import {
   GRATUITY_OPTIONS,
   type GratuityPercent,
 } from '@/lib/pricing'
-import { isPickupTimeValid, minPickupDatetimeLocalValue } from '@/lib/booking/pickupTime'
+import {
+  isPickupTimeValid,
+  minPickupDatetimeLocalValue,
+  pickupTimeValidationMessage,
+} from '@/lib/booking/pickupTime'
 
 const steps = ['Trip Details', 'Select Vehicle', 'Review & Confirm']
 
@@ -90,15 +94,14 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
       if (!formData.pickupAddress?.trim()) return setError('Pickup Address is required'), false
       if (!formData.dropoffAddress?.trim()) return setError('Dropoff Address is required'), false
       if (!formData.pickupTime) return setError('Pickup Date & Time is required'), false
-
-      if (!isPickupTimeValid(formData.pickupTime)) {
-        return setError('Pickup must be at least 15 minutes from now'), false
-      }
     }
     if (step === 1) {
       if (!formData.vehicleId) return setError('Please select a vehicle'), false
     }
     if (step === 2) {
+      if (!isPickupTimeValid(formData.pickupTime)) {
+        return setError(pickupTimeValidationMessage()), false
+      }
       if (!formData.customerName?.trim()) return setError('Full Name is required'), false
       if (!formData.customerEmail?.trim()) return setError('Email is required'), false
       if (!formData.customerPhone?.trim()) return setError('Phone Number is required'), false

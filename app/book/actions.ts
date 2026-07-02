@@ -17,7 +17,11 @@ import {
   DEFAULT_GRATUITY_PERCENT,
   isValidGratuityPercent,
 } from '@/lib/pricing'
-import { pickupTimeToIso } from '@/lib/booking/pickupTime'
+import {
+  isPickupTimeValid,
+  pickupTimeToIso,
+  pickupTimeValidationMessage,
+} from '@/lib/booking/pickupTime'
 
 async function sendCustomerBookingReceived(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -138,20 +142,8 @@ export async function calculatePrice(data: {
 
 export async function createReservation(formData: any) {
   try {
-    // Rate-limit: 5 bookings/hour/IP. Stops a script from spamming reservations
-    // and locking up the fleet's availability with junk holds.
-    const rl = await checkRateLimit('booking.create', 5, 3600)
-    if (!rl.ok) {
-      return {
-        success: false,
-        error: 'Too many booking attempts. Please wait a few minutes, or call us directly.',
-      }
-    }
-
     const supabase = await createClient()
 
-    // All validation, the authoritative price, and the availability check happen
-    // inside create_reservation() (SECURITY DEFINER). The client total is never trusted.
     const gratuityPercent = isValidGratuityPercent(Number(formData.gratuityPercent))
       ? Number(formData.gratuityPercent)
       : DEFAULT_GRATUITY_PERCENT
@@ -159,6 +151,19 @@ export async function createReservation(formData: any) {
     const pickupIso = pickupTimeToIso(formData.pickupTime)
     if (!pickupIso) {
       return { success: false, error: 'Please enter a valid pickup date and time.' }
+    }
+
+    if (!isPickupTimeValid(formData.pickupTime)) {
+      return { success: false, error: pickupTimeValidationMessage() }
+    }
+
+    // Rate-limit successful bookings only — failed attempts (timing, etc.) don't count.
+    const rl = await checkRateLimit('booking.create', 30, 3600, undefined, false)
+    if (!rl.ok) {
+      return {
+        success: false,
+        error: 'Too many bookings from this device. Please wait a few minutes, or call us directly.',
+      }
     }
 
     const { data: bookingNumber, error } = await supabase.rpc('create_reservation', {
@@ -189,11 +194,17 @@ export async function createReservation(formData: any) {
             'Booking system needs a database update (gratuity migration). Please call us to book, or ask your administrator to run supabase/migrations/20260702_gratuity.sql.',
         }
       }
-      if (msg.includes('15 minutes')) {
-        return { success: false, error: msg }
+      if (
+        msg.includes('15 minutes') ||
+        msg.includes('in the future') ||
+        msg.toLowerCase().includes('pickup')
+      ) {
+        return { success: false, error: pickupTimeValidationMessage() }
       }
       return { success: false, error: `Failed to create reservation: ${msg}` }
     }
+
+    await checkRateLimit('booking.create', 30, 3600, undefined, true)
 
     revalidatePath('/manage-booking')
 

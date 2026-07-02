@@ -37,7 +37,13 @@ export async function checkRateLimit(
   max: number,
   windowSec: number,
   ip?: string,
+  /** When false, checks the cap without logging an attempt (use before an action; record on success). */
+  record = true,
 ): Promise<RateLimitResult> {
+  if (process.env.NODE_ENV === 'development') {
+    return { ok: true }
+  }
+
   const clientIp = ip ?? (await getClientIp())
   try {
     const admin = createAdminClient()
@@ -46,6 +52,7 @@ export async function checkRateLimit(
       p_action: action,
       p_max: max,
       p_window_seconds: windowSec,
+      p_record: record,
     })
     if (error) {
       // Limiter infra failing -> fail open. Log so we can spot it in monitoring.
