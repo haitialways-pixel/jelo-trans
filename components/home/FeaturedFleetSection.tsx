@@ -7,46 +7,49 @@ export async function FeaturedFleetSection() {
   const featured = await getFeaturedFleet(6)
 
   return (
-    <section className="py-14 md:py-20">
-      <div className="px-6 max-w-7xl mx-auto mb-6 flex justify-between items-end">
-        <div>
-          <span className="text-[11px] tracking-[0.25em] text-primary mb-2 block">COLLECTION</span>
-          <h2 className="display text-3xl md:text-4xl font-semibold">Our Elite Fleet</h2>
-        </div>
-        <Link href="/fleet" className="text-primary text-[11px] tracking-widest border-b border-primary/30 pb-1 hover:text-on-surface transition shrink-0">
-          VIEW ALL
-        </Link>
-      </div>
-      <div className="flex overflow-x-auto hide-scrollbar snap-x snap-mandatory gap-4 px-6 pb-4 max-w-7xl mx-auto">
-        {featured.map((v) => (
+    <section className="section-pad bg-surface-container-low">
+      <div className="max-w-6xl mx-auto px-8 md:px-12">
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-8 mb-16">
+          <div className="max-w-xl">
+            <p className="text-xs tracking-[0.3em] uppercase text-on-surface-variant mb-6">Collection</p>
+            <h2 className="font-display text-4xl md:text-5xl font-medium leading-tight">Our elite fleet</h2>
+          </div>
           <Link
-            key={v.id}
-            href="/book"
-            className="snap-center shrink-0 w-[80%] sm:w-[360px] glass-dark gold-hairline rounded-2xl overflow-hidden p-4 group"
+            href="/fleet"
+            className="text-sm text-on-surface-variant hover:text-on-surface transition shrink-0"
           >
-            <div className="relative aspect-[16/10] mb-4 rounded-xl overflow-hidden bg-surface-container-lowest spotlight-glow flex items-center justify-center p-3">
-              <OptimizedImage
-                src={v.image_url ?? '/images/fleet-overview.webp'}
-                alt={v.name}
-                fill
-                sizes="(max-width: 640px) 80vw, 360px"
-                className="object-contain group-hover:scale-105 transition duration-700"
-              />
-              <div className="absolute top-3 right-3 bg-white/95 text-gold-dark border border-gold/35 text-[10px] tracking-widest px-3 py-1 rounded-full uppercase shadow-sm">
-                {v.tier ?? 'fleet'}
-              </div>
-            </div>
-            <div className="flex justify-between items-center">
-              <div>
-                <h3 className="text-sm tracking-widest text-on-surface font-semibold">{v.name}</h3>
-                <p className="text-xs text-on-surface-variant mt-1">
-                  Up to {v.capacity} passengers · from ${Math.round(Number(v.base_price))} base
-                </p>
-              </div>
-              <ChevronRight className="w-5 h-5 text-primary shrink-0" />
-            </div>
+            View all vehicles →
           </Link>
-        ))}
+        </div>
+
+        <div className="flex overflow-x-auto hide-scrollbar snap-x snap-mandatory gap-8 pb-4 -mx-2 px-2">
+          {featured.map((v) => (
+            <Link
+              key={v.id}
+              href="/book"
+              className="snap-center shrink-0 w-[85%] sm:w-[340px] float-card overflow-hidden p-8 group"
+            >
+              <div className="relative aspect-[16/10] mb-8 rounded-xl overflow-hidden bg-surface-container-lowest spotlight-glow flex items-center justify-center p-4">
+                <OptimizedImage
+                  src={v.image_url ?? '/images/fleet-overview.webp'}
+                  alt={v.name}
+                  fill
+                  sizes="(max-width: 640px) 85vw, 340px"
+                  className="object-contain group-hover:scale-[1.03] transition duration-700"
+                />
+              </div>
+              <div className="flex justify-between items-start gap-4">
+                <div>
+                  <h3 className="font-display text-xl">{v.name}</h3>
+                  <p className="text-sm text-on-surface-variant mt-2 leading-relaxed">
+                    Up to {v.capacity} passengers · from ${Math.round(Number(v.base_price))} base
+                  </p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-gold shrink-0 mt-1" strokeWidth={1.5} />
+              </div>
+            </Link>
+          ))}
+        </div>
       </div>
     </section>
   )

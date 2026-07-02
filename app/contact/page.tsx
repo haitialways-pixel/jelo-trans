@@ -7,37 +7,51 @@ export default function ContactPage() {
   return (
     <div className="bg-background text-on-surface min-h-screen">
       <Navbar />
-      <div className="pt-24 max-w-3xl mx-auto px-6 pb-24">
-        <div className="pearl-accent-bar w-20 mb-6" />
-        <h1 className="display text-gold-gradient text-7xl tracking-[-3px] font-semibold">Let's Talk</h1>
-        <p className="text-2xl text-secondary-dark mt-2">We're available 24 hours a day, 365 days a year.</p>
+      <div className="pt-32 pb-24 max-w-3xl mx-auto px-8 md:px-12">
+        <div className="accent-line mb-10" />
+        <h1 className="font-display text-5xl md:text-6xl font-medium leading-tight">Let's talk</h1>
+        <p className="text-xl text-on-surface-variant mt-8 leading-relaxed">
+          We're available 24 hours a day, 365 days a year.
+        </p>
 
-        <div className="mt-12 grid md:grid-cols-2 gap-x-16 gap-y-10 text-lg">
+        <div className="mt-20 grid md:grid-cols-2 gap-x-16 gap-y-14">
           <div>
-            <div className="text-gold-dark text-xs tracking-[3px] mb-2">CALL OR TEXT</div>
-            <a href="tel:(678) 478-3506" className="text-5xl tracking-[-1.5px] font-semibold hover:text-gold-dark">(678) 478-3506</a>
+            <p className="text-xs tracking-[0.25em] uppercase text-on-surface-variant mb-3">Call or text</p>
+            <a href="tel:(678) 478-3506" className="font-display text-4xl hover:text-gold transition">
+              (678) 478-3506
+            </a>
           </div>
           <div>
-            <div className="text-gold-dark text-xs tracking-[3px] mb-2">EMAIL</div>
-            <a href="mailto:concierge@phalotrans.com" className="text-2xl hover:text-gold-dark">concierge@phalotrans.com</a>
+            <p className="text-xs tracking-[0.25em] uppercase text-on-surface-variant mb-3">Email</p>
+            <a href="mailto:concierge@phalotrans.com" className="text-xl hover:text-gold transition">
+              concierge@phalotrans.com
+            </a>
           </div>
           <div>
-            <div className="text-gold-dark text-xs tracking-[3px] mb-2">LOCATION</div>
-            <div>Orlando, Florida<br />Serving MCO, all major ports, all of Central Florida and Beyond</div>
+            <p className="text-xs tracking-[0.25em] uppercase text-on-surface-variant mb-3">Location</p>
+            <p className="leading-relaxed">
+              Orlando, Florida
+              <br />
+              Serving MCO, all major ports, and Central Florida
+            </p>
           </div>
           <div>
-            <div className="text-gold-dark text-xs tracking-[3px] mb-2">FOR IMMEDIATE BOOKINGS</div>
-            <div className="text-on-surface-variant">Call or text the number above.<br />We typically respond within minutes.</div>
+            <p className="text-xs tracking-[0.25em] uppercase text-on-surface-variant mb-3">Immediate bookings</p>
+            <p className="text-on-surface-variant leading-relaxed">
+              Call or text the number above — we typically respond within minutes.
+            </p>
           </div>
         </div>
 
-        <div className="mt-16 pt-10 border-t border-primary/25">
-          <form className="max-w-lg space-y-5">
-            <input type="text" placeholder="Your name" className="w-full px-6 py-4 rounded-2xl text-lg" />
-            <input type="email" placeholder="Email address" className="w-full px-6 py-4 rounded-2xl text-lg" />
-            <input type="tel" placeholder="Phone number" className="w-full px-6 py-4 rounded-2xl text-lg" />
-            <textarea placeholder="How can we assist you?" rows={5} className="w-full px-6 py-4 rounded-3xl text-lg resize-y" />
-            <button type="button" className="btn-gold w-full py-5 rounded-full text-lg tracking-[2px]">SEND MESSAGE</button>
+        <div className="mt-24 float-card p-10 md:p-12">
+          <form className="space-y-6 max-w-lg">
+            <input type="text" placeholder="Your name" className="w-full px-5 py-4 text-base" />
+            <input type="email" placeholder="Email address" className="w-full px-5 py-4 text-base" />
+            <input type="tel" placeholder="Phone number" className="w-full px-5 py-4 text-base" />
+            <textarea placeholder="How can we assist you?" rows={5} className="w-full px-5 py-4 text-base resize-y" />
+            <button type="button" className="btn-cta w-full py-4 rounded-full text-sm tracking-widest">
+              Send message
+            </button>
           </form>
         </div>
       </div>

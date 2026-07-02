@@ -35,11 +35,11 @@ export const SOURCE_LABELS: Record<string, string> = {
 }
 
 export const STATUS_STYLES: Record<string, string> = {
-  pending: 'bg-primary/25 text-on-surface border-primary/50',
-  confirmed: 'bg-gold/20 text-gold-dark border-gold/45',
-  in_progress: 'bg-secondary/30 text-secondary-dark border-secondary/50',
-  completed: 'bg-emerald-100 text-emerald-800 border-emerald-300/60',
-  cancelled: 'bg-red-50 text-red-700 border-red-200',
+  pending: 'bg-card text-on-surface-variant border-transparent',
+  confirmed: 'bg-gold/15 text-gold-dark border-transparent',
+  in_progress: 'bg-primary/20 text-primary-dark border-transparent',
+  completed: 'bg-primary/25 text-primary-dark border-transparent',
+  cancelled: 'bg-red-50 text-red-700 border-transparent',
 }
 
 export const PAYMENT_LABELS: Record<string, string> = {

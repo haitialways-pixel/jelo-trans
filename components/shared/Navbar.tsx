@@ -2,52 +2,87 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { Menu, X, Phone } from 'lucide-react'
+import { Menu, X } from 'lucide-react'
 import { LogoMark } from './LogoMark'
+
+const NAV_LINKS = [
+  { href: '/fleet', label: 'Fleet' },
+  { href: '/services', label: 'Services' },
+  { href: '/about', label: 'Our Story' },
+  { href: '/contact', label: 'Contact' },
+]
 
 export function Navbar() {
   const [open, setOpen] = useState(false)
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/92 backdrop-blur-xl border-b border-primary/30 shadow-[0_4px_24px_-8px_rgba(26,42,68,0.08)]">
-      <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-3">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-md">
+      <nav className="max-w-6xl mx-auto px-8 md:px-12 h-24 flex items-center justify-between">
+        <Link href="/" className="flex items-center gap-4 group">
           <LogoMark size="nav" />
           <div>
-            <div className="font-semibold tracking-[2px] text-[1.35rem] leading-tight text-gold-gradient">IMPERIAL ODYSSEY</div>
-            <div className="text-[10px] text-secondary-dark -mt-0.5 tracking-[0.25em]">ORLANDO</div>
+            <div className="font-display text-xl tracking-wide text-on-surface">Imperial Odyssey</div>
+            <div className="text-[10px] text-on-surface-variant tracking-[0.3em] uppercase mt-0.5">Orlando</div>
           </div>
         </Link>
 
-        <div className="hidden md:flex items-center gap-9 text-sm font-medium tracking-wider text-on-surface-variant">
-          <Link href="/fleet" className="hover:text-gold-dark transition">FLEET</Link>
-          <Link href="/services" className="hover:text-gold-dark transition">SERVICES</Link>
-          <Link href="/about" className="hover:text-gold-dark transition">OUR STORY</Link>
-          <Link href="/contact" className="hover:text-gold-dark transition">CONTACT</Link>
-          <Link href="/book" className="btn-gold px-8 py-2.5 rounded-full text-sm tracking-[1px]">BOOK NOW</Link>
-          <Link href="/manage-booking" className="btn-outline-gold px-5 py-2.5 rounded-full text-sm tracking-[1px]">MANAGE BOOKING</Link>
+        <div className="hidden lg:flex items-center gap-12">
+          {NAV_LINKS.map((l) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              className="text-sm text-on-surface-variant hover:text-on-surface transition-colors tracking-wide"
+            >
+              {l.label}
+            </Link>
+          ))}
         </div>
 
-        <a href="tel:(678) 478-3506" className="hidden md:flex items-center gap-2 text-sm text-gold-dark hover:text-on-surface transition">
-          <Phone className="w-4 h-4" /> (678) 478-3506
-        </a>
+        <div className="hidden md:flex items-center gap-4">
+          <Link
+            href="/manage-booking"
+            className="text-sm text-on-surface-variant hover:text-on-surface transition tracking-wide"
+          >
+            Manage Booking
+          </Link>
+          <Link href="/book" className="btn-cta text-sm px-8 py-3 rounded-full">
+            Reserve
+          </Link>
+        </div>
 
-        <button onClick={() => setOpen(!open)} className="md:hidden text-on-surface" aria-label={open ? 'Close menu' : 'Open menu'}>
+        <button
+          onClick={() => setOpen(!open)}
+          className="md:hidden text-on-surface p-2"
+          aria-label={open ? 'Close menu' : 'Open menu'}
+        >
           {open ? <X size={22} /> : <Menu size={22} />}
         </button>
-      </div>
+      </nav>
 
       {open && (
-        <div className="md:hidden border-t border-outline-variant/30 bg-background px-6 py-8 flex flex-col gap-6 text-lg text-on-surface">
-          <Link href="/fleet" onClick={() => setOpen(false)}>Fleet</Link>
-          <Link href="/services" onClick={() => setOpen(false)}>Services</Link>
-          <Link href="/about" onClick={() => setOpen(false)}>Our Story</Link>
-          <Link href="/contact" onClick={() => setOpen(false)}>Contact</Link>
-          <Link href="/book" onClick={() => setOpen(false)} className="btn-gold text-center py-3 rounded-full">BOOK YOUR RIDE</Link>
-          <Link href="/manage-booking" onClick={() => setOpen(false)} className="btn-outline-gold text-center py-3 rounded-full">MANAGE BOOKING</Link>
-          <a href="tel:(678) 478-3506" className="text-primary text-center">(678) 478-3506</a>
+        <div className="md:hidden border-t border-outline-variant/40 bg-background px-8 py-10 flex flex-col gap-8">
+          {NAV_LINKS.map((l) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              onClick={() => setOpen(false)}
+              className="font-display text-2xl text-on-surface"
+            >
+              {l.label}
+            </Link>
+          ))}
+          <Link href="/book" onClick={() => setOpen(false)} className="btn-cta text-center py-4 rounded-full">
+            Reserve Your Journey
+          </Link>
+          <Link
+            href="/manage-booking"
+            onClick={() => setOpen(false)}
+            className="text-center text-on-surface-variant text-sm"
+          >
+            Manage Booking
+          </Link>
         </div>
       )}
-    </nav>
+    </header>
   )
 }

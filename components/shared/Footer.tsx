@@ -1,52 +1,51 @@
 import Link from 'next/link'
-import { LogoMark } from './LogoMark'
+
+const FOOTER_LINKS = [
+  { href: '/fleet', label: 'Fleet' },
+  { href: '/services', label: 'Services' },
+  { href: '/about', label: 'Our Story' },
+  { href: '/book', label: 'Reserve' },
+  { href: '/contact', label: 'Contact' },
+  { href: '/terms', label: 'Terms' },
+]
 
 export function Footer() {
   return (
-    <footer className="bg-surface-container-low border-t border-primary/20 pt-16 pb-10 text-sm text-on-surface-variant">
-      <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-12 gap-y-12">
-        <div className="md:col-span-5">
-          <div className="flex items-center gap-3 mb-4">
-            <LogoMark size="footer" />
-            <div className="font-semibold tracking-[3px] text-[1.35rem] text-gold-gradient">IMPERIAL ODYSSEY</div>
+    <footer className="bg-background section-pad border-t border-outline-variant/30">
+      <div className="max-w-6xl mx-auto px-8 md:px-12">
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-16">
+          <div className="max-w-sm">
+            <div className="accent-line mb-8" />
+            <p className="font-display text-3xl text-on-surface leading-tight">Imperial Odyssey</p>
+            <p className="text-on-surface-variant mt-6 leading-relaxed">
+              Orlando&apos;s premier chauffeur service — discreet, refined, and always on time.
+            </p>
+            <a
+              href="tel:(678) 478-3506"
+              className="inline-block mt-8 text-on-surface hover:text-gold transition-colors"
+            >
+              (678) 478-3506
+            </a>
           </div>
-          <p className="text-on-surface-variant max-w-xs">
-            Orlando’s premier luxury chauffeur service for airport transfers, weddings, corporate travel, and unforgettable nights.
-          </p>
-          <div className="mt-6 text-gold-dark font-medium">
-            (678) 478-3506<br />
-            Orlando, Florida
-          </div>
+
+          <nav className="flex flex-wrap gap-x-10 gap-y-4">
+            {FOOTER_LINKS.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                className="text-sm text-on-surface-variant hover:text-on-surface transition-colors"
+              >
+                {l.label}
+              </Link>
+            ))}
+          </nav>
         </div>
 
-        <div className="md:col-span-3">
-          <div className="font-medium tracking-widest text-xs text-primary mb-4">EXPLORE</div>
-          <div className="space-y-2">
-            <Link href="/fleet" className="block hover:text-on-surface transition">Our Fleet</Link>
-            <Link href="/services" className="block hover:text-on-surface transition">Services</Link>
-            <Link href="/about" className="block hover:text-on-surface transition">Our Story</Link>
-            <Link href="/book" className="block hover:text-on-surface transition">Reserve Now</Link>
-          </div>
-          <div className="font-medium tracking-widest text-xs text-primary mt-8 mb-4">LEGAL</div>
-          <div className="space-y-2">
-            <Link href="/terms" className="block hover:text-on-surface transition">Terms of Service</Link>
-            <Link href="/contact" className="block hover:text-on-surface transition">Contact Us</Link>
-          </div>
-        </div>
+        <div className="luxe-divider mt-20 mb-8" />
 
-        <div className="md:col-span-4">
-          <div className="font-medium tracking-widest text-xs text-primary mb-4">24/7 CONCIERGE</div>
-          <p className="text-on-surface-variant mb-4">For immediate assistance or last-minute bookings, call or text us anytime.</p>
-          <a href="tel:(678) 478-3506" className="inline-block btn-gold px-9 py-3 rounded-full text-sm tracking-[1.5px]">CALL (678) 478-3506</a>
-          <div className="mt-8 text-[10px] text-on-surface-variant/70 tracking-widest space-y-1">
-            <div>© {new Date().getFullYear()} IMPERIAL ODYSSEY, LLC</div>
-            <div>
-              <Link href="/terms" className="hover:text-primary transition">Terms of Service</Link>
-              {' · '}
-              <Link href="/contact" className="hover:text-primary transition">Contact</Link>
-            </div>
-          </div>
-        </div>
+        <p className="text-xs text-on-surface-variant tracking-wide">
+          © {new Date().getFullYear()} Imperial Odyssey, LLC · Orlando, Florida
+        </p>
       </div>
     </footer>
   )

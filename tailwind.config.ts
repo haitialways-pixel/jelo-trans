@@ -1,10 +1,6 @@
 import type { Config } from 'tailwindcss'
 
-/**
- * Celestial Pearl — bright luxury light theme.
- * Tailwind v4 reads design tokens from app/globals.css @theme;
- * this file documents the palette and supports tooling that expects a config.
- */
+/** Editorial luxury — tokens live in app/globals.css @theme */
 const config: Config = {
   content: [
     './app/**/*.{js,ts,jsx,tsx,mdx}',
@@ -14,34 +10,30 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: '#FAF9F6',
-        card: '#FFFFFF',
+        background: '#FDFBF7',
+        card: '#F5EFEB',
         primary: {
-          DEFAULT: '#E8C8B8',
-          dim: '#F5EBE4',
-          dark: '#D4A898',
-        },
-        secondary: {
-          DEFAULT: '#A5C4D0',
-          dim: '#C5D9E3',
-          dark: '#7FA8BA',
+          DEFAULT: '#A3B19B',
+          dim: '#C5CFC0',
+          dark: '#7D8F75',
         },
         gold: {
-          DEFAULT: '#C9A96E',
-          dim: '#E5D4B0',
-          dark: '#A88B4A',
+          DEFAULT: '#D4AF37',
+          dim: '#E8D9A8',
+          dark: '#B8942D',
         },
-        'on-surface': '#1A2A44',
-        'on-surface-variant': '#555555',
+        'on-surface': '#2B2625',
+        'on-surface-variant': '#6B6563',
+        'surface-container-low': '#F5EFEB',
         'surface-container-lowest': '#FFFFFF',
-        'surface-container-low': '#F7F5F1',
-        'surface-container': '#F0ECE6',
-        'surface-container-high': '#E8E2DA',
-        'outline-variant': '#DDD4CC',
       },
       fontFamily: {
-        sans: ['var(--font-outfit)', 'system-ui', 'sans-serif'],
-        display: ['var(--font-cinzel)', 'var(--font-playfair)', 'Georgia', 'serif'],
+        sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
+        display: ['var(--font-playfair)', 'Georgia', 'serif'],
+      },
+      lineHeight: {
+        relaxed: '1.6',
+        loose: '1.75',
       },
     },
   },

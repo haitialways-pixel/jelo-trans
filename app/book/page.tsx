@@ -13,14 +13,16 @@ export default async function BookPage() {
     <div className="bg-background min-h-screen text-on-surface">
       <Navbar />
 
-      <div className="pt-16 pb-12 max-w-5xl mx-auto px-6">
-        <div className="text-center mb-10">
-          <div className="pearl-accent-bar w-16 mx-auto mb-4" />
-          <div className="text-secondary-dark tracking-[4px] text-xs font-medium">ORLANDO LUXURY TRANSPORTATION</div>
-          <h1 className="display text-gold-gradient text-5xl md:text-6xl tracking-tight font-semibold mt-2">
-            Reserve Your Journey
+      <div className="pt-32 pb-24 max-w-4xl mx-auto px-8 md:px-12">
+        <div className="mb-16 max-w-2xl">
+          <div className="accent-line mb-8" />
+          <p className="text-xs tracking-[0.3em] uppercase text-on-surface-variant mb-6">
+            Orlando luxury transportation
+          </p>
+          <h1 className="font-display text-4xl md:text-5xl font-medium leading-tight">
+            Reserve your journey
           </h1>
-          <p className="text-on-surface-variant text-sm mt-3 max-w-xl mx-auto">
+          <p className="text-on-surface-variant mt-6 leading-relaxed">
             Select your vehicle, choose gratuity, and secure your chauffeur in minutes.
           </p>
         </div>

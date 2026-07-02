@@ -63,17 +63,18 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-on-surface flex items-center justify-center px-6">
+    <div className="min-h-screen bg-background text-on-surface flex items-center justify-center px-8">
       <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <div className="mx-auto mb-4 w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-            <Lock className="w-6 h-6 text-primary" />
+        <div className="text-center mb-10">
+          <div className="accent-line mx-auto mb-8" />
+          <div className="mx-auto mb-6 w-12 h-12 rounded-full bg-card flex items-center justify-center shadow-[0_12px_40px_-12px_rgba(43,38,37,0.1)]">
+            <Lock className="w-5 h-5 text-gold" strokeWidth={1.5} />
           </div>
-          <h1 className="display text-2xl font-semibold">Manager Access</h1>
-          <p className="text-on-surface-variant text-sm mt-1">Imperial Odyssey — staff only</p>
+          <h1 className="font-display text-3xl font-medium">Manager access</h1>
+          <p className="text-on-surface-variant text-sm mt-3">Imperial Odyssey — staff only</p>
         </div>
 
-        <form onSubmit={onSubmit} className="glass-dark gold-hairline rounded-2xl p-6 space-y-4">
+        <form onSubmit={onSubmit} className="float-card p-8 space-y-5">
           <div>
             <label className="block text-xs tracking-wide text-on-surface-variant mb-1.5">Email</label>
             <input
@@ -109,7 +110,7 @@ function LoginForm() {
           <button
             type="submit"
             disabled={loading}
-            className="gold-shimmer w-full flex items-center justify-center gap-2 font-semibold tracking-[0.1em] text-sm py-3 rounded-xl disabled:opacity-60"
+            className="btn-cta w-full flex items-center justify-center gap-2 text-sm py-3.5 rounded-full disabled:opacity-60"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
             {loading ? 'SIGNING IN…' : 'SIGN IN'}

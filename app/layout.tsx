@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { Outfit, Playfair_Display, Cinzel } from "next/font/google";
+import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { ClientProviders } from "@/components/shared/ClientProviders";
 
-const outfit = Outfit({
-  variable: "--font-outfit",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
   weight: ["400", "500", "600"],
   display: "swap",
@@ -14,16 +14,8 @@ const outfit = Outfit({
 const playfair = Playfair_Display({
   variable: "--font-playfair",
   subsets: ["latin"],
-  weight: ["400", "600"],
+  weight: ["400", "500", "600", "700"],
   style: ["normal", "italic"],
-  display: "swap",
-  preload: true,
-});
-
-const cinzel = Cinzel({
-  variable: "--font-cinzel",
-  subsets: ["latin"],
-  weight: ["400", "600", "700"],
   display: "swap",
   preload: true,
 });
@@ -41,8 +33,8 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${outfit.variable} ${playfair.variable} ${cinzel.variable} antialiased`}>
-      <body className="bg-background text-on-surface min-h-screen">
+    <html lang="en" className={`${inter.variable} ${playfair.variable} antialiased scroll-smooth`}>
+      <body className="bg-background text-on-surface min-h-screen font-sans">
         {children}
         <ClientProviders />
       </body>

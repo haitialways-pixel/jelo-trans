@@ -30,11 +30,11 @@ export function ManagerNav({
   }
 
   return (
-    <header className="sticky top-0 z-30 border-b border-primary/25 bg-white/90 backdrop-blur-xl shadow-[0_4px_20px_-8px_rgba(26,42,68,0.08)]">
+    <header className="sticky top-0 z-30 bg-background/90 backdrop-blur-md border-b border-outline-variant/30">
       <div className="max-w-7xl mx-auto px-4 md:px-6 flex items-center justify-between h-16">
         <div className="flex items-center gap-8">
           <Link href="/manager" className="display text-lg font-semibold">
-            Imperial Odyssey <span className="text-gold">Ops</span>
+            Imperial Odyssey <span className="text-on-surface-variant">Ops</span>
           </Link>
           <nav className="hidden md:flex items-center gap-1">
             {LINKS.map((l) => {

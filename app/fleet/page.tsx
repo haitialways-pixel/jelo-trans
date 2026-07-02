@@ -30,12 +30,9 @@ async function FleetContent() {
   return (
     <>
       {grouped.map((g) => (
-        <section key={g.tier} className="mb-14">
-          <div className="flex items-center gap-4 mb-6">
-            <h2 className="display text-2xl font-semibold whitespace-nowrap">{g.label}</h2>
-            <div className="flex-1 h-px bg-outline-variant/30" />
-          </div>
-          <div className="grid lg:grid-cols-2 gap-6">
+        <section key={g.tier} className="mb-20">
+          <h2 className="font-display text-3xl mb-10">{g.label}</h2>
+          <div className="grid lg:grid-cols-1 gap-10">
             {g.items.map((v) => (
               <VehicleCard key={v.id} vehicle={v} />
             ))}
@@ -44,8 +41,8 @@ async function FleetContent() {
       ))}
 
       {untiered.length > 0 && (
-        <section className="mb-14">
-          <div className="grid lg:grid-cols-2 gap-6">
+        <section className="mb-20">
+          <div className="grid lg:grid-cols-1 gap-10">
             {untiered.map((v) => (
               <VehicleCard key={v.id} vehicle={v} />
             ))}
@@ -61,21 +58,22 @@ export default function FleetPage() {
     <div className="bg-background text-on-surface min-h-screen">
       <Navbar />
 
-      <div className="pt-28 pb-20 px-6 max-w-6xl mx-auto">
-        <div className="text-center mb-14">
-          <span className="text-[11px] tracking-[0.3em] text-primary block mb-3">THE COLLECTION</span>
-          <h1 className="display text-gold-gradient text-4xl md:text-6xl font-semibold leading-[1.05]">
-            Uncompromising <span className="italic">Luxury</span>
-          </h1>
-          <p className="text-on-surface-variant mt-5 max-w-xl mx-auto">
-            A curated fleet of premium SUVs designed for executives and discerning travelers in Orlando —
-            immaculate interiors and professional chauffeuring.
-          </p>
-        </div>
+      <div className="pt-32 pb-24 max-w-5xl mx-auto px-8 md:px-12">
+        <div className="accent-line mb-10" />
+        <p className="text-xs tracking-[0.3em] uppercase text-on-surface-variant mb-6">The collection</p>
+        <h1 className="font-display text-5xl md:text-6xl font-medium leading-tight max-w-3xl">
+          Uncompromising <span className="italic">luxury</span>
+        </h1>
+        <p className="text-on-surface-variant mt-8 max-w-2xl leading-relaxed">
+          A curated fleet of premium SUVs for executives and discerning travelers in Orlando —
+          immaculate interiors and professional chauffeuring.
+        </p>
 
-        <Suspense fallback={<FeaturedFleetSkeleton />}>
-          <FleetContent />
-        </Suspense>
+        <div className="mt-20">
+          <Suspense fallback={<FeaturedFleetSkeleton />}>
+            <FleetContent />
+          </Suspense>
+        </div>
       </div>
 
       <Footer />

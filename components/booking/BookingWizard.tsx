@@ -346,7 +346,7 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
         ))}
       </div>
 
-      <div className="card luxe-card p-8 md:p-12 relative overflow-hidden shadow-lg shadow-primary/5">
+      <div className="float-card p-8 md:p-14 relative overflow-hidden">
         {loading && (
           <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
             <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
