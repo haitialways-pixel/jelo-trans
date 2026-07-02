@@ -71,7 +71,7 @@ export default function ManageBookingPage() {
             </div>
 
             {booking.status !== 'cancelled' && booking.status !== 'completed' && (
-              <button onClick={handleCancel} disabled={loading} className="mt-8 w-full border border-red-900/70 hover:bg-red-950 text-red-400 py-4 rounded-full text-sm tracking-widest">
+              <button onClick={handleCancel} disabled={loading} className="mt-8 w-full border border-red-300 hover:bg-red-50 text-red-700 py-4 rounded-full text-sm tracking-widest">
                 {loading ? 'Cancelling...' : 'Cancel This Booking'}
               </button>
             )}

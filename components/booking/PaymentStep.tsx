@@ -93,7 +93,7 @@ function CheckoutForm({ depositAmount, balanceAmount, bookingNumber, onPaid }: P
       <PaymentElement />
 
       {error && (
-        <p className="text-red-400 text-sm bg-red-950/30 border border-red-900/40 p-3 rounded-xl">
+        <p className="text-red-700 text-sm bg-red-50 border border-red-200 p-3 rounded-xl">
           {error}
         </p>
       )}

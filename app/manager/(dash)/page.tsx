@@ -21,7 +21,7 @@ export default async function ManagerDashboard() {
     { label: 'To confirm', value: stats.pending, icon: Clock, tint: 'text-zinc-300' },
     { label: "Today's rides", value: stats.todayCount, icon: CarFront, tint: 'text-primary' },
     { label: 'In progress', value: stats.inProgress, icon: CheckCircle2, tint: 'text-blue-300' },
-    { label: 'Open escalations', value: stats.openEscalations, icon: MessageSquareWarning, tint: 'text-amber-300' },
+    { label: 'Open escalations', value: stats.openEscalations, icon: MessageSquareWarning, tint: 'text-amber-700' },
   ]
 
   return (

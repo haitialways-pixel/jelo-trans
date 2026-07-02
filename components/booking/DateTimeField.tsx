@@ -41,7 +41,7 @@ export function DateTimeField({ value, onChange }: Props) {
   return (
     <div className="grid grid-cols-2 gap-4">
       <div>
-        <label className="text-xs text-[#c5a26f] ml-1">Pickup date</label>
+              <label className="text-xs text-primary ml-1 font-medium">Pickup date</label>
         <input
           type="date"
           min={todayStr()}
@@ -51,7 +51,7 @@ export function DateTimeField({ value, onChange }: Props) {
         />
       </div>
       <div>
-        <label className="text-xs text-[#c5a26f] ml-1">Pickup time</label>
+              <label className="text-xs text-primary ml-1 font-medium">Pickup time</label>
         <select
           value={time}
           onChange={(e) => setTime(e.target.value)}

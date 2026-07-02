@@ -101,11 +101,11 @@ export default async function ReservationDetail({ params }: { params: Promise<{ 
                     <div className="flex items-center gap-2">
                       <Car className="w-4 h-4 text-amber-400 animate-pulse" />
                       <span className="text-on-surface-variant text-xs">Assigned car:</span>
-                      <span className="font-semibold text-amber-300">Auto-Select Pending</span>
+                      <span className="font-semibold text-amber-700">Auto-Select Pending</span>
                     </div>
                     <p className="text-[11px] text-on-surface-variant leading-relaxed">
                       No specific car assigned yet. The system will automatically select the first available{' '}
-                      <span className="text-white font-medium">{r.fleet?.name}</span> (e.g.,{' '}
+                      <span className="text-on-surface font-medium">{r.fleet?.name}</span> (e.g.,{' '}
                       <span className="text-primary font-medium">{availableUnit ? availableUnit.label : 'None available!'}</span>) when confirming/dispatching.
                     </p>
                   </div>
@@ -220,7 +220,7 @@ function PaymentPanel({ r }: { r: ManagerReservation }) {
         <p className="text-xs text-on-surface-variant">
           {fully ? 'Fully paid' : depositPaid ? 'Deposit paid' : 'Awaiting payment'}
         </p>
-        <p className={`display text-2xl font-semibold mt-1 ${fully ? 'text-emerald-300' : 'text-on-surface'}`}>
+        <p className={`display text-2xl font-semibold mt-1 ${fully ? 'text-emerald-700' : 'text-on-surface'}`}>
           {formatMoney(collected)}
           <span className="text-sm text-on-surface-variant"> / {formatMoney(total)}</span>
         </p>
@@ -258,7 +258,7 @@ function PayRow({
       <span className="text-on-surface-variant">{label}</span>
       <div className="text-right">
         <span className="text-on-surface">{formatMoney(amount)}</span>
-        <span className={`ml-2 text-[11px] ${paid ? 'text-emerald-300' : 'text-on-surface-variant'}`}>
+        <span className={`ml-2 text-[11px] ${paid ? 'text-emerald-700' : 'text-on-surface-variant'}`}>
           {paid ? '✓ paid' : (pendingLabel ?? 'pending')}
         </span>
       </div>

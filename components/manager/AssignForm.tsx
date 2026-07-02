@@ -80,7 +80,7 @@ export function AssignForm({
       <div>
         <div className="flex justify-between items-center mb-1.5">
           <label className="text-xs text-on-surface-variant">
-            Booked category: <span className="text-white font-semibold">{r.fleet?.name ?? 'Unassigned'}</span>
+            Booked category: <span className="text-on-surface font-semibold">{r.fleet?.name ?? 'Unassigned'}</span>
           </label>
           {!unitId && !disabled && matchingUnits.length > 0 && (
             <button
@@ -95,7 +95,7 @@ export function AssignForm({
           value={unitId}
           onChange={(e) => setUnitId(e.target.value)}
           disabled={disabled}
-          className="w-full rounded-lg px-3 py-2.5 text-sm disabled:opacity-50 text-white bg-[#1a1a1a] border border-[#2d2d2d]"
+          className="w-full rounded-lg px-3 py-2.5 text-sm disabled:opacity-50 text-on-surface"
         >
           <option value="">— No specific car —</option>
           {matchingUnits.length > 0 && (
@@ -161,7 +161,7 @@ export function AssignForm({
               }
             }}
             disabled={disabled}
-            className="w-full rounded-lg px-3 py-2.5 text-sm disabled:opacity-50 text-white bg-[#1a1a1a] border border-[#2d2d2d]"
+            className="w-full rounded-lg px-3 py-2.5 text-sm disabled:opacity-50 text-on-surface"
           >
             <option value="">— Unassigned —</option>
             {chauffeurs.map((c) => (
@@ -183,7 +183,7 @@ export function AssignForm({
             }}
             disabled={disabled}
             placeholder="Enter driver name"
-            className="w-full rounded-lg px-3 py-2.5 text-sm disabled:opacity-50 text-white bg-[#1a1a1a] border border-[#2d2d2d]"
+            className="w-full rounded-lg px-3 py-2.5 text-sm disabled:opacity-50 text-on-surface"
           />
         )}
       </div>
@@ -201,7 +201,7 @@ export function AssignForm({
         <button
           onClick={dispatchDriver}
           disabled={pending}
-          className="flex items-center justify-center gap-2 w-full rounded-xl border border-amber-500/40 text-amber-300 hover:bg-amber-500/10 text-sm font-medium py-2.5 transition disabled:opacity-50"
+          className="flex items-center justify-center gap-2 w-full rounded-xl border border-amber-500/40 text-amber-800 hover:bg-amber-500/10 text-sm font-medium py-2.5 transition disabled:opacity-50"
         >
           {pending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
           Send dispatch to driver

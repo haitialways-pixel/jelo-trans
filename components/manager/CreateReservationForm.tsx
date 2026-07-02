@@ -117,7 +117,7 @@ export function CreateReservationForm({ fleet }: { fleet: ManagerFleetModel[] })
           <select
             value={form.vehicleId}
             onChange={(e) => update('vehicleId', e.target.value)}
-            className="w-full rounded-lg px-3 py-2.5 text-sm text-white bg-[#1a1a1a] border border-[#2d2d2d]"
+            className="w-full rounded-lg px-3 py-2.5 text-sm"
           >
             {fleet.map((v) => (
               <option key={v.id} value={v.id}>

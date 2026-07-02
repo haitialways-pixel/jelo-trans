@@ -295,7 +295,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
         <button
           onClick={() => setActiveTab('fleet')}
           className={`pb-2.5 text-sm font-medium transition border-b-2 px-1 ${
-            activeTab === 'fleet' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-white'
+            activeTab === 'fleet' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface'
           }`}
         >
           Manage Fleet
@@ -303,7 +303,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
         <button
           onClick={() => setActiveTab('chauffeurs')}
           className={`pb-2.5 text-sm font-medium transition border-b-2 px-1 ${
-            activeTab === 'chauffeurs' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-white'
+            activeTab === 'chauffeurs' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface'
           }`}
         >
           Manage Chauffeurs
@@ -328,8 +328,8 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
           {showAddClass && (
             <div className="glass-dark gold-hairline rounded-2xl p-6 space-y-4">
               <div className="flex items-center justify-between border-b border-outline-variant/15 pb-2">
-                <h3 className="text-sm font-semibold text-white">Create New Vehicle Class (Category)</h3>
-                <button onClick={() => setShowAddClass(false)} className="text-on-surface-variant hover:text-white">
+                <h3 className="text-sm font-semibold text-on-surface">Create New Vehicle Class (Category)</h3>
+                <button onClick={() => setShowAddClass(false)} className="text-on-surface-variant hover:text-on-surface">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -342,7 +342,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
                     placeholder="e.g. Stretch Limo"
                     value={className}
                     onChange={(e) => setClassName(e.target.value)}
-                    className="w-full rounded-lg px-3 py-2 text-xs text-white"
+                    className="w-full rounded-lg px-3 py-2 text-xs text-on-surface"
                   />
                 </div>
 
@@ -351,7 +351,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
                   <select
                     value={classType}
                     onChange={(e) => setClassType(e.target.value)}
-                    className="w-full rounded-lg px-3 py-2 text-xs text-white"
+                    className="w-full rounded-lg px-3 py-2 text-xs text-on-surface"
                   >
                     {TYPE_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>
@@ -366,7 +366,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
                   <select
                     value={classTier}
                     onChange={(e) => setClassTier(e.target.value)}
-                    className="w-full rounded-lg px-3 py-2 text-xs text-white"
+                    className="w-full rounded-lg px-3 py-2 text-xs text-on-surface"
                   >
                     <option value="premium">Premium</option>
                     <option value="executive">Executive</option>
@@ -381,7 +381,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
                     placeholder="e.g. 150.00"
                     value={classBasePrice}
                     onChange={(e) => setClassBasePrice(e.target.value)}
-                    className="w-full rounded-lg px-3 py-2 text-xs text-white"
+                    className="w-full rounded-lg px-3 py-2 text-xs text-on-surface"
                   />
                 </div>
 
@@ -393,7 +393,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
                     placeholder="e.g. 4.50"
                     value={classPricePerMile}
                     onChange={(e) => setClassPricePerMile(e.target.value)}
-                    className="w-full rounded-lg px-3 py-2 text-xs text-white"
+                    className="w-full rounded-lg px-3 py-2 text-xs text-on-surface"
                   />
                 </div>
 
@@ -405,7 +405,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
                         type="number"
                         value={classCapacity}
                         onChange={(e) => setClassCapacity(e.target.value)}
-                        className="w-full rounded-lg px-3 py-2 text-xs text-white"
+                        className="w-full rounded-lg px-3 py-2 text-xs text-on-surface"
                       />
                     </div>
                     <div>
@@ -414,7 +414,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
                         type="number"
                         value={classLuggage}
                         onChange={(e) => setClassLuggage(e.target.value)}
-                        className="w-full rounded-lg px-3 py-2 text-xs text-white"
+                        className="w-full rounded-lg px-3 py-2 text-xs text-on-surface"
                       />
                     </div>
                   </div>
@@ -427,7 +427,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
                     placeholder="e.g. /images/stretch-limo.jpg"
                     value={classImageUrl}
                     onChange={(e) => setClassImageUrl(e.target.value)}
-                    className="w-full rounded-lg px-3 py-2 text-xs text-white"
+                    className="w-full rounded-lg px-3 py-2 text-xs text-on-surface"
                   />
                 </div>
 
@@ -437,7 +437,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
                     placeholder="Describe this vehicle class for customers..."
                     value={classDesc}
                     onChange={(e) => setClassDesc(e.target.value)}
-                    className="w-full rounded-lg px-3 py-2 text-xs text-white h-16 resize-none"
+                    className="w-full rounded-lg px-3 py-2 text-xs text-on-surface h-16 resize-none"
                   />
                 </div>
               </div>
@@ -445,7 +445,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
               <div className="flex justify-end gap-2 pt-2 border-t border-outline-variant/10">
                 <button
                   onClick={() => setShowAddClass(false)}
-                  className="px-4 py-2 text-xs rounded-lg border border-outline-variant/40 hover:bg-surface-container/50 text-white transition"
+                  className="px-4 py-2 text-xs rounded-lg border border-outline-variant/40 hover:bg-surface-container/50 text-on-surface transition"
                   disabled={pending}
                 >
                   Cancel
@@ -478,7 +478,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
                   <div className="flex flex-wrap items-start justify-between gap-4 border-b border-outline-variant/10 pb-4">
                     <div>
                       <div className="flex items-center gap-3">
-                        <h2 className="text-lg font-semibold text-white">{model.name}</h2>
+                        <h2 className="text-lg font-semibold text-on-surface">{model.name}</h2>
                         {model.tier && (
                           <span className="text-[10px] font-semibold tracking-wider uppercase bg-primary/10 border border-primary/30 text-primary rounded-full px-2.5 py-0.5">
                             {model.tier}
@@ -486,7 +486,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
                         )}
                       </div>
                       <p className="text-xs text-on-surface-variant mt-1">
-                        Type: <span className="font-mono text-white">{model.type}</span> · Capacity: {model.capacity} Pax, {model.luggage_capacity} Bags
+                        Type: <span className="font-mono text-on-surface">{model.type}</span> · Capacity: {model.capacity} Pax, {model.luggage_capacity} Bags
                       </p>
                     </div>
 
@@ -501,7 +501,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
                               step="0.01"
                               value={basePrice}
                               onChange={(e) => setBasePrice(parseFloat(e.target.value) || 0)}
-                              className="w-20 rounded-md px-2 py-1 text-xs text-white"
+                              className="w-20 rounded-md px-2 py-1 text-xs text-on-surface"
                               disabled={pending}
                             />
                           </div>
@@ -512,7 +512,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
                               step="0.01"
                               value={pricePerMile}
                               onChange={(e) => setPricePerMile(parseFloat(e.target.value) || 0)}
-                              className="w-20 rounded-md px-2 py-1 text-xs text-white"
+                              className="w-20 rounded-md px-2 py-1 text-xs text-on-surface"
                               disabled={pending}
                             />
                           </div>
@@ -523,7 +523,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
                               step="0.01"
                               value={minimumPrice}
                               onChange={(e) => setMinimumPrice(parseFloat(e.target.value) || 0)}
-                              className="w-20 rounded-md px-2 py-1 text-xs text-white"
+                              className="w-20 rounded-md px-2 py-1 text-xs text-on-surface"
                               disabled={pending}
                               title="Minimum charge per ride for this model"
                             />
@@ -554,7 +554,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
                             </p>
                             {model.minimum_price > 0 && (
                               <p className="text-[10px] text-on-surface-variant mt-0.5">
-                                min ride: <span className="text-white font-semibold">${model.minimum_price.toFixed(2)}</span>
+                                min ride: <span className="text-on-surface font-semibold">${model.minimum_price.toFixed(2)}</span>
                               </p>
                             )}
                           </div>
@@ -597,7 +597,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
                       <div className="glass-dark border border-dashed border-primary/30 rounded-xl p-4 space-y-4">
                         <div className="flex items-center justify-between border-b border-outline-variant/10 pb-2">
                           <h4 className="text-xs font-semibold text-primary">Add New Vehicle Unit</h4>
-                          <button onClick={() => setAddingUnitModelId(null)} className="text-on-surface-variant hover:text-white">
+                          <button onClick={() => setAddingUnitModelId(null)} className="text-on-surface-variant hover:text-on-surface">
                             <X className="w-4 h-4" />
                           </button>
                         </div>
@@ -609,7 +609,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
                               placeholder="e.g. Cadillac XTS Black #1"
                               value={newLabel}
                               onChange={(e) => setNewLabel(e.target.value)}
-                              className="w-full rounded-lg px-3 py-2 text-xs text-white"
+                              className="w-full rounded-lg px-3 py-2 text-xs text-on-surface"
                               disabled={pending}
                             />
                           </div>
@@ -620,7 +620,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
                               placeholder="e.g. 2023"
                               value={newYear}
                               onChange={(e) => setNewYear(e.target.value)}
-                              className="w-full rounded-lg px-3 py-2 text-xs text-white"
+                              className="w-full rounded-lg px-3 py-2 text-xs text-on-surface"
                               disabled={pending}
                             />
                           </div>
@@ -631,7 +631,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
                               placeholder="e.g. TX-12345"
                               value={newPlate}
                               onChange={(e) => setNewPlate(e.target.value)}
-                              className="w-full rounded-lg px-3 py-2 text-xs text-white"
+                              className="w-full rounded-lg px-3 py-2 text-xs text-on-surface"
                               disabled={pending}
                             />
                           </div>
@@ -639,7 +639,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
                         <div className="flex justify-end gap-2 pt-2">
                           <button
                             onClick={() => setAddingUnitModelId(null)}
-                            className="px-3 py-1.5 text-xs rounded-lg border border-outline-variant/40 hover:bg-surface-container/50 text-white transition"
+                            className="px-3 py-1.5 text-xs rounded-lg border border-outline-variant/40 hover:bg-surface-container/50 text-on-surface transition"
                             disabled={pending}
                           >
                             Cancel
@@ -679,7 +679,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
                                       type="text"
                                       value={editLabel}
                                       onChange={(e) => setEditLabel(e.target.value)}
-                                      className="rounded px-2 py-1 text-xs text-white"
+                                      className="rounded px-2 py-1 text-xs text-on-surface"
                                       placeholder="Label"
                                       disabled={pending}
                                     />
@@ -687,7 +687,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
                                       type="number"
                                       value={editYear}
                                       onChange={(e) => setEditYear(e.target.value)}
-                                      className="rounded px-2 py-1 text-xs text-white"
+                                      className="rounded px-2 py-1 text-xs text-on-surface"
                                       placeholder="Year"
                                       disabled={pending}
                                     />
@@ -695,14 +695,14 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
                                       type="text"
                                       value={editPlate}
                                       onChange={(e) => setEditPlate(e.target.value)}
-                                      className="rounded px-2 py-1 text-xs text-white"
+                                      className="rounded px-2 py-1 text-xs text-on-surface"
                                       placeholder="Plate"
                                       disabled={pending}
                                     />
                                   </div>
                                 ) : (
                                   <div className="min-w-0">
-                                    <p className="font-medium text-sm truncate text-white">{unit.label}</p>
+                                    <p className="font-medium text-sm truncate text-on-surface">{unit.label}</p>
                                     <div className="flex items-center gap-3 text-xs text-on-surface-variant mt-0.5">
                                       {unit.year && (
                                         <span className="flex items-center gap-1">
@@ -746,7 +746,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
                                       value={unit.status}
                                       onChange={(e) => handleStatusChange(unit.id, e.target.value)}
                                       disabled={pending}
-                                      className="rounded-lg px-2 py-1 text-[11px] bg-surface-container border border-outline-variant/20 text-white disabled:opacity-50"
+                                      className="rounded-lg px-2 py-1 text-[11px] bg-surface-container border border-outline-variant/20 text-on-surface disabled:opacity-50"
                                     >
                                       {STATUS_OPTIONS.map((opt) => (
                                         <option key={opt.value} value={opt.value}>
@@ -757,7 +757,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
 
                                     <button
                                       onClick={() => handleStartEditUnit(unit)}
-                                      className="p-1.5 rounded-lg border border-outline-variant/40 text-on-surface-variant hover:text-white hover:bg-surface-container/50 transition"
+                                      className="p-1.5 rounded-lg border border-outline-variant/40 text-on-surface-variant hover:text-on-surface hover:bg-surface-container/50 transition"
                                       title="Edit car details"
                                       disabled={pending}
                                     >
@@ -792,7 +792,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
         <div className="space-y-6">
           {/* Add chauffeur form */}
           <div className="glass-dark gold-hairline rounded-2xl p-6 space-y-4">
-            <h3 className="text-sm font-semibold text-white">Add New Chauffeur</h3>
+            <h3 className="text-sm font-semibold text-on-surface">Add New Chauffeur</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="block text-[11px] text-on-surface-variant uppercase font-medium">Chauffeur Name</label>
@@ -801,7 +801,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
                   placeholder="e.g. Jean Dupont"
                   value={chauffeurName}
                   onChange={(e) => setChauffeurName(e.target.value)}
-                  className="w-full rounded-lg px-3 py-2 text-xs text-white"
+                  className="w-full rounded-lg px-3 py-2 text-xs text-on-surface"
                   disabled={pending}
                 />
               </div>
@@ -812,7 +812,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
                   placeholder="e.g. +1 (555) 019-2834"
                   value={chauffeurPhone}
                   onChange={(e) => setChauffeurPhone(e.target.value)}
-                  className="w-full rounded-lg px-3 py-2 text-xs text-white"
+                  className="w-full rounded-lg px-3 py-2 text-xs text-on-surface"
                   disabled={pending}
                 />
               </div>
@@ -823,7 +823,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
                   placeholder="driver@example.com"
                   value={chauffeurEmail}
                   onChange={(e) => setChauffeurEmail(e.target.value)}
-                  className="w-full rounded-lg px-3 py-2 text-xs text-white"
+                  className="w-full rounded-lg px-3 py-2 text-xs text-on-surface"
                   disabled={pending}
                 />
               </div>
@@ -842,7 +842,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
 
           {/* Chauffeurs List */}
           <div className="glass-dark gold-hairline rounded-2xl p-6 space-y-4">
-            <h3 className="text-sm font-semibold text-white">Chauffeurs List ({chauffeurs.length} drivers)</h3>
+            <h3 className="text-sm font-semibold text-on-surface">Chauffeurs List ({chauffeurs.length} drivers)</h3>
             {chauffeurs.length === 0 ? (
               <p className="text-xs text-on-surface-variant">No chauffeurs configured. Chauffeurs can still be assigned by typing their name manually.</p>
             ) : (
@@ -855,7 +855,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
                     <div className="flex items-center gap-3">
                       <Users className="w-4 h-4 text-on-surface-variant shrink-0" />
                       <div>
-                        <p className="font-medium text-sm text-white">{c.name}</p>
+                        <p className="font-medium text-sm text-on-surface">{c.name}</p>
                         <p className="text-xs text-on-surface-variant mt-0.5">
                           {[c.phone, c.email].filter(Boolean).join(' · ') || 'No contact on file'}
                         </p>

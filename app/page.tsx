@@ -35,11 +35,11 @@ export default function Home() {
           <div className="absolute inset-0 hero-luxe-overlay" />
         </div>
         <div className="relative z-10 px-6 pb-16 md:pb-24 text-center max-w-3xl">
-          <span className="text-[11px] tracking-[0.35em] text-gold-soft block mb-5 font-medium">ORLANDO, FLORIDA</span>
-          <h1 className="display text-gold-gradient text-4xl md:text-6xl lg:text-7xl font-semibold leading-[1.08] mb-6 drop-shadow-sm">
+          <span className="text-[11px] tracking-[0.35em] text-primary block mb-5 font-semibold">ORLANDO, FLORIDA</span>
+          <h1 className="display text-gold-gradient text-4xl md:text-6xl lg:text-7xl font-semibold leading-[1.08] mb-6">
             Your Premium Chauffeur in Orlando
           </h1>
-          <p className="text-gold-soft/90 md:text-lg mb-10 max-w-xl mx-auto leading-relaxed font-light">
+          <p className="text-on-surface-variant md:text-lg mb-10 max-w-xl mx-auto leading-relaxed">
             Experience the pinnacle of luxury travel with Imperial Odyssey&apos;s white-glove service.
           </p>
           <Link href="/book" className="gold-shimmer inline-block font-semibold tracking-[0.15em] text-sm py-4 px-12 rounded-xl shadow-lg active:scale-[0.98] transition">

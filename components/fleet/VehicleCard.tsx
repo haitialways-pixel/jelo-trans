@@ -48,7 +48,7 @@ export function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
 
         <Link
           href="/book"
-          className="block text-center border border-primary/40 text-primary hover:bg-primary hover:text-white font-semibold tracking-[0.15em] text-xs py-3 rounded-xl transition"
+          className="block text-center border border-primary/40 text-primary hover:bg-primary hover:text-[#1f1808] font-semibold tracking-[0.15em] text-xs py-3 rounded-xl transition"
         >
           SELECT VEHICLE
         </Link>

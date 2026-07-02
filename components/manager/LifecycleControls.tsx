@@ -66,9 +66,9 @@ export function LifecycleControls({ r }: { r: ManagerReservation }) {
 
   if (r.status === 'completed') {
     return (
-      <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
+      <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700">
         <CheckCircle2 className="w-4 h-4" /> Ride completed on {formatDateTime(r.completed_at)}.
-        <span className="text-emerald-300/70">Balance charge will trigger here (Stripe — Phase C).</span>
+        <span className="text-emerald-700/70">Balance charge will trigger here (Stripe — Phase C).</span>
       </div>
     )
   }
@@ -116,14 +116,14 @@ export function LifecycleControls({ r }: { r: ManagerReservation }) {
               <div className="flex items-center gap-3">
                 <span
                   className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] ${
-                    done ? 'bg-emerald-500/20 text-emerald-300' : 'bg-surface-container-high text-on-surface-variant'
+                    done ? 'bg-emerald-500/20 text-emerald-700' : 'bg-surface-container-high text-on-surface-variant'
                   }`}
                 >
                   {done ? <Check className="h-3.5 w-3.5" /> : <span className="h-1.5 w-1.5 rounded-full bg-current" />}
                 </span>
                 <div>
                   <p className="text-sm">{step.label}</p>
-                  {done && <p className="text-[11px] text-emerald-300/80">{formatDateTime(doneAt)}</p>}
+                  {done && <p className="text-[11px] text-emerald-700/80">{formatDateTime(doneAt)}</p>}
                 </div>
               </div>
 
@@ -136,7 +136,7 @@ export function LifecycleControls({ r }: { r: ManagerReservation }) {
                   title={r.status === 'pending' ? 'Confirm the reservation first' : undefined}
                   className={`flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium transition disabled:opacity-40 ${
                     isComplete
-                      ? 'border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10'
+                      ? 'border border-emerald-500/40 text-emerald-700 hover:bg-emerald-500/10'
                       : 'border border-primary/40 text-primary hover:bg-primary/10'
                   }`}
                 >
