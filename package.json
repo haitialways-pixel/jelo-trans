@@ -1,14 +1,14 @@
 {
-  "name": "phalo-transportation",
+  "name": "imperial-odyssey",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "build:pages": "next build",
+    "build:pages": "npx @opennextjs/cloudflare build",
     "vercel-build": "next build",
-    "preview": "wrangler dev",
-    "deploy": "npm run build && npx @opennextjs/cloudflare deploy",
+    "preview": "npx @opennextjs/cloudflare build && npx @opennextjs/cloudflare preview",
+    "deploy": "npx @opennextjs/cloudflare build && npx @opennextjs/cloudflare deploy",
     "setup-staff": "node scripts/setup-staff.cjs",
     "seed-staff": "node scripts/setup-staff.cjs -- --seed-all",
     "provision-staff-auth": "node scripts/provision-staff-auth.cjs"

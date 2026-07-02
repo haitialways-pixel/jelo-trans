@@ -6,17 +6,17 @@ import { Footer } from '@/components/shared/Footer'
 export const revalidate = 86400
 
 export const metadata: Metadata = {
-  title: 'Terms of Service | Phalo Transportation',
+  title: 'Terms of Service | Imperial Odyssey',
   description:
-    'Terms and Conditions governing the use of Phalo Transportation services in Orlando, Florida. Read our policies on bookings, payments, cancellations, and liability.',
+    'Terms and Conditions governing the use of Imperial Odyssey services in Orlando, Florida. Read our policies on bookings, payments, cancellations, and liability.',
 }
 
 const EFFECTIVE_DATE = 'June 10, 2025'
-const COMPANY = 'Phalo Transportation, LLC'
+const COMPANY = 'Imperial Odyssey, LLC'
 const STATE = 'Florida'
 const CITY = 'Orlando'
 const PHONE = '(678) 478-3506'
-const EMAIL = 'info@phalotrans.com'
+const EMAIL = 'info@vipodyssey.com'
 
 const sections = [
   {

@@ -109,7 +109,7 @@ export async function sendLifecycleEmails({
         to: common.to,
         customerName: common.customerName,
         bookingNumber: common.bookingNumber,
-        cancellationReason: 'Cancelled by Phalo Transportation',
+        cancellationReason: 'Cancelled by Imperial Odyssey',
       })
     default:
       return { sent: false, reason: `unknown stage: ${stage}` }

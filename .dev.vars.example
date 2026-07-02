@@ -12,12 +12,12 @@ SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key_here
 STRIPE_SECRET_KEY=sk_test_your_stripe_secret_here
 RESEND_API_KEY=your_resend_api_key_here
 STRIPE_WEBHOOK_SECRET=whsec_your_webhook_signing_secret
-BOOKING_FROM_NAME=Phalo Transportation Booking
-BOOKING_FROM_ADDRESS=bookings@example.com
-DISPATCH_FROM_NAME=Trip Dispatch - Phalo Transportation
-DISPATCH_FROM_ADDRESS=no-reply@example.com
-DISPATCH_REPLY_TO_EMAIL=info@example.com
-SITE_URL=https://your-project.pages.dev
+BOOKING_FROM_NAME=Imperial Odyssey Booking
+BOOKING_FROM_ADDRESS=bookings@vipodyssey.com
+DISPATCH_FROM_NAME=Trip Dispatch - Imperial Odyssey
+DISPATCH_FROM_ADDRESS=no-reply@vipodyssey.com
+DISPATCH_REPLY_TO_EMAIL=concierge@vipodyssey.com
+SITE_URL=https://vipodyssey.com
 
 # Public ones (if your preview build needs them at runtime):
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co

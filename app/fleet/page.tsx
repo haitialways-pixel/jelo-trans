@@ -64,8 +64,8 @@ export default function FleetPage() {
       <div className="pt-28 pb-20 px-6 max-w-6xl mx-auto">
         <div className="text-center mb-14">
           <span className="text-[11px] tracking-[0.3em] text-primary block mb-3">THE COLLECTION</span>
-          <h1 className="display text-4xl md:text-6xl font-semibold leading-[1.05]">
-            Uncompromising <span className="text-primary italic">Luxury</span>
+          <h1 className="display text-gold-gradient text-4xl md:text-6xl font-semibold leading-[1.05]">
+            Uncompromising <span className="italic">Luxury</span>
           </h1>
           <p className="text-on-surface-variant mt-5 max-w-xl mx-auto">
             A curated fleet of premium SUVs designed for executives and discerning travelers in Orlando —

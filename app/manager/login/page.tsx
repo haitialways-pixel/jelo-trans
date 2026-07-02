@@ -70,7 +70,7 @@ function LoginForm() {
             <Lock className="w-6 h-6 text-primary" />
           </div>
           <h1 className="display text-2xl font-semibold">Manager Access</h1>
-          <p className="text-on-surface-variant text-sm mt-1">Phalo Transportation — staff only</p>
+          <p className="text-on-surface-variant text-sm mt-1">Imperial Odyssey — staff only</p>
         </div>
 
         <form onSubmit={onSubmit} className="glass-dark gold-hairline rounded-2xl p-6 space-y-4">
@@ -83,7 +83,7 @@ function LoginForm() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full rounded-lg px-3 py-2.5 text-sm"
-              placeholder="you@phalotransportation.com"
+              placeholder="you@vipodyssey.com"
             />
           </div>
 

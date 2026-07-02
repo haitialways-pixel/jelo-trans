@@ -34,7 +34,7 @@ export function ManagerNav({
       <div className="max-w-7xl mx-auto px-4 md:px-6 flex items-center justify-between h-16">
         <div className="flex items-center gap-8">
           <Link href="/manager" className="display text-lg font-semibold">
-            Phalo Transportation <span className="text-primary">Ops</span>
+            Imperial Odyssey <span className="text-primary">Ops</span>
           </Link>
           <nav className="hidden md:flex items-center gap-1">
             {LINKS.map((l) => {

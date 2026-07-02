@@ -28,7 +28,7 @@ export default async function ManagerDashboard() {
     <div className="space-y-8">
       <div>
         <h1 className="display text-2xl font-semibold">Today at a glance</h1>
-        <p className="text-on-surface-variant text-sm mt-1">Operations overview for Phalo Transportation.</p>
+        <p className="text-on-surface-variant text-sm mt-1">Operations overview for Imperial Odyssey.</p>
       </div>
 
       {/* KPI cards */}

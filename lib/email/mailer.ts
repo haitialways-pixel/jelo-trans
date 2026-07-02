@@ -10,14 +10,14 @@ const SEND_TIMEOUT_MS = 15_000
 const SANDBOX_FROM = 'onboarding@resend.dev'
 
 /** Default display names per email category */
-export const CUSTOMER_FROM_NAME = 'Phalo Transportation Booking'
-export const DISPATCH_FROM_NAME = 'Trip Dispatch - Phalo Transportation'
+export const CUSTOMER_FROM_NAME = 'Imperial Odyssey Booking'
+export const DISPATCH_FROM_NAME = 'Trip Dispatch - Imperial Odyssey'
 
 /** Default bare sender addresses (must be verified in Resend) */
-export const CUSTOMER_FROM_ADDRESS = 'bookings@phalotrans.com'
-export const DISPATCH_FROM_ADDRESS = 'no-reply@phalotrans.com'
+export const CUSTOMER_FROM_ADDRESS = 'bookings@vipodyssey.com'
+export const DISPATCH_FROM_ADDRESS = 'no-reply@vipodyssey.com'
 
-const DISPATCH_REPLY_TO_DEFAULT = 'info.phalotrans@gmail.com'
+const DISPATCH_REPLY_TO_DEFAULT = 'concierge@vipodyssey.com'
 
 export type EmailSenderKind = 'customer' | 'dispatch'
 
@@ -158,7 +158,7 @@ export function isResendSandboxMode(): boolean {
   return resolveFromHeader({ fromKind: 'customer' }).includes(SANDBOX_FROM)
 }
 
-/** Reply-To for driver dispatch — driver replies land here (defaults to info.phalotrans@gmail.com). */
+/** Reply-To for driver dispatch — driver replies land here (defaults to concierge@vipodyssey.com). */
 export function getDispatchReplyToAddress(): string {
   const configured = process.env.DISPATCH_REPLY_TO_EMAIL?.trim()
   if (configured && configured.includes('@')) return configured

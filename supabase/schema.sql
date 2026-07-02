@@ -1,5 +1,5 @@
 -- ============================================================================
--- PHALO TRANSPORTATION, LLC - Complete Supabase Schema + RLS
+-- IMPERIAL ODYSSEY, LLC - Complete Supabase Schema + RLS
 -- Single source of truth. Runs top-to-bottom on a FRESH project (idempotent on
 -- a re-run thanks to the DROP block at the top).
 --
@@ -1059,9 +1059,9 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN /* already added */ END $$;
 
 -- ============================================================================
--- SEED DATA — mirrors the operator's current Phalo Transportation catalog.
+-- SEED DATA — mirrors the operator's current Imperial Odyssey catalog.
 -- All prices in USD. Minimum charge protects margin on very short rides.
--- Phalo can edit these in the manager UI (/manager/fleet) at any time.
+-- Imperial Odyssey staff can edit these in the manager UI (/manager/fleet) at any time.
 -- ============================================================================
 INSERT INTO public.fleet
   (name, type, capacity, luggage_capacity, base_price, price_per_mile, minimum_price, image_url, tier, featured, display_order, description)

@@ -1,11 +1,9 @@
-# Cloudflare Pages configuration for the Phalo Transportation Next.js app.
-# Set the project name and organization ID in your Pages dashboard if needed.
+# Cloudflare Workers Builds configuration for Imperial Odyssey.
+# Connect your Git repo in the Cloudflare dashboard and use:
+#   Build command: npm run build:pages
+#   Deploy command: npx @opennextjs/cloudflare deploy
 
-project_name = "phalo-transportation"
+project_name = "imperial-odyssey"
 
 [build]
 command = "npm run build:pages"
-directory = "."
-
-# If your Pages project uses a custom branch, add it here.
-# branch = "main"

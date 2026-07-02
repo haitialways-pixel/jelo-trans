@@ -46,8 +46,8 @@ const EmailLayout = ({ children, previewText }: { children: React.ReactNode; pre
 
         {/* Footer */}
         <Text style={{ color: '#666666', fontSize: '12px', textAlign: 'center', lineHeight: '1.5' }}>
-          Phalo Transportation LLC • 678-478-3506<br />
-          <Link href="https://www.phalotrans.com" style={{ color: '#3b82f6' }}>www.phalotrans.com</Link>
+          Imperial Odyssey LLC • 678-478-3506<br />
+          <Link href="https://vipodyssey.com" style={{ color: '#3b82f6' }}>vipodyssey.com</Link>
         </Text>
 
         {/* Disclaimer */}
@@ -58,10 +58,10 @@ const EmailLayout = ({ children, previewText }: { children: React.ReactNode; pre
           marginTop: '15px',
           lineHeight: '1.4'
         }}>
-          This is an automated message from Phalo Transportation.
+          This is an automated message from Imperial Odyssey.
           Please do not reply to this email. For any questions or changes,
           please contact us at 678-478-3506 or visit{' '}
-          <Link href="https://www.phalotrans.com" style={{ color: '#3b82f6' }}>www.phalotrans.com</Link>.
+          <Link href="https://vipodyssey.com" style={{ color: '#3b82f6' }}>vipodyssey.com</Link>.
         </Text>
       </Container>
     </Body>
@@ -74,7 +74,7 @@ export const BookingReceivedEmail = (props: BaseProps) => (
     <Heading style={{ color: '#1f2937' }}>📋 Reservation Received</Heading>
     <Text>Dear {props.customerName},</Text>
     <Text>
-      Thank you for choosing <strong>Phalo Transportation</strong>. We have received your reservation
+      Thank you for choosing <strong>Imperial Odyssey</strong>. We have received your reservation
       request and our team is reviewing it now.
     </Text>
     <Text>
@@ -102,7 +102,7 @@ export const BookingConfirmedEmail = (props: BaseProps) => (
     <Heading style={{ color: '#1f2937' }}>✅ Your Reservation is Confirmed!</Heading>
     <Text>Dear {props.customerName},</Text>
     <Text>
-      Great news — your <strong>Phalo Transportation</strong> reservation has been confirmed by our team.
+      Great news — your <strong>Imperial Odyssey</strong> reservation has been confirmed by our team.
     </Text>
 
     <Section>
@@ -194,7 +194,7 @@ export const ArrivedAtDestinationEmail = (props: BaseProps) => (
     <Heading style={{ color: '#8b5cf6' }}>🏁 Arrived at Destination</Heading>
     <Text>Dear {props.customerName},</Text>
     <Text>Your driver has successfully arrived at your destination.</Text>
-    <Text>Thank you for riding with Phalo Transportation. We hope you had a pleasant journey.</Text>
+    <Text>Thank you for riding with Imperial Odyssey. We hope you had a pleasant journey.</Text>
   </EmailLayout>
 );
 
@@ -222,7 +222,7 @@ export const RideCompletedEmail = (props: BaseProps) => (
     {props.transactionId && <Text><strong>Transaction ID:</strong> {props.transactionId}</Text>}
     {props.completionDate && <Text><strong>Completed On:</strong> {props.completionDate}</Text>}
 
-    <Text>Thank you for choosing <strong>Phalo Transportation</strong>! We hope to serve you again soon.</Text>
+    <Text>Thank you for choosing <strong>Imperial Odyssey</strong>! We hope to serve you again soon.</Text>
   </EmailLayout>
 );
 

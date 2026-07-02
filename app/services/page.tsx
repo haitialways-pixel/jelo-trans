@@ -18,7 +18,7 @@ export default function ServicesPage() {
     <div className="bg-background text-on-surface min-h-screen">
       <Navbar />
       <div className="pt-20 max-w-5xl mx-auto px-6 pb-20">
-        <h1 className="text-7xl tracking-[-3px] font-semibold pt-10">Services &amp; Occasions</h1>
+        <h1 className="display text-gold-gradient text-7xl tracking-[-3px] font-semibold pt-10">Services &amp; Occasions</h1>
         <p className="text-2xl text-on-surface-variant mt-3">Whatever the reason for your journey, we will make it exceptional.</p>
 
         <div className="mt-14 grid gap-4">

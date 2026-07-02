@@ -26,19 +26,21 @@ export default function Home() {
         <div className="absolute inset-0">
           <Image
             src="/images/stitch-suv-studio.webp"
-            alt="Phalo Transportation luxury SUV chauffeur service in Orlando"
+            alt="Imperial Odyssey luxury SUV chauffeur service in Orlando"
             fill
             priority
             sizes="100vw"
             className="object-cover object-center brightness-105"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-white/20" />
+          <div className="absolute inset-0 hero-luxe-overlay" />
         </div>
-        <div className="relative z-10 px-6 pb-16 md:pb-24 text-center max-w-2xl">
-          <span className="text-[11px] tracking-[0.3em] text-primary block mb-4">ORLANDO, FLORIDA</span>
-          <h1 className="display text-4xl md:text-6xl font-semibold leading-[1.05] mb-5">Your Premium Chauffeur in Orlando</h1>
-          <p className="text-on-surface-variant md:text-lg mb-8 opacity-90">
-            Experience the pinnacle of luxury travel with Phalo Transportation&apos;s white-glove service.
+        <div className="relative z-10 px-6 pb-16 md:pb-24 text-center max-w-3xl">
+          <span className="text-[11px] tracking-[0.35em] text-gold-soft block mb-5 font-medium">ORLANDO, FLORIDA</span>
+          <h1 className="display text-gold-gradient text-4xl md:text-6xl lg:text-7xl font-semibold leading-[1.08] mb-6 drop-shadow-sm">
+            Your Premium Chauffeur in Orlando
+          </h1>
+          <p className="text-gold-soft/90 md:text-lg mb-10 max-w-xl mx-auto leading-relaxed font-light">
+            Experience the pinnacle of luxury travel with Imperial Odyssey&apos;s white-glove service.
           </p>
           <Link href="/book" className="gold-shimmer inline-block font-semibold tracking-[0.15em] text-sm py-4 px-12 rounded-xl shadow-lg active:scale-[0.98] transition">
             BOOK YOUR RIDE
@@ -54,7 +56,7 @@ export default function Home() {
       <section className="py-14 md:py-20 bg-surface-container-lowest">
         <div className="px-6 max-w-7xl mx-auto text-center mb-10">
           <span className="text-[11px] tracking-[0.25em] text-primary mb-2 block">SERVICES</span>
-          <h2 className="display text-3xl md:text-4xl font-semibold">Tailored to Excellence</h2>
+          <h2 className="display text-gold-gradient text-3xl md:text-4xl font-semibold">Tailored to Excellence</h2>
         </div>
         <div className="px-6 max-w-5xl mx-auto grid md:grid-cols-3 gap-4">
           {SERVICES.map((s) => (
@@ -69,9 +71,9 @@ export default function Home() {
         </div>
       </section>
 
-      {/* THE PHALO TRANSPORTATION DISTINCTION — bento */}
+      {/* THE IMPERIAL ODYSSEY DISTINCTION — bento */}
       <section className="py-14 md:py-20 px-6 max-w-5xl mx-auto">
-        <h2 className="display text-3xl md:text-4xl font-semibold text-center mb-8">The Phalo Transportation Distinction</h2>
+        <h2 className="display text-gold-gradient text-3xl md:text-4xl font-semibold text-center mb-8">The Imperial Odyssey Distinction</h2>
         <div className="grid grid-cols-2 gap-4">
           <div className="col-span-2 glass-dark gold-hairline p-8 rounded-2xl text-center">
             <BadgeCheck className="w-10 h-10 text-primary mx-auto mb-4" />
@@ -94,7 +96,7 @@ export default function Home() {
       {/* FINAL CTA */}
       <section className="py-16 md:py-24 text-center px-6 border-t border-outline-variant/20">
         <span className="text-primary tracking-[0.25em] text-[11px] mb-3 block">YOUR JOURNEY AWAITS</span>
-        <h2 className="display text-3xl md:text-5xl font-semibold mb-8">Ready when you are.</h2>
+        <h2 className="display text-gold-gradient text-3xl md:text-5xl font-semibold mb-8">Ready when you are.</h2>
         <Link href="/book" className="gold-shimmer inline-block font-semibold tracking-[0.15em] py-4 px-14 rounded-xl">
           BEGIN YOUR RESERVATION
         </Link>

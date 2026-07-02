@@ -18,7 +18,7 @@ export async function GET(request: Request) {
     const result = await sendMail({
       to: testEmail,
       fromKind: kind,
-      subject: `🧪 Phalo Transportation - Test Email (${kind})`,
+      subject: `🧪 Imperial Odyssey - Test Email (${kind})`,
       html: `
         <h2>Test Email Successful ✅</h2>
         <p>Kind: <strong>${kind}</strong></p>

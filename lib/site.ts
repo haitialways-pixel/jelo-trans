@@ -1,4 +1,7 @@
-/** Public site base URL for links in emails (set SITE_URL on Vercel). */
+/** Canonical public domain for Imperial Odyssey. */
+export const SITE_DOMAIN = 'vipodyssey.com'
+
+/** Public site base URL for links in emails and redirects. Set SITE_URL in production. */
 export function getSiteUrl(): string {
   const configured = process.env.SITE_URL?.trim()
   if (configured) {

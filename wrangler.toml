@@ -1,40 +1,40 @@
-# wrangler.toml
-compatibility_date = "2026-06-15"
+# wrangler.toml — Cloudflare Workers deployment for Imperial Odyssey
+# See: https://developers.cloudflare.com/workers/framework-guides/web-apps/nextjs/
+
+name = "imperial-odyssey"
+main = ".open-next/worker.js"
+compatibility_date = "2026-07-02"
 compatibility_flags = ["nodejs_compat"]
 
-# Important for next-on-pages / @opennextjs/cloudflare
-pages_build_output_dir = ".vercel/output/static"
-
-name = "phalo-transportation"
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
 
 # ----------------------------------------------------------------------------
 # Environment variables & secrets for Cloudflare deployment
 # ----------------------------------------------------------------------------
 # - Public vars (NEXT_PUBLIC_*) can be set as "Environment variables" in the
-#   Cloudflare Pages dashboard (or [vars] here for build-time).
+#   Cloudflare Workers dashboard (or [vars] here for build-time).
 # - Server-only secrets (GOOGLE_MAPS_API_KEY, SUPABASE_SERVICE_ROLE_KEY,
 #   STRIPE_SECRET_KEY, RESEND_API_KEY, etc.) MUST be set as **Secrets** in the
-#   Pages dashboard (Settings → Environment variables → ... → "Secret") or via:
-#     npx wrangler pages secret put GOOGLE_MAPS_API_KEY
-#     npx wrangler pages secret put SUPABASE_SERVICE_ROLE_KEY
-#   ...
+#   dashboard (Settings → Variables and Secrets) or via:
+#     npx wrangler secret put GOOGLE_MAPS_API_KEY
+#     npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY
 #
-# For LOCAL preview (`npm run preview` which does `wrangler dev`):
+# For LOCAL preview (`npm run preview`):
 #   Create a file named `.dev.vars` (gitignored) next to this one:
 #     GOOGLE_MAPS_API_KEY=...
 #     SUPABASE_SERVICE_ROLE_KEY=...
-#   (Simple KEY=VALUE lines. This is the most common reason for
-#    "Google Maps API key is missing on the server" during local CF testing.)
 #
 # After changing secrets you usually need a fresh deploy.
 #
-# Manager login requires these at minimum (Dashboard → Settings → Environment variables):
+# Manager login requires these at minimum:
 #   NEXT_PUBLIC_SUPABASE_URL
 #   NEXT_PUBLIC_SUPABASE_ANON_KEY
-# SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SECRET_KEY — required for Stripe webhooks.
+# SUPABASE_SERVICE_ROLE_KEY — required for Stripe webhooks.
 # RESEND_API_KEY + BOOKING_FROM_EMAIL — required for transactional email.
 # Quote BOOKING_FROM_EMAIL in the dashboard if it contains spaces:
-#   Phalo Transportation <bookings@phalotrans.com>
+#   Imperial Odyssey <bookings@vipodyssey.com>
 #
-# See HANDOFF_README.md "Deploying to Cloudflare" section for full steps.
+# Deploy: npm run deploy
 # ----------------------------------------------------------------------------

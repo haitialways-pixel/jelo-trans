@@ -11,13 +11,13 @@ function isServerActionRequest(request: NextRequest): boolean {
   )
 }
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request })
   const serverAction = isServerActionRequest(request)
 
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     return new Response(
-      'Proxy middleware needs NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.',
+      'Middleware needs NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.',
       { status: 500 },
     )
   }
@@ -48,14 +48,13 @@ export async function proxy(request: NextRequest) {
     } = await supabase.auth.getUser()
     user = authUser
   } catch (error) {
-    console.error('[proxy] auth.getUser failed:', error instanceof Error ? error.message : error)
+    console.error('[middleware] auth.getUser failed:', error instanceof Error ? error.message : error)
   }
 
   const { pathname } = request.nextUrl
   const isLogin = pathname === '/manager/login'
   const isProtected = pathname.startsWith('/manager') && !isLogin
 
-  // Never redirect Server Action POSTs — the client awaits a response and will spin forever.
   if (isProtected && !user && !serverAction) {
     const url = request.nextUrl.clone()
     url.pathname = '/manager/login'

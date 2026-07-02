@@ -38,7 +38,7 @@ export async function notifyDriverDispatch(input: DispatchInput): Promise<Dispat
   const { reservation: r, chauffeur: c, vehicleName } = input
   const unitLabel = r.assigned_unit?.label ?? null
   const body =
-    `Phalo Transportation — Trip Assignment\n` +
+    `Imperial Odyssey — Trip Assignment\n` +
     `Booking: ${r.booking_number}\n` +
     `Customer: ${r.customer_name}\n` +
     `Phone: ${r.customer_phone}\n` +
@@ -50,7 +50,7 @@ export async function notifyDriverDispatch(input: DispatchInput): Promise<Dispat
     `\nPassengers: ${r.passengers}` +
     (r.luggage ? `\nLuggage: ${r.luggage}` : '') +
     (r.special_requests ? `\nNotes: ${r.special_requests}` : '') +
-    `\nReply to: info.phalotrans@gmail.com`
+    `\nReply to: concierge@vipodyssey.com`
 
   const result: DispatchResult = {
     email: channelIdle('email not configured'),

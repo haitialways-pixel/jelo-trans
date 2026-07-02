@@ -24,7 +24,7 @@ export async function sendRideComplete(i: Input): Promise<EmailResult> {
   return sendTemplatedMail({
     to: i.to,
     fromKind: 'customer',
-    subject: `Thank you for riding with Phalo Transportation — Booking #${i.bookingNumber}`,
+    subject: `Thank you for riding with Imperial Odyssey — Booking #${i.bookingNumber}`,
     react: (
       <RideCompletedEmail
         customerName={i.customerName}

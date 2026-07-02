@@ -1,6 +1,6 @@
-# Phalo Transportation — Public Customer Website
+# Imperial Odyssey — Public Customer Website
 
-Luxury limousine and chauffeur service website for Phalo Transportation, LLC (Orlando, Florida).
+Luxury limousine and chauffeur service website for Imperial Odyssey, LLC (Orlando, Florida).
 
 > 👋 **Reviewing this project? START HERE → [`docs/HANDOFF.md`](docs/HANDOFF.md)** — what works today, what we need from you (payments, pricing, the assistant questionnaire, email), and how to go live.
 
@@ -69,4 +69,4 @@ All photography uses your original images from the `images/` folder. No AI-gener
 - TypeScript + Zod
 - Tailwind + custom luxury design system
 
-Built for Phalo Transportation, LLC.
+Built for Imperial Odyssey, LLC.

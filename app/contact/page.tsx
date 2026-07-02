@@ -8,7 +8,7 @@ export default function ContactPage() {
     <div className="bg-background text-on-surface min-h-screen">
       <Navbar />
       <div className="pt-24 max-w-3xl mx-auto px-6 pb-24">
-        <h1 className="text-7xl tracking-[-3px] font-semibold">Let’s Talk</h1>
+        <h1 className="display text-gold-gradient text-7xl tracking-[-3px] font-semibold">Let’s Talk</h1>
         <p className="text-2xl text-primary mt-2">We’re available 24 hours a day, 365 days a year.</p>
 
         <div className="mt-12 grid md:grid-cols-2 gap-x-16 gap-y-10 text-lg">
@@ -18,11 +18,11 @@ export default function ContactPage() {
           </div>
           <div>
             <div className="text-primary text-xs tracking-[3px] mb-2">EMAIL</div>
-            <a href="mailto:concierge@phalotransportation.com" className="text-2xl hover:text-primary">concierge@phalotransportation.com</a>
+            <a href="mailto:concierge@vipodyssey.com" className="text-2xl hover:text-primary">concierge@vipodyssey.com</a>
           </div>
           <div>
             <div className="text-primary text-xs tracking-[3px] mb-2">LOCATION</div>
-            <div>Orlando, Florida<br />Serving MCO,all of Central Florida and Beyond</div>
+            <div>Orlando, Florida<br />Serving MCO, all major cruise ports all of Central Florida and Beyond</div>
           </div>
           <div>
             <div className="text-primary text-xs tracking-[3px] mb-2">FOR IMMEDIATE BOOKINGS</div>

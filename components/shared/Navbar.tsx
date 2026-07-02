@@ -9,12 +9,12 @@ export function Navbar() {
   const [open, setOpen] = useState(false)
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-b border-outline-variant/30 shadow-sm">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-xl border-b border-primary/20 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.6)]">
       <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-3">
           <LogoMark size="nav" />
           <div>
-            <div className="font-semibold tracking-[2px] text-[1.35rem] leading-tight text-on-surface">PHALO TRANSPORTATION</div>
+            <div className="font-semibold tracking-[2px] text-[1.35rem] leading-tight text-gold-gradient">IMPERIAL ODYSSEY</div>
             <div className="text-[10px] text-primary -mt-0.5 tracking-[0.25em]">ORLANDO</div>
           </div>
         </Link>

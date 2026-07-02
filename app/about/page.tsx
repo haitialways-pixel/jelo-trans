@@ -11,7 +11,7 @@ export default function AboutPage() {
       <div className="pt-20">
         <div className="max-w-4xl mx-auto px-6 pt-12 pb-20">
           <div className="text-primary text-xs tracking-[4px]">ESTABLISHED 2017</div>
-          <h1 className="text-7xl tracking-[-3.2px] font-semibold mt-2">The Phalo Transportation Standard</h1>
+          <h1 className="display text-gold-gradient text-7xl tracking-[-3.2px] font-semibold mt-2">The Imperial Odyssey Standard</h1>
           <p className="text-2xl text-on-surface-variant mt-6 max-w-3xl">We exist for one reason: to deliver the most refined, reliable, and discreet ground transportation experience in Central Florida.</p>
         </div>
 
@@ -19,7 +19,7 @@ export default function AboutPage() {
           <div className="relative min-h-[320px] md:min-h-[480px]">
             <Image
               src="/images/about-chauffeur-1.webp"
-              alt="Phalo Transportation Chauffeur"
+              alt="Imperial Odyssey Chauffeur"
               fill
               sizes="(max-width: 768px) 100vw, 50vw"
               className="object-cover"
@@ -28,7 +28,7 @@ export default function AboutPage() {
           <div className="relative min-h-[320px] md:min-h-[480px]">
             <Image
               src="/images/about-chauffeur-2.webp"
-              alt="Phalo Transportation Chauffeurs"
+              alt="Imperial Odyssey Chauffeurs"
               fill
               sizes="(max-width: 768px) 100vw, 50vw"
               className="object-cover"
@@ -37,7 +37,7 @@ export default function AboutPage() {
         </div>
 
         <div className="max-w-3xl mx-auto px-6 py-20 text-lg text-on-surface-variant leading-relaxed space-y-8">
-          <p>Phalo Transportation was founded with a simple belief: that every client deserves to feel like the most important person in the world the moment they step into one of our vehicles.</p>
+          <p>Imperial Odyssey was founded with a simple belief: that every client deserves to feel like the most important person in the world the moment they step into one of our vehicles.</p>
           <p>Our chauffeurs are not just drivers — they are ambassadors. Background-checked, professionally trained, and genuinely passionate about white-glove service.</p>
           <p>We operate a meticulously maintained fleet with an obsessive attention to detail that our clients notice immediately.</p>
         </div>

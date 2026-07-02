@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Outfit, Playfair_Display } from "next/font/google";
+import { Outfit, Playfair_Display, Cinzel } from "next/font/google";
 import "./globals.css";
 import { ClientProviders } from "@/components/shared/ClientProviders";
 
@@ -20,8 +20,17 @@ const playfair = Playfair_Display({
   preload: true,
 });
 
+const cinzel = Cinzel({
+  variable: "--font-cinzel",
+  subsets: ["latin"],
+  weight: ["400", "600", "700"],
+  display: "swap",
+  preload: true,
+});
+
 export const metadata: Metadata = {
-  title: "Phalo Transportation | Premium Orlando Chauffeur Service",
+  metadataBase: new URL("https://vipodyssey.com"),
+  title: "Imperial Odyssey | Premium Orlando Chauffeur Service",
   description: "Luxury limousine and chauffeur service in Orlando, Florida. MCO airport transfers, hourly rentals, weddings, and corporate events. Professional chauffeurs available 24/7.",
   icons: { icon: "/favicon.ico" },
 };
@@ -32,7 +41,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${outfit.variable} ${playfair.variable} antialiased`}>
+    <html lang="en" className={`${outfit.variable} ${playfair.variable} ${cinzel.variable} antialiased`}>
       <body className="bg-background text-on-surface">
         {children}
         <ClientProviders />

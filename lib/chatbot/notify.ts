@@ -2,12 +2,12 @@
 // alerts (new booking, etc.).
 //
 // Telegram is optional and instant when configured. Email goes to MANAGEMENT_EMAIL
-// (defaults to info.phalotrans@gmail.com). New online bookings always trigger email
+// (defaults to concierge@vipodyssey.com). New online bookings always trigger email
 // even when Telegram is configured or deposit is unpaid.
 
 import { sendMail } from '@/lib/email/mailer'
 
-const MANAGEMENT_EMAIL_DEFAULT = 'info.phalotrans@gmail.com'
+const MANAGEMENT_EMAIL_DEFAULT = 'concierge@vipodyssey.com'
 
 type NotifyInput = {
   message: string

@@ -18,7 +18,7 @@ const QUICK = ['Our fleet', 'How much is it?', 'Airport transfer', 'Talk to a hu
 const GREETING: Msg = {
   role: 'bot',
   text:
-    "Hi! I’m the Phalo Transportation concierge assistant. Ask about our fleet, pricing, airport transfers, or your booking — and for anything complex I’ll connect you with our team.",
+    "Hi! I’m the Imperial Odyssey concierge assistant. Ask about our fleet, pricing, airport transfers, or your booking — and for anything complex I’ll connect you with our team.",
 }
 
 export function ChatWidget() {
@@ -74,7 +74,7 @@ export function ChatWidget() {
       {open && (
         <div className="fixed bottom-24 right-6 z-50 flex w-[360px] max-w-[calc(100vw-2rem)] h-[520px] max-h-[calc(100vh-8rem)] flex-col overflow-hidden rounded-2xl border border-outline-variant/30 bg-card shadow-2xl">
           <div className="border-b border-outline-variant/30 px-5 py-4">
-            <div className="text-xs tracking-[3px] text-primary">PHALO TRANSPORTATION CONCIERGE</div>
+            <div className="text-xs tracking-[3px] text-primary">IMPERIAL ODYSSEY CONCIERGE</div>
             <div className="text-sm text-on-surface-variant">Assistant · instant replies</div>
           </div>
 

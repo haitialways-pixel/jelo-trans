@@ -15,7 +15,7 @@ export function LogoMark({ size = 'nav' }: LogoMarkProps) {
   return (
     <Image
       src="/images/logo.webp"
-      alt="Phalo Transportation"
+      alt="Imperial Odyssey"
       width={px}
       height={px}
       className="object-contain shrink-0"

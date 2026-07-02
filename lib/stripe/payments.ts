@@ -63,7 +63,7 @@ export async function createDepositForBooking(bookingNumber: string): Promise<De
     customer: customerId,
     setup_future_usage: 'off_session', // save the card to charge the balance later
     receipt_email: r.customer_email, // Stripe emails the official receipt (live mode)
-    description: `Phalo Transportation deposit — ${bookingNumber}`,
+    description: `Imperial Odyssey deposit — ${bookingNumber}`,
     metadata: { kind: 'deposit', reservation_id: r.id, booking_number: bookingNumber },
     payment_method_types: ['card'], // card only → enables off-session balance charge, no redirect
   })
@@ -116,7 +116,7 @@ export async function chargeBalance(reservationId: string): Promise<BalanceResul
       off_session: true,
       confirm: true,
       receipt_email: r.customer_email as string,
-      description: `Phalo Transportation balance — ${r.booking_number}`,
+      description: `Imperial Odyssey balance — ${r.booking_number}`,
       metadata: { kind: 'balance', reservation_id: r.id, booking_number: r.booking_number },
     })
     // Mark paid immediately on synchronous success (off-session confirm returns the result).
