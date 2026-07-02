@@ -18,8 +18,8 @@ import {
   isValidGratuityPercent,
 } from '@/lib/pricing'
 import {
-  isPickupTimeValid,
-  pickupTimeToIso,
+  isPickupIsoValid,
+  pickupLocalToIsoWithOffset,
   pickupTimeValidationMessage,
 } from '@/lib/booking/pickupTime'
 
@@ -148,12 +148,27 @@ export async function createReservation(formData: any) {
       ? Number(formData.gratuityPercent)
       : DEFAULT_GRATUITY_PERCENT
 
-    const pickupIso = pickupTimeToIso(formData.pickupTime)
+    // Prefer ISO from the browser (correct timezone). Fallback uses client offset when provided.
+    let pickupIso: string | null =
+      typeof formData.pickupTimeIso === 'string' && formData.pickupTimeIso.trim()
+        ? formData.pickupTimeIso.trim()
+        : null
+
+    if (!pickupIso && formData.pickupTime) {
+      const offset =
+        typeof formData.pickupTimezoneOffset === 'number'
+          ? formData.pickupTimezoneOffset
+          : null
+      if (offset != null) {
+        pickupIso = pickupLocalToIsoWithOffset(formData.pickupTime, offset)
+      }
+    }
+
     if (!pickupIso) {
       return { success: false, error: 'Please enter a valid pickup date and time.' }
     }
 
-    if (!isPickupTimeValid(formData.pickupTime)) {
+    if (!isPickupIsoValid(pickupIso)) {
       return { success: false, error: pickupTimeValidationMessage() }
     }
 

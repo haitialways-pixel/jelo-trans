@@ -19,6 +19,7 @@ import {
 import {
   isPickupTimeValid,
   minPickupDatetimeLocalValue,
+  pickupTimeToIso,
   pickupTimeValidationMessage,
 } from '@/lib/booking/pickupTime'
 
@@ -176,9 +177,17 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
 
     // Finalizing Reservation (Step 2 -> booking creation)
     if (currentStep === 2) {
+      const pickupTimeIso = pickupTimeToIso(formData.pickupTime)
+      if (!pickupTimeIso || !isPickupTimeValid(formData.pickupTime)) {
+        setError(pickupTimeValidationMessage())
+        return
+      }
+
       setLoading(true)
       const result: any = await createReservation({
         ...formData,
+        pickupTimeIso,
+        pickupTimezoneOffset: new Date().getTimezoneOffset(),
         vehicleName: price?.vehicleName,
         durationHours: Number(formData.durationHours),
       })

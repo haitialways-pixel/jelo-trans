@@ -29,20 +29,53 @@ export function parsePickupTimeLocal(value: string): Date | null {
   return Number.isNaN(d.getTime()) ? null : d
 }
 
-/** Send pickup to Supabase as UTC ISO. */
+/**
+ * Convert datetime-local → UTC ISO.
+ * MUST run in the customer's browser (uses local timezone).
+ * Do not call from server actions — the server runs in UTC and will misread wall-clock times.
+ */
 export function pickupTimeToIso(value: string): string | null {
   const d = parsePickupTimeLocal(value)
   return d ? d.toISOString() : null
+}
+
+/**
+ * Server-safe: convert datetime-local + browser timezone offset to UTC ISO.
+ * `offsetMinutes` = `new Date().getTimezoneOffset()` from the client.
+ */
+export function pickupLocalToIsoWithOffset(
+  value: string,
+  offsetMinutes: number,
+): string | null {
+  const trimmed = value?.trim()
+  if (!trimmed) return null
+  const m = trimmed.match(DATETIME_LOCAL_RE)
+  if (!m) return null
+
+  const utcMs =
+    Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5])) +
+    offsetMinutes * 60_000
+
+  const d = new Date(utcMs)
+  return Number.isNaN(d.getTime()) ? null : d.toISOString()
 }
 
 export function minPickupDate(): Date {
   return new Date(Date.now() + MIN_PICKUP_LEAD_MS - VALIDATION_GRACE_MS)
 }
 
+/** Client-only — uses local timezone via parsePickupTimeLocal. */
 export function isPickupTimeValid(value: string): boolean {
   const d = parsePickupTimeLocal(value)
   if (!d) return false
   return d.getTime() >= minPickupDate().getTime()
+}
+
+/** Server-safe — validates an already-converted UTC ISO string. */
+export function isPickupIsoValid(iso: string): boolean {
+  const ms = Date.parse(iso)
+  if (Number.isNaN(ms)) return false
+  return ms >= Date.now() + MIN_PICKUP_LEAD_MS - VALIDATION_GRACE_MS
 }
 
 /** For datetime-local `min` attribute (local timezone). */

@@ -574,7 +574,7 @@ BEGIN
   IF coalesce(btrim(p_customer_name), '')  = '' THEN RAISE EXCEPTION 'Customer name is required'; END IF;
   IF coalesce(btrim(p_customer_email), '') = '' THEN RAISE EXCEPTION 'Customer email is required'; END IF;
   IF coalesce(btrim(p_customer_phone), '') = '' THEN RAISE EXCEPTION 'Customer phone is required'; END IF;
-  IF p_pickup_time IS NULL OR p_pickup_time < now() + interval '14 minutes' THEN
+  IF p_pickup_time IS NULL OR p_pickup_time < now() + interval '10 minutes' THEN
     RAISE EXCEPTION 'Pickup must be at least 15 minutes from now';
   END IF;
 
