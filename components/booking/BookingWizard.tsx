@@ -16,6 +16,7 @@ import {
   GRATUITY_OPTIONS,
   type GratuityPercent,
 } from '@/lib/pricing'
+import { isPickupTimeValid, minPickupDatetimeLocalValue } from '@/lib/booking/pickupTime'
 
 const steps = ['Trip Details', 'Select Vehicle', 'Review & Confirm']
 
@@ -82,15 +83,6 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
     if (result?.error) setError(result.error)
   }
 
-  // Get current date-time string in local format YYYY-MM-DDTHH:mm for datetime-local min attribute
-  const getMinDateTime = () => {
-    const now = new Date()
-    // Buffer by 30 minutes to ensure they don't book in the past/immediate present
-    const futureNow = new Date(now.getTime() + 30 * 60 * 1000)
-    const tzOffset = futureNow.getTimezoneOffset() * 60000
-    return new Date(futureNow.getTime() - tzOffset).toISOString().slice(0, 16)
-  }
-
   const validateStep = (step: number): boolean => {
     setError('')
 
@@ -99,9 +91,8 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
       if (!formData.dropoffAddress?.trim()) return setError('Dropoff Address is required'), false
       if (!formData.pickupTime) return setError('Pickup Date & Time is required'), false
 
-      const chosen = new Date(formData.pickupTime)
-      if (chosen <= new Date()) {
-        return setError('Pickup time must be in the future (minimum 30 minutes from now)'), false
+      if (!isPickupTimeValid(formData.pickupTime)) {
+        return setError('Pickup must be at least 15 minutes from now'), false
       }
     }
     if (step === 1) {
@@ -380,7 +371,7 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
                 <label className="text-xs text-primary uppercase tracking-wider font-semibold mb-2 ml-1">Pickup Date & Time *</label>
                 <input
                   type="datetime-local"
-                  min={getMinDateTime()}
+                  min={minPickupDatetimeLocalValue()}
                   value={formData.pickupTime || ''}
                   onChange={(e) => updateForm('pickupTime', e.target.value)}
                   className="w-full p-4 rounded-2xl bg-card border border-outline-variant/30 text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"

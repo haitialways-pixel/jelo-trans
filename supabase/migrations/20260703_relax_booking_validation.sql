@@ -1,18 +1,8 @@
--- Gratuity on online bookings: fare subtotal + 15/18/22% gratuity = total_price
-
-ALTER TABLE public.reservations
-  ADD COLUMN IF NOT EXISTS fare_subtotal numeric(10,2),
-  ADD COLUMN IF NOT EXISTS gratuity_percent numeric(5,2),
-  ADD COLUMN IF NOT EXISTS gratuity_amount numeric(10,2);
-
-UPDATE public.reservations
-SET
-  fare_subtotal = total_price,
-  gratuity_percent = 0,
-  gratuity_amount = 0
-WHERE fare_subtotal IS NULL;
+-- Relax pickup time (15 min lead) and remove online vehicle availability blocking.
+-- Availability is handled offline by ops.
 
 DROP FUNCTION IF EXISTS public.create_reservation(text, text, text, text, text, timestamptz, uuid, integer, integer, numeric, text, numeric);
+DROP FUNCTION IF EXISTS public.create_reservation(text, text, text, text, text, timestamptz, uuid, integer, integer, numeric, text, numeric, numeric);
 
 CREATE OR REPLACE FUNCTION public.create_reservation(
   p_customer_name    text,
@@ -41,11 +31,8 @@ DECLARE
   v_gratuity_percent numeric(5,2);
   v_gratuity_amount  numeric(10,2);
   v_total            numeric(10,2);
-  v_end              timestamptz;
   v_booking          text;
   v_reservation_id   uuid;
-  v_units            integer;
-  v_booked           integer;
 BEGIN
   IF coalesce(btrim(p_customer_name), '')  = '' THEN RAISE EXCEPTION 'Customer name is required'; END IF;
   IF coalesce(btrim(p_customer_email), '') = '' THEN RAISE EXCEPTION 'Customer email is required'; END IF;
@@ -61,28 +48,12 @@ BEGIN
 
   SELECT base_price, price_per_mile, coalesce(minimum_price, 0)
     INTO v_base_price, v_price_per_mile, v_minimum_price
-  FROM public.fleet WHERE id = p_vehicle_id AND status = 'available';
-  IF NOT FOUND THEN RAISE EXCEPTION 'Selected vehicle is not available'; END IF;
+  FROM public.fleet WHERE id = p_vehicle_id;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Selected vehicle not found'; END IF;
 
   v_fare := greatest(round((v_base_price + (v_distance * v_price_per_mile)), 2), v_minimum_price);
   v_gratuity_amount := round(v_fare * v_gratuity_percent / 100, 2);
   v_total := round(v_fare + v_gratuity_amount, 2);
-
-  v_end := p_pickup_time + (v_duration * interval '1 hour');
-
-  SELECT count(*) INTO v_units FROM public.vehicle_units
-    WHERE model_id = p_vehicle_id AND status IN ('available', 'in_service');
-  IF v_units = 0 THEN v_units := 1; END IF;
-
-  SELECT count(*) INTO v_booked FROM public.reservations r
-    WHERE r.vehicle_id = p_vehicle_id
-      AND r.status NOT IN ('cancelled', 'completed')
-      AND r.pickup_time < v_end
-      AND r.pickup_time + (r.duration_hours * interval '1 hour') > p_pickup_time;
-
-  IF v_booked >= v_units THEN
-    RAISE EXCEPTION 'This vehicle is no longer available for the selected time';
-  END IF;
 
   INSERT INTO public.reservations (
     customer_name, customer_email, customer_phone,

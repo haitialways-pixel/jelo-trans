@@ -17,6 +17,7 @@ import {
   DEFAULT_GRATUITY_PERCENT,
   isValidGratuityPercent,
 } from '@/lib/pricing'
+import { pickupTimeToIso } from '@/lib/booking/pickupTime'
 
 async function sendCustomerBookingReceived(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -98,44 +99,21 @@ export async function calculatePrice(data: {
 
     const { data: vehicle, error } = await supabase
       .from('fleet')
-      .select('id, name, base_price, price_per_mile, minimum_price, status')
+      .select('id, name, base_price, price_per_mile, minimum_price')
       .eq('id', data.vehicleId)
-      .eq('status', 'available')
       .maybeSingle()
 
     if (error) {
       console.error('[calculatePrice] fleet lookup failed:', error.message, { vehicleId: data.vehicleId })
-      return {
-        error:
-          error.code === 'PGRST116'
-            ? 'This vehicle is no longer available. Please refresh the page and choose again.'
-            : `Could not load vehicle pricing (${error.message}). Please refresh and try again.`,
-      }
+      return { error: `Could not load vehicle pricing. Please refresh and try again.` }
     }
 
     if (!vehicle) {
-      return {
-        error:
-          'This vehicle is no longer available. Please refresh the booking page and select a vehicle again.',
-      }
+      return { error: 'Selected vehicle not found. Please refresh the page and choose again.' }
     }
 
     if (!vehicle.base_price || vehicle.base_price <= 0) {
       return { error: 'This vehicle does not have a valid rate configured' }
-    }
-
-    // Pre-check time slot availability using the unit-aware RPC (prevents reaching confirm with a blocked slot)
-    if (data.pickupTime && data.durationHours) {
-      const start = new Date(data.pickupTime)
-      const end = new Date(start.getTime() + (Number(data.durationHours) * 60 * 60 * 1000))
-      const { data: available } = await supabase.rpc('check_vehicle_availability', {
-        p_vehicle_id: data.vehicleId,
-        p_start: start.toISOString(),
-        p_end: end.toISOString(),
-      })
-      if (!available) {
-        return { error: 'This vehicle is no longer available for the selected time' }
-      }
     }
 
     const priced = computeTripPrice({
@@ -178,13 +156,18 @@ export async function createReservation(formData: any) {
       ? Number(formData.gratuityPercent)
       : DEFAULT_GRATUITY_PERCENT
 
+    const pickupIso = pickupTimeToIso(formData.pickupTime)
+    if (!pickupIso) {
+      return { success: false, error: 'Please enter a valid pickup date and time.' }
+    }
+
     const { data: bookingNumber, error } = await supabase.rpc('create_reservation', {
       p_customer_name: formData.customerName,
       p_customer_email: formData.customerEmail,
       p_customer_phone: formData.customerPhone,
       p_pickup_address: formData.pickupAddress,
       p_dropoff_address: formData.dropoffAddress,
-      p_pickup_time: formData.pickupTime,
+      p_pickup_time: pickupIso,
       p_vehicle_id: formData.vehicleId,
       p_passengers: parseInt(formData.passengers) || 2,
       p_luggage: parseInt(formData.luggage) || 0,
@@ -206,7 +189,7 @@ export async function createReservation(formData: any) {
             'Booking system needs a database update (gratuity migration). Please call us to book, or ask your administrator to run supabase/migrations/20260702_gratuity.sql.',
         }
       }
-      if (msg.includes('not available')) {
+      if (msg.includes('15 minutes')) {
         return { success: false, error: msg }
       }
       return { success: false, error: `Failed to create reservation: ${msg}` }
