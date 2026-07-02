@@ -1,8 +1,9 @@
 import Link from 'next/link'
 import { Users, Briefcase } from 'lucide-react'
 import type { Vehicle } from '@/lib/fleet'
+import { OptimizedImage } from '@/components/shared/OptimizedImage'
 
-const FALLBACK_IMAGE = '/images/fleet-overview.jpg'
+const FALLBACK_IMAGE = '/images/fleet-overview.webp'
 
 /** Luxury studio card — image on the left, details on the right. DB-driven. */
 export function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
@@ -20,10 +21,12 @@ export function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
       )}
 
       <div className="w-full md:w-1/2 h-56 md:h-full relative spotlight-glow flex items-center justify-center p-5 bg-surface-container-lowest">
-        <img
+        <OptimizedImage
           src={img}
           alt={vehicle.name}
-          className="w-full h-full object-contain drop-shadow-2xl group-hover:scale-105 transition-transform duration-700"
+          fill
+          sizes="(max-width: 768px) 100vw, 50vw"
+          className="object-contain drop-shadow-2xl group-hover:scale-105 transition-transform duration-700"
         />
       </div>
 

@@ -1,18 +1,25 @@
+import Image from 'next/image'
+
 type LogoMarkProps = {
   size?: 'nav' | 'footer'
 }
 
 const SIZES = {
-  nav: 'w-[2.7rem] h-[2.7rem]',
-  footer: 'w-[2.4rem] h-[2.4rem]',
+  nav: 44,
+  footer: 38,
 } as const
 
 export function LogoMark({ size = 'nav' }: LogoMarkProps) {
+  const px = SIZES[size]
+
   return (
-    <img
-      src="/images/Logo.png"
+    <Image
+      src="/images/logo.webp"
       alt="Phalo Transportation"
-      className={`${SIZES[size]} object-contain shrink-0`}
+      width={px}
+      height={px}
+      className="object-contain shrink-0"
+      priority={size === 'nav'}
     />
   )
 }

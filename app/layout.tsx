@@ -1,32 +1,33 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Playfair_Display, Outfit } from "next/font/google";
+import dynamic from "next/dynamic";
+import { Outfit, Playfair_Display } from "next/font/google";
 import "./globals.css";
-import { Toaster } from "sonner";
-import { ChatWidgetGate } from "@/components/chatbot/ChatWidgetGate";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-});
+const ChatWidgetGate = dynamic(
+  () => import("@/components/chatbot/ChatWidgetGate").then((m) => ({ default: m.ChatWidgetGate })),
+  { ssr: false },
+);
+
+const Toaster = dynamic(
+  () => import("sonner").then((m) => ({ default: m.Toaster })),
+  { ssr: false },
+);
 
 const outfit = Outfit({
   variable: "--font-outfit",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-  weight: ["400", "500", "700"],
+  weight: ["400", "500", "600"],
+  display: "swap",
+  preload: true,
 });
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "600"],
   style: ["normal", "italic"],
+  display: "swap",
+  preload: true,
 });
 
 export const metadata: Metadata = {
@@ -41,7 +42,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} ${outfit.variable} antialiased`}>
+    <html lang="en" className={`${outfit.variable} ${playfair.variable} antialiased`}>
       <body className="bg-background text-on-surface">
         {children}
         <ChatWidgetGate />

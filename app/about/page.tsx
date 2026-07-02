@@ -1,5 +1,8 @@
+import Image from 'next/image'
 import { Navbar } from '@/components/shared/Navbar'
 import { Footer } from '@/components/shared/Footer'
+
+export const revalidate = 3600
 
 export default function AboutPage() {
   return (
@@ -13,11 +16,23 @@ export default function AboutPage() {
         </div>
 
         <div className="grid md:grid-cols-2 gap-px bg-outline-variant/30">
-          <div className="relative">
-            <img src="/images/IMG_20250715_143940795.jpg" alt="Phalo Transportation Chauffeur" className="w-full h-full object-cover" />
+          <div className="relative min-h-[320px] md:min-h-[480px]">
+            <Image
+              src="/images/about-chauffeur-1.webp"
+              alt="Phalo Transportation Chauffeur"
+              fill
+              sizes="(max-width: 768px) 100vw, 50vw"
+              className="object-cover"
+            />
           </div>
-          <div className="relative">
-            <img src="/images/IMG_20250715_144007014_HDR.jpg" alt="Phalo Transportation Chauffeurs" className="w-full h-full object-cover" />
+          <div className="relative min-h-[320px] md:min-h-[480px]">
+            <Image
+              src="/images/about-chauffeur-2.webp"
+              alt="Phalo Transportation Chauffeurs"
+              fill
+              sizes="(max-width: 768px) 100vw, 50vw"
+              className="object-cover"
+            />
           </div>
         </div>
 

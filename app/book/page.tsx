@@ -1,18 +1,20 @@
+import dynamic from 'next/dynamic'
+import { Suspense } from 'react'
 import { Navbar } from '@/components/shared/Navbar'
 import { Footer } from '@/components/shared/Footer'
-import { BookingWizard } from '@/components/booking/BookingWizard'
-import { createClient } from '@/lib/supabase/server'
+import { BookingWizardSkeleton } from '@/components/booking/BookingWizardSkeleton'
+import { getBookableFleet } from '@/lib/fleet'
+
+const BookingWizard = dynamic(
+  () => import('@/components/booking/BookingWizard').then((m) => ({ default: m.BookingWizard })),
+  { loading: () => <BookingWizardSkeleton />, ssr: false },
+)
 
 export const runtime = 'edge'
+export const revalidate = 300
 
 export default async function BookPage() {
-  const supabase = await createClient()
-  
-  const { data: vehicles } = await supabase
-    .from('fleet')
-    .select('id, name, capacity, base_price, price_per_mile, image_url')
-    .eq('status', 'available')
-    .order('base_price', { ascending: true })
+  const vehicles = await getBookableFleet()
 
   return (
     <div className="bg-background min-h-screen text-on-surface">
@@ -29,7 +31,9 @@ export default async function BookPage() {
           </p>
         </div>
 
-        <BookingWizard vehicles={vehicles ?? []} />
+        <Suspense fallback={<BookingWizardSkeleton />}>
+          <BookingWizard vehicles={vehicles} />
+        </Suspense>
       </div>
 
       <Footer />

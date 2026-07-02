@@ -1,8 +1,14 @@
 import Link from 'next/link'
+import Image from 'next/image'
+import { Suspense } from 'react'
 import { Navbar } from '@/components/shared/Navbar'
 import { Footer } from '@/components/shared/Footer'
-import { getFeaturedFleet } from '@/lib/fleet'
-import { PlaneTakeoff, Briefcase, PartyPopper, BadgeCheck, EyeOff, Gem, ChevronRight } from 'lucide-react'
+import { FeaturedFleetSection } from '@/components/home/FeaturedFleetSection'
+import { FeaturedFleetSkeleton } from '@/components/home/FeaturedFleetSkeleton'
+import { PlaneTakeoff, Briefcase, PartyPopper, BadgeCheck, EyeOff, Gem } from 'lucide-react'
+
+export const runtime = 'edge'
+export const revalidate = 300
 
 const SERVICES = [
   { icon: PlaneTakeoff, title: 'Airport Transfers', desc: 'Seamless transportation to MCO and private terminals with flight tracking and meet-and-greet.' },
@@ -10,11 +16,7 @@ const SERVICES = [
   { icon: PartyPopper, title: 'Special Events', desc: 'Arrive in style for weddings, galas, and exclusive events across Central Florida.' },
 ]
 
-export const runtime = 'edge'
-
-export default async function Home() {
-  const featured = await getFeaturedFleet(6)
-
+export default function Home() {
   return (
     <div className="bg-background text-on-surface min-h-screen">
       <Navbar />
@@ -22,7 +24,14 @@ export default async function Home() {
       {/* HERO */}
       <section className="relative h-[88vh] min-h-[620px] w-full flex items-end justify-center overflow-hidden">
         <div className="absolute inset-0">
-          <img src="/images/stitch-suv-studio.jpg" alt="Phalo Transportation luxury SUV chauffeur service in Orlando" className="w-full h-full object-cover object-center brightness-105" />
+          <Image
+            src="/images/stitch-suv-studio.webp"
+            alt="Phalo Transportation luxury SUV chauffeur service in Orlando"
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover object-center brightness-105"
+          />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-white/20" />
         </div>
         <div className="relative z-10 px-6 pb-16 md:pb-24 text-center max-w-2xl">
@@ -37,47 +46,9 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* FEATURED FLEET — horizontal scroll, from the DB */}
-      <section className="py-14 md:py-20">
-        <div className="px-6 max-w-7xl mx-auto mb-6 flex justify-between items-end">
-          <div>
-            <span className="text-[11px] tracking-[0.25em] text-primary mb-2 block">COLLECTION</span>
-            <h2 className="display text-3xl md:text-4xl font-semibold">Our Elite Fleet</h2>
-          </div>
-          <Link href="/fleet" className="text-primary text-[11px] tracking-widest border-b border-primary/30 pb-1 hover:text-on-surface transition shrink-0">
-            VIEW ALL
-          </Link>
-        </div>
-        <div className="flex overflow-x-auto hide-scrollbar snap-x snap-mandatory gap-4 px-6 pb-4 max-w-7xl mx-auto">
-          {featured.map((v) => (
-            <Link
-              key={v.id}
-              href="/book"
-              className="snap-center shrink-0 w-[80%] sm:w-[360px] glass-dark gold-hairline rounded-2xl overflow-hidden p-4 group"
-            >
-              <div className="relative aspect-[16/10] mb-4 rounded-xl overflow-hidden bg-surface-container-lowest spotlight-glow flex items-center justify-center p-3">
-                <img
-                  src={v.image_url ?? '/images/fleet-overview.jpg'}
-                  alt={v.name}
-                  className="w-full h-full object-contain group-hover:scale-105 transition duration-700"
-                />
-                <div className="absolute top-3 right-3 bg-white/90 text-primary border border-primary/25 text-[10px] tracking-widest px-3 py-1 rounded-full uppercase shadow-sm">
-                  {v.tier ?? 'fleet'}
-                </div>
-              </div>
-              <div className="flex justify-between items-center">
-                <div>
-                  <h3 className="text-sm tracking-widest text-on-surface font-semibold">{v.name}</h3>
-                  <p className="text-xs text-on-surface-variant mt-1">
-                    Up to {v.capacity} passengers · from ${Math.round(Number(v.base_price))} base
-                  </p>
-                </div>
-                <ChevronRight className="w-5 h-5 text-primary shrink-0" />
-              </div>
-            </Link>
-          ))}
-        </div>
-      </section>
+      <Suspense fallback={<FeaturedFleetSkeleton />}>
+        <FeaturedFleetSection />
+      </Suspense>
 
       {/* SERVICES */}
       <section className="py-14 md:py-20 bg-surface-container-lowest">

@@ -1,9 +1,15 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { useState } from 'react'
 import { calculatePrice, createReservation } from '@/app/book/actions'
-import { PaymentStep } from './PaymentStep'
 import { AddressAutocomplete } from './AddressAutocomplete'
+import { OptimizedImage } from '@/components/shared/OptimizedImage'
+
+const PaymentStep = dynamic(
+  () => import('./PaymentStep').then((m) => ({ default: m.PaymentStep })),
+  { ssr: false },
+)
 import { Clock, MapPin, Navigation, Loader2 } from 'lucide-react'
 import {
   DEFAULT_GRATUITY_PERCENT,
@@ -452,10 +458,12 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
                     >
                       <div>
                         <div className="relative rounded-xl overflow-hidden mb-4 aspect-video">
-                          <img
-                            src={v.image_url ?? '/images/fleet-overview.jpg'}
+                          <OptimizedImage
+                            src={v.image_url ?? '/images/fleet-overview.webp'}
                             alt={v.name}
-                            className="w-full h-full object-cover"
+                            fill
+                            sizes="(max-width: 768px) 100vw, 280px"
+                            className="object-cover"
                           />
                         </div>
                         <div className="font-semibold text-lg text-on-surface">{v.name}</div>

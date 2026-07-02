@@ -43,14 +43,9 @@ export async function proxy(request: NextRequest) {
 
   let user = null
   try {
-    await supabase.auth.getSession()
     const {
       data: { user: authUser },
-      error: authError,
     } = await supabase.auth.getUser()
-    if (authError) {
-      console.warn('[proxy] auth.getUser error:', authError.message)
-    }
     user = authUser
   } catch (error) {
     console.error('[proxy] auth.getUser failed:', error instanceof Error ? error.message : error)

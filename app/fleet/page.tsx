@@ -1,7 +1,9 @@
+import { Suspense } from 'react'
 import { Navbar } from '@/components/shared/Navbar'
 import { Footer } from '@/components/shared/Footer'
 import { getFleet } from '@/lib/fleet'
 import { VehicleCard } from '@/components/fleet/VehicleCard'
+import { FeaturedFleetSkeleton } from '@/components/home/FeaturedFleetSkeleton'
 
 const TIER_ORDER = ['executive', 'premium'] as const
 const TIER_LABELS: Record<string, string> = {
@@ -10,8 +12,9 @@ const TIER_LABELS: Record<string, string> = {
 }
 
 export const runtime = 'edge'
+export const revalidate = 300
 
-export default async function FleetPage() {
+async function FleetContent() {
   const fleet = await getFleet()
 
   const grouped = TIER_ORDER.map((tier) => ({
@@ -24,6 +27,36 @@ export default async function FleetPage() {
     (v) => !v.tier || !TIER_ORDER.includes(v.tier as (typeof TIER_ORDER)[number]),
   )
 
+  return (
+    <>
+      {grouped.map((g) => (
+        <section key={g.tier} className="mb-14">
+          <div className="flex items-center gap-4 mb-6">
+            <h2 className="display text-2xl font-semibold whitespace-nowrap">{g.label}</h2>
+            <div className="flex-1 h-px bg-outline-variant/30" />
+          </div>
+          <div className="grid lg:grid-cols-2 gap-6">
+            {g.items.map((v) => (
+              <VehicleCard key={v.id} vehicle={v} />
+            ))}
+          </div>
+        </section>
+      ))}
+
+      {untiered.length > 0 && (
+        <section className="mb-14">
+          <div className="grid lg:grid-cols-2 gap-6">
+            {untiered.map((v) => (
+              <VehicleCard key={v.id} vehicle={v} />
+            ))}
+          </div>
+        </section>
+      )}
+    </>
+  )
+}
+
+export default function FleetPage() {
   return (
     <div className="bg-background text-on-surface min-h-screen">
       <Navbar />
@@ -40,29 +73,9 @@ export default async function FleetPage() {
           </p>
         </div>
 
-        {grouped.map((g) => (
-          <section key={g.tier} className="mb-14">
-            <div className="flex items-center gap-4 mb-6">
-              <h2 className="display text-2xl font-semibold whitespace-nowrap">{g.label}</h2>
-              <div className="flex-1 h-px bg-outline-variant/30" />
-            </div>
-            <div className="grid lg:grid-cols-2 gap-6">
-              {g.items.map((v) => (
-                <VehicleCard key={v.id} vehicle={v} />
-              ))}
-            </div>
-          </section>
-        ))}
-
-        {untiered.length > 0 && (
-          <section className="mb-14">
-            <div className="grid lg:grid-cols-2 gap-6">
-              {untiered.map((v) => (
-                <VehicleCard key={v.id} vehicle={v} />
-              ))}
-            </div>
-          </section>
-        )}
+        <Suspense fallback={<FeaturedFleetSkeleton />}>
+          <FleetContent />
+        </Suspense>
       </div>
 
       <Footer />

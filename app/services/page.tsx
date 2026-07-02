@@ -2,6 +2,8 @@ import { Navbar } from '@/components/shared/Navbar'
 import { Footer } from '@/components/shared/Footer'
 import Link from 'next/link'
 
+export const revalidate = 3600
+
 const services = [
   { title: "MCO Airport Transfers", desc: "Flight tracking, meet & greet, and seamless transfers from Orlando International Airport.", price: "from $95 + mileage" },
   { title: "Private Aviation", desc: "Discreet service at Orlando Executive Airport and other private terminals.", price: "from $115 + mileage" },

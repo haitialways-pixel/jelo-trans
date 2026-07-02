@@ -3,6 +3,8 @@ import Link from 'next/link'
 import { Navbar } from '@/components/shared/Navbar'
 import { Footer } from '@/components/shared/Footer'
 
+export const revalidate = 86400
+
 export const metadata: Metadata = {
   title: 'Terms of Service | Phalo Transportation',
   description:

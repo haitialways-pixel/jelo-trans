@@ -1,6 +1,8 @@
 import { Navbar } from '@/components/shared/Navbar'
 import { Footer } from '@/components/shared/Footer'
 
+export const revalidate = 3600
+
 export default function ContactPage() {
   return (
     <div className="bg-background text-on-surface min-h-screen">
@@ -20,7 +22,7 @@ export default function ContactPage() {
           </div>
           <div>
             <div className="text-primary text-xs tracking-[3px] mb-2">LOCATION</div>
-            <div>Orlando, Florida<br />Serving MCO, KORL, and all of Central Florida</div>
+            <div>Orlando, Florida<br />Serving MCO,all of Central Florida and Beyond</div>
           </div>
           <div>
             <div className="text-primary text-xs tracking-[3px] mb-2">FOR IMMEDIATE BOOKINGS</div>
