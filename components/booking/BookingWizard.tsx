@@ -192,15 +192,19 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
 
       if (result.success) {
         setBookingNumber(result.bookingNumber)
+        setEmailSent(Boolean(result.emailSent))
         if (result.requiresPayment && result.clientSecret) {
           setClientSecret(result.clientSecret)
           setDepositAmount(Number(result.depositAmount ?? 0))
           setBalanceAmount(Number(result.balanceAmount ?? 0))
-        } else {
-          setEmailSent(Boolean(result.emailSent))
         }
         if (result.error) {
           setError(result.error)
+        } else if (!result.emailSent && result.emailError) {
+          setError(
+            `Your booking is saved, but we could not email you (${result.emailError}). ` +
+              'Please save your booking number — our team has been notified.',
+          )
         }
       } else {
         setError(result.error || 'Failed to create booking')
@@ -230,6 +234,11 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
         <p className="text-on-surface-variant text-sm mb-6">
           Booking <span className="font-mono text-primary">{bookingNumber}</span> — a 10% deposit
           confirms it.
+          {emailSent && (
+            <span className="block mt-2 text-emerald-400/90">
+              A booking received email was sent to {formData.customerEmail}.
+            </span>
+          )}
         </p>
         <PaymentStep
           clientSecret={clientSecret}

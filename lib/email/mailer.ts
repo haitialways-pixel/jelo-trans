@@ -311,11 +311,12 @@ export function isMailConfigured(): boolean {
 }
 
 export function getMailSetupHint(): string | null {
-  if (!isMailConfigured()) return 'RESEND_API_KEY is not set in Vercel environment variables.'
+  if (!isMailConfigured()) return 'RESEND_API_KEY is not set in environment variables.'
   if (isResendSandboxMode()) {
     return (
-      'Resend sandbox mode: only your Resend account email can receive mail until you verify a custom domain. ' +
-      'Set BOOKING_FROM_ADDRESS and DISPATCH_FROM_ADDRESS after domain verification, then remove RESEND_USE_SANDBOX_FROM.'
+      'Resend sandbox mode: customer emails can ONLY be delivered to your Resend account signup email ' +
+      '(manager alerts to info.phalotrans@gmail.com may work, but other customer addresses will fail). ' +
+      'Verify vipodyssey.com in Resend, set BOOKING_FROM_ADDRESS=bookings@vipodyssey.com, then remove RESEND_USE_SANDBOX_FROM.'
     )
   }
   return null

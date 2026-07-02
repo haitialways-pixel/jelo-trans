@@ -18,6 +18,41 @@ import {
   isValidGratuityPercent,
 } from '@/lib/pricing'
 
+async function sendCustomerBookingReceived(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  bookingNumber: string,
+  formData: {
+    customerEmail: string
+    customerName: string
+    customerPhone: string
+    pickupTime: string
+    pickupAddress: string
+    dropoffAddress?: string
+    vehicleName?: string
+  },
+) {
+  try {
+    const { data: rows } = await supabase.rpc('get_reservation_by_booking', {
+      p_booking_number: bookingNumber,
+      p_phone: formData.customerPhone,
+    })
+    const canonical = Array.isArray(rows) ? rows[0] : null
+    return await sendBookingReceived({
+      to: formData.customerEmail,
+      customerName: formData.customerName,
+      bookingNumber,
+      pickupTime: canonical?.pickup_time ?? formData.pickupTime,
+      pickupAddress: formData.pickupAddress,
+      dropoffAddress: formData.dropoffAddress,
+      vehicleName: formData.vehicleName,
+      totalPrice: Number(canonical?.total_price ?? 0),
+    })
+  } catch (e) {
+    console.error('[createReservation] booking received email failed:', e)
+    return { sent: false, reason: e instanceof Error ? e.message : 'send failed' }
+  }
+}
+
 async function managerReservationLink(bookingNumber: string) {
   try {
     if (isAdminConfigured()) {
@@ -179,8 +214,7 @@ export async function createReservation(formData: any) {
 
     revalidatePath('/manage-booking')
 
-    // Alert ops immediately by email (even if deposit not paid yet). Customer confirmation
-    // email still waits for manager review; "booking received" may follow deposit payment.
+    // Alert ops + customer immediately (even before deposit). Manager approval email follows later.
     try {
       const link = await managerReservationLink(bookingNumber)
       await notifyManagement({
@@ -201,6 +235,15 @@ export async function createReservation(formData: any) {
       console.error('[createReservation] management notification failed:', e)
     }
 
+    const customerEmail = await sendCustomerBookingReceived(supabase, bookingNumber, formData)
+    const emailSent = customerEmail.sent
+    if (!emailSent) {
+      console.warn('[createReservation] customer booking received email not sent:', customerEmail.reason, {
+        bookingNumber,
+        to: formData.customerEmail,
+      })
+    }
+
     // STRIPE ON: create the 10% deposit intent and hand the client secret to the browser.
     if (isStripeConfigured()) {
       try {
@@ -212,46 +255,23 @@ export async function createReservation(formData: any) {
           clientSecret: dep.clientSecret,
           depositAmount: dep.depositAmount,
           balanceAmount: dep.balanceAmount,
+          emailSent,
+          emailError: emailSent ? undefined : customerEmail.reason,
         }
       } catch (e) {
         console.error(`[createReservation] createDepositForBooking failed for ${bookingNumber}:`, e)
-        // Reservation row exists (created by RPC). Return it so the customer has a reference number
-        // even though online deposit setup failed. Manager received the internal notification.
         return {
           success: true,
           bookingNumber,
           requiresPayment: false,
-          emailSent: false,
+          emailSent,
+          emailError: emailSent ? undefined : customerEmail.reason,
           error: 'Could not start the deposit payment. Please try again, or call us to book.',
         }
       }
     }
 
-    // STRIPE OFF: send "booking received" to customer + alert management (confirmation comes after manager review).
-    let emailSent = false
-    try {
-      const { data: rows } = await supabase.rpc('get_reservation_by_booking', {
-        p_booking_number: bookingNumber,
-        p_phone: formData.customerPhone,
-      })
-      const canonical = Array.isArray(rows) ? rows[0] : null
-      const res = await sendBookingReceived({
-        to: formData.customerEmail,
-        customerName: formData.customerName,
-        bookingNumber,
-        pickupTime: canonical?.pickup_time ?? formData.pickupTime,
-        pickupAddress: formData.pickupAddress,
-        dropoffAddress: formData.dropoffAddress,
-        vehicleName: formData.vehicleName,
-        totalPrice: Number(canonical?.total_price ?? 0),
-      })
-      emailSent = res.sent
-    } catch (e) {
-      console.error('[createReservation] booking received email failed:', e)
-      emailSent = false
-    }
-
-    return { success: true, bookingNumber, requiresPayment: false, emailSent }
+    return { success: true, bookingNumber, requiresPayment: false, emailSent, emailError: emailSent ? undefined : customerEmail.reason }
   } catch {
     return { success: false, error: 'Server error while creating reservation. Please try again.' }
   }
@@ -259,8 +279,8 @@ export async function createReservation(formData: any) {
 
 /**
  * Verifies the deposit PaymentIntent succeeded (called after Elements confirms on the
- * client), records it on the reservation, and THEN sends the confirmation email +
- * management alert. This makes the flow work locally without a webhook; the webhook is
+ * client), records it on the reservation, and alerts management. Customer "booking received"
+ * email is sent at reservation creation. This makes the flow work locally without a webhook; the webhook is
  * the production backstop. Idempotent.
  */
 export async function finalizeDeposit(bookingNumber: string) {
@@ -302,26 +322,6 @@ export async function finalizeDeposit(bookingNumber: string) {
       severity: 'info',
     })
 
-    const vehicleName = (r as unknown as { fleet?: { name?: string } }).fleet?.name
-
-    let emailSent = false
-    try {
-      const res = await sendBookingReceived({
-        to: r.customer_email,
-        customerName: r.customer_name,
-        bookingNumber,
-        pickupTime: r.pickup_time,
-        pickupAddress: r.pickup_address,
-        dropoffAddress: r.dropoff_address,
-        vehicleName,
-        totalPrice: Number(r.total_price),
-      })
-      emailSent = res.sent
-    } catch (e) {
-      console.error('[finalizeDeposit] booking received email failed:', e)
-      emailSent = false
-    }
-
     try {
       await notifyManagement({
         alwaysEmail: true,
@@ -340,7 +340,6 @@ export async function finalizeDeposit(bookingNumber: string) {
 
     return {
       ok: true,
-      emailSent,
       depositAmount: Number(r.deposit_amount ?? 0),
       balanceAmount: Number(r.balance_amount ?? 0),
     }
