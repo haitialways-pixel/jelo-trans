@@ -22,7 +22,7 @@ export default function ContactPage() {
           </div>
           <div>
             <div className="text-primary text-xs tracking-[3px] mb-2">LOCATION</div>
-            <div>Orlando, Florida<br />Serving MCO, all major cruise ports all of Central Florida and Beyond</div>
+            <div>Orlando, Florida<br />Serving MCO, all major ports all of Central Florida and Beyond</div>
           </div>
           <div>
             <div className="text-primary text-xs tracking-[3px] mb-2">FOR IMMEDIATE BOOKINGS</div>
