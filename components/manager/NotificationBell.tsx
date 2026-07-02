@@ -17,8 +17,8 @@ import {
 type Props = { initial: ManagerNotification[] }
 
 const SEVERITY_DOT: Record<string, string> = {
-  info: 'bg-blue-400',
-  warning: 'bg-amber-400',
+  info: 'bg-secondary-dark',
+  warning: 'bg-gold',
   critical: 'bg-red-500',
 }
 
@@ -143,7 +143,7 @@ export function NotificationBell({ initial }: Props) {
                       >
                         <span
                           className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${
-                            SEVERITY_DOT[n.severity] ?? 'bg-zinc-400'
+                            SEVERITY_DOT[n.severity] ?? 'bg-outline-variant'
                           } ${isUnread ? '' : 'opacity-30'}`}
                         />
                         <div className="min-w-0 flex-1">

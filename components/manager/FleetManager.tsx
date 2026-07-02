@@ -532,14 +532,14 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
                             <button
                               onClick={() => handleSavePrice(model.id)}
                               disabled={pending}
-                              className="flex items-center justify-center p-1.5 rounded-lg border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10 transition"
+                              className="flex items-center justify-center p-1.5 rounded-lg border border-emerald-200 text-emerald-700 hover:bg-emerald-50 transition"
                             >
                               {pending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
                             </button>
                             <button
                               onClick={() => setEditingPriceId(null)}
                               disabled={pending}
-                              className="flex items-center justify-center p-1.5 rounded-lg border border-red-500/40 text-red-400 hover:bg-red-500/10 transition"
+                              className="flex items-center justify-center p-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition"
                             >
                               <X className="w-3.5 h-3.5" />
                             </button>
@@ -566,7 +566,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
                           </button>
                           <button
                             onClick={() => handleDeleteClass(model.id, model.name)}
-                            className="p-2 rounded-lg border border-red-500/30 text-red-400 hover:text-red-300 hover:bg-red-500/10 transition"
+                            className="p-2 rounded-lg border border-red-200 text-red-600 hover:text-red-700 hover:bg-red-50 transition"
                             title="Delete class"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -726,7 +726,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
                                     <button
                                       onClick={() => handleSaveUnit(unit.id)}
                                       disabled={pending}
-                                      className="p-1.5 rounded-lg border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10 transition"
+                                      className="p-1.5 rounded-lg border border-emerald-200 text-emerald-700 hover:bg-emerald-50 transition"
                                       title="Save changes"
                                     >
                                       {pending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
@@ -734,7 +734,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
                                     <button
                                       onClick={() => setEditingUnitId(null)}
                                       disabled={pending}
-                                      className="p-1.5 rounded-lg border border-red-500/40 text-red-400 hover:bg-red-500/10 transition"
+                                      className="p-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition"
                                       title="Cancel"
                                     >
                                       <X className="w-3.5 h-3.5" />
@@ -766,7 +766,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
 
                                     <button
                                       onClick={() => handleDeleteUnit(unit.id, unit.label)}
-                                      className="p-1.5 rounded-lg border border-red-500/30 text-red-400 hover:text-red-300 hover:bg-red-500/10 transition"
+                                      className="p-1.5 rounded-lg border border-red-200 text-red-600 hover:text-red-700 hover:bg-red-50 transition"
                                       title="Delete vehicle"
                                       disabled={pending}
                                     >
@@ -863,7 +863,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
                     </div>
                     <button
                       onClick={() => handleDeleteChauffeur(c.id, c.name)}
-                      className="p-1.5 rounded-lg border border-red-500/30 text-red-400 hover:text-red-300 hover:bg-red-500/10 transition"
+                      className="p-1.5 rounded-lg border border-red-200 text-red-600 hover:text-red-700 hover:bg-red-50 transition"
                       title="Remove Chauffeur"
                       disabled={pending}
                     >

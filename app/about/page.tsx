@@ -10,7 +10,7 @@ export default function AboutPage() {
       <Navbar />
       <div className="pt-20">
         <div className="max-w-4xl mx-auto px-6 pt-12 pb-20">
-          <div className="text-primary text-xs tracking-[4px]">ESTABLISHED 2017</div>
+          <div className="text-secondary-dark text-xs tracking-[4px]">ESTABLISHED 2017</div>
           <h1 className="display text-gold-gradient text-7xl tracking-[-3.2px] font-semibold mt-2">The Imperial Odyssey Standard</h1>
           <p className="text-2xl text-on-surface-variant mt-6 max-w-3xl">We exist for one reason: to deliver the most refined, reliable, and discreet ground transportation experience in Central Florida.</p>
         </div>

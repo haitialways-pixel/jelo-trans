@@ -238,7 +238,7 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
           Booking <span className="font-mono text-primary">{bookingNumber}</span> — a 10% deposit
           confirms it.
           {emailSent && (
-            <span className="block mt-2 text-emerald-400/90">
+            <span className="block mt-2 text-emerald-700">
               A booking received email was sent to {formData.customerEmail}.
             </span>
           )}
@@ -324,9 +324,9 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
             <div
               className={`flex items-center justify-center w-10 h-10 rounded-full font-semibold border transition ${
                 i === currentStep
-                  ? 'bg-primary text-background border-primary'
+                  ? 'bg-gold text-on-surface border-gold shadow-sm'
                   : i < currentStep
-                    ? 'bg-primary/20 text-primary border-primary'
+                    ? 'bg-primary/30 text-on-surface border-primary'
                     : 'bg-transparent text-on-surface-variant border-outline-variant/30'
               }`}
             >
@@ -487,7 +487,7 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
                       <div className="mt-6 pt-4 border-t border-outline-variant/20 flex justify-between items-end">
                         <span className="text-xs text-on-surface-variant font-medium mb-0.5">Est. Total</span>
                         <div className="text-right">
-                          <span className="text-xl font-bold text-primary">${calculatedTotal}</span>
+                          <span className="text-xl font-bold text-gold-dark">${calculatedTotal}</span>
                         </div>
                       </div>
                     </div>
@@ -571,7 +571,7 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
                   />
                   <div className="flex justify-between items-center pt-3 border-t border-primary/15 text-xl font-bold">
                     <span className="text-on-surface">Estimated Total</span>
-                    <span className="text-primary">${price.total.toFixed(2)}</span>
+                    <span className="text-gold-dark">${price.total.toFixed(2)}</span>
                   </div>
                   <p className="text-[10px] text-on-surface-variant text-right">
                     Fare includes tolls and taxes · gratuity goes to your chauffeur

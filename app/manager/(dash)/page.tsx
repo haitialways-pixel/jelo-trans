@@ -18,10 +18,10 @@ export default async function ManagerDashboard() {
   const upcoming = all.filter((r) => ACTIVE.includes(r.status)).slice(0, 8)
 
   const cards = [
-    { label: 'To confirm', value: stats.pending, icon: Clock, tint: 'text-zinc-300' },
-    { label: "Today's rides", value: stats.todayCount, icon: CarFront, tint: 'text-primary' },
-    { label: 'In progress', value: stats.inProgress, icon: CheckCircle2, tint: 'text-blue-300' },
-    { label: 'Open escalations', value: stats.openEscalations, icon: MessageSquareWarning, tint: 'text-amber-700' },
+    { label: 'To confirm', value: stats.pending, icon: Clock, tint: 'text-primary-dark' },
+    { label: "Today's rides", value: stats.todayCount, icon: CarFront, tint: 'text-gold' },
+    { label: 'In progress', value: stats.inProgress, icon: CheckCircle2, tint: 'text-secondary-dark' },
+    { label: 'Open escalations', value: stats.openEscalations, icon: MessageSquareWarning, tint: 'text-gold-dark' },
   ]
 
   return (

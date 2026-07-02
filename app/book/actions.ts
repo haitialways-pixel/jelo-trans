@@ -58,6 +58,118 @@ async function sendCustomerBookingReceived(
   }
 }
 
+function rpcErrorMessage(error: { message?: string; details?: string } | null): string {
+  return [error?.message, error?.details].filter(Boolean).join(' ')
+}
+
+function isAvailabilityRpcError(msg: string): boolean {
+  const lower = msg.toLowerCase()
+  return (
+    lower.includes('no longer available') ||
+    lower.includes('not available for the selected') ||
+    lower.includes('selected vehicle is not available') ||
+    lower.includes('check_vehicle_availability') ||
+    lower.includes('vehicle availability')
+  )
+}
+
+function availabilityBlockedUserMessage(): string {
+  return 'We could not finish your booking online. Please call (678) 478-3506 and our team will reserve your trip.'
+}
+
+/** Bypass legacy RPC availability checks — ops confirms fleet offline. */
+async function createReservationDirect(
+  formData: {
+    customerName: string
+    customerEmail: string
+    customerPhone: string
+    pickupAddress: string
+    dropoffAddress: string
+    vehicleId: string
+    passengers: number
+    luggage: number
+    durationHours: number
+    specialRequests?: string | null
+    distanceMiles: number
+  },
+  pickupIso: string,
+  gratuityPercent: number,
+): Promise<{ bookingNumber: string } | { error: string }> {
+  if (!isAdminConfigured()) {
+    return { error: 'Service role not configured for booking fallback' }
+  }
+
+  const admin = createAdminClient()
+  const { data: vehicle, error: fleetError } = await admin
+    .from('fleet')
+    .select('id, base_price, price_per_mile, minimum_price')
+    .eq('id', formData.vehicleId)
+    .maybeSingle()
+
+  if (fleetError || !vehicle) {
+    return { error: 'Selected vehicle not found' }
+  }
+
+  const priced = computeTripPrice({
+    basePrice: Number(vehicle.base_price),
+    pricePerMile: Number(vehicle.price_per_mile),
+    distanceMiles: Number(formData.distanceMiles || 0),
+    minimumPrice: Number(vehicle.minimum_price ?? 0),
+    gratuityPercent,
+  })
+
+  const { data: row, error: insertError } = await admin
+    .from('reservations')
+    .insert({
+      customer_name: formData.customerName,
+      customer_email: formData.customerEmail,
+      customer_phone: formData.customerPhone,
+      pickup_address: formData.pickupAddress,
+      dropoff_address: formData.dropoffAddress,
+      pickup_time: pickupIso,
+      vehicle_id: formData.vehicleId,
+      passengers: Math.max(formData.passengers || 1, 1),
+      luggage: Math.max(formData.luggage || 0, 0),
+      duration_hours: Math.max(formData.durationHours || 3, 0.25),
+      distance_miles: formData.distanceMiles || 0,
+      fare_subtotal: priced.fareSubtotal,
+      gratuity_percent: priced.gratuityPercent,
+      gratuity_amount: priced.gratuityAmount,
+      total_price: priced.total,
+      status: 'pending',
+      payment_status: 'unpaid',
+      special_requests: formData.specialRequests || null,
+      source: 'web',
+    })
+    .select('id, booking_number')
+    .single()
+
+  if (insertError || !row?.booking_number) {
+    return { error: insertError?.message ?? 'Could not save reservation' }
+  }
+
+  try {
+    await recordOpsNotification({
+      kind: 'new_booking',
+      title: '🚗 New booking ' + row.booking_number,
+      body:
+        formData.customerName +
+        ' · ' +
+        formData.pickupAddress +
+        ' → ' +
+        formData.dropoffAddress +
+        ' · $' +
+        priced.total,
+      reservationId: row.id,
+      severity: 'info',
+    })
+  } catch {
+    /* best-effort */
+  }
+
+  return { bookingNumber: row.booking_number }
+}
+
 async function managerReservationLink(bookingNumber: string) {
   try {
     if (isAdminConfigured()) {
@@ -181,42 +293,87 @@ export async function createReservation(formData: any) {
       }
     }
 
-    const { data: bookingNumber, error } = await supabase.rpc('create_reservation', {
-      p_customer_name: formData.customerName,
-      p_customer_email: formData.customerEmail,
-      p_customer_phone: formData.customerPhone,
-      p_pickup_address: formData.pickupAddress,
-      p_dropoff_address: formData.dropoffAddress,
-      p_pickup_time: pickupIso,
-      p_vehicle_id: formData.vehicleId,
-      p_passengers: parseInt(formData.passengers) || 2,
-      p_luggage: parseInt(formData.luggage) || 0,
-      p_duration_hours: Number(formData.durationHours) || 3,
-      p_special_requests: formData.specialRequests || null,
-      p_distance_miles: Number(formData.distanceMiles) || 0,
-      p_gratuity_percent: gratuityPercent,
-    })
+    const directPayload = {
+      customerName: formData.customerName,
+      customerEmail: formData.customerEmail,
+      customerPhone: formData.customerPhone,
+      pickupAddress: formData.pickupAddress,
+      dropoffAddress: formData.dropoffAddress,
+      vehicleId: formData.vehicleId,
+      passengers: parseInt(formData.passengers) || 2,
+      luggage: parseInt(formData.luggage) || 0,
+      durationHours: Number(formData.durationHours) || 3,
+      specialRequests: formData.specialRequests || null,
+      distanceMiles: Number(formData.distanceMiles) || 0,
+    }
 
-    if (error) {
-      const msg = error.message ?? ''
-      if (msg.includes('Gratuity must be')) {
-        return { success: false, error: msg }
+    let bookingNumber: string | null = null
+
+    // Prefer service-role insert — bypasses legacy RPC availability checks still on some DBs.
+    if (isAdminConfigured()) {
+      const direct = await createReservationDirect(directPayload, pickupIso, gratuityPercent)
+      if ('bookingNumber' in direct) {
+        bookingNumber = direct.bookingNumber
+      } else {
+        console.warn('[createReservation] direct insert failed, trying RPC:', direct.error)
       }
-      if (msg.includes('create_reservation') || msg.includes('p_gratuity_percent')) {
-        return {
-          success: false,
-          error:
-            'Booking system needs a database update (gratuity migration). Please call us to book, or ask your administrator to run supabase/migrations/20260702_gratuity.sql.',
+    }
+
+    if (!bookingNumber) {
+      const { data: rpcBooking, error } = await supabase.rpc('create_reservation', {
+        p_customer_name: directPayload.customerName,
+        p_customer_email: directPayload.customerEmail,
+        p_customer_phone: directPayload.customerPhone,
+        p_pickup_address: directPayload.pickupAddress,
+        p_dropoff_address: directPayload.dropoffAddress,
+        p_pickup_time: pickupIso,
+        p_vehicle_id: directPayload.vehicleId,
+        p_passengers: directPayload.passengers,
+        p_luggage: directPayload.luggage,
+        p_duration_hours: directPayload.durationHours,
+        p_special_requests: directPayload.specialRequests,
+        p_distance_miles: directPayload.distanceMiles,
+        p_gratuity_percent: gratuityPercent,
+      })
+
+      if (error) {
+        const msg = rpcErrorMessage(error)
+        if (isAvailabilityRpcError(msg)) {
+          console.warn('[createReservation] legacy availability RPC blocked — using direct insert', msg)
+          const direct = await createReservationDirect(directPayload, pickupIso, gratuityPercent)
+          if ('error' in direct) {
+            return { success: false, error: availabilityBlockedUserMessage() }
+          }
+          bookingNumber = direct.bookingNumber
+        } else if (msg.includes('Gratuity must be')) {
+          return { success: false, error: msg }
+        } else if (msg.includes('create_reservation') || msg.includes('p_gratuity_percent')) {
+          return {
+            success: false,
+            error:
+              'Booking system needs a database update (gratuity migration). Please call us to book, or ask your administrator to run supabase/migrations/20260702_gratuity.sql.',
+          }
+        } else if (
+          msg.includes('15 minutes') ||
+          msg.includes('in the future') ||
+          msg.toLowerCase().includes('pickup')
+        ) {
+          return { success: false, error: pickupTimeValidationMessage() }
+        } else {
+          return {
+            success: false,
+            error: msg
+              ? `We could not complete your booking. Please try again or call (678) 478-3506.`
+              : 'We could not complete your booking. Please try again or call (678) 478-3506.',
+          }
         }
+      } else {
+        bookingNumber = rpcBooking as string
       }
-      if (
-        msg.includes('15 minutes') ||
-        msg.includes('in the future') ||
-        msg.toLowerCase().includes('pickup')
-      ) {
-        return { success: false, error: pickupTimeValidationMessage() }
-      }
-      return { success: false, error: `Failed to create reservation: ${msg}` }
+    }
+
+    if (!bookingNumber) {
+      return { success: false, error: 'Failed to create reservation. Please try again or call us.' }
     }
 
     await checkRateLimit('booking.create', 30, 3600, undefined, true)

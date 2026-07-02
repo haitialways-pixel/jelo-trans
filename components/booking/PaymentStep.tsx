@@ -12,11 +12,12 @@ const stripePromise = getStripePromise()
 const appearance: Appearance = {
   theme: 'stripe',
   variables: {
-    colorPrimary: '#9a7b4f',
-    colorBackground: '#fffdf9',
-    colorText: '#2c2418',
+    colorPrimary: '#C9A96E',
+    colorBackground: '#FAF9F6',
+    colorText: '#1A2A44',
+    colorDanger: '#B03030',
     borderRadius: '12px',
-    fontFamily: 'Arial, sans-serif',
+    fontFamily: 'system-ui, sans-serif',
   },
 }
 

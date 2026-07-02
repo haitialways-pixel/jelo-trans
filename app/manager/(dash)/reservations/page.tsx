@@ -66,7 +66,7 @@ export default async function ReservationsPage({
               href={filterHref(f.key, query)}
               className={`whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs transition ${
                 isActive
-                  ? 'bg-primary text-black font-medium'
+                  ? 'bg-gold/25 text-on-surface font-medium border border-gold/40'
                   : 'border border-outline-variant/30 text-on-surface-variant hover:text-on-surface'
               }`}
             >

@@ -1,7 +1,7 @@
 import { STATUS_LABELS, STATUS_STYLES } from '@/lib/manager/format'
 
 export function StatusBadge({ status }: { status: string }) {
-  const style = STATUS_STYLES[status] ?? 'bg-zinc-700/40 text-zinc-200 border-zinc-500/40'
+  const style = STATUS_STYLES[status] ?? 'bg-surface-container text-on-surface-variant border-outline-variant'
   const label = STATUS_LABELS[status] ?? status
   return (
     <span

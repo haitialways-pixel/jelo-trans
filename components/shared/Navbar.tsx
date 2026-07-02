@@ -9,26 +9,26 @@ export function Navbar() {
   const [open, setOpen] = useState(false)
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/85 backdrop-blur-xl border-b border-primary/25 shadow-[0_4px_24px_-8px_rgba(44,36,24,0.1)]">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/92 backdrop-blur-xl border-b border-primary/30 shadow-[0_4px_24px_-8px_rgba(26,42,68,0.08)]">
       <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-3">
           <LogoMark size="nav" />
           <div>
             <div className="font-semibold tracking-[2px] text-[1.35rem] leading-tight text-gold-gradient">IMPERIAL ODYSSEY</div>
-            <div className="text-[10px] text-primary -mt-0.5 tracking-[0.25em]">ORLANDO</div>
+            <div className="text-[10px] text-secondary-dark -mt-0.5 tracking-[0.25em]">ORLANDO</div>
           </div>
         </Link>
 
         <div className="hidden md:flex items-center gap-9 text-sm font-medium tracking-wider text-on-surface-variant">
-          <Link href="/fleet" className="hover:text-primary transition">FLEET</Link>
-          <Link href="/services" className="hover:text-primary transition">SERVICES</Link>
-          <Link href="/about" className="hover:text-primary transition">OUR STORY</Link>
-          <Link href="/contact" className="hover:text-primary transition">CONTACT</Link>
+          <Link href="/fleet" className="hover:text-gold-dark transition">FLEET</Link>
+          <Link href="/services" className="hover:text-gold-dark transition">SERVICES</Link>
+          <Link href="/about" className="hover:text-gold-dark transition">OUR STORY</Link>
+          <Link href="/contact" className="hover:text-gold-dark transition">CONTACT</Link>
           <Link href="/book" className="btn-gold px-8 py-2.5 rounded-full text-sm tracking-[1px]">BOOK NOW</Link>
           <Link href="/manage-booking" className="btn-outline-gold px-5 py-2.5 rounded-full text-sm tracking-[1px]">MANAGE BOOKING</Link>
         </div>
 
-        <a href="tel:(678) 478-3506" className="hidden md:flex items-center gap-2 text-sm text-primary hover:text-on-surface transition">
+        <a href="tel:(678) 478-3506" className="hidden md:flex items-center gap-2 text-sm text-gold-dark hover:text-on-surface transition">
           <Phone className="w-4 h-4" /> (678) 478-3506
         </a>
 

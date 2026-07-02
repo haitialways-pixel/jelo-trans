@@ -32,7 +32,7 @@ export async function FeaturedFleetSection() {
                 sizes="(max-width: 640px) 80vw, 360px"
                 className="object-contain group-hover:scale-105 transition duration-700"
               />
-              <div className="absolute top-3 right-3 bg-white/90 text-primary border border-primary/25 text-[10px] tracking-widest px-3 py-1 rounded-full uppercase shadow-sm">
+              <div className="absolute top-3 right-3 bg-white/95 text-gold-dark border border-gold/35 text-[10px] tracking-widest px-3 py-1 rounded-full uppercase shadow-sm">
                 {v.tier ?? 'fleet'}
               </div>
             </div>

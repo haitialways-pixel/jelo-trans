@@ -35,7 +35,7 @@ export default function Home() {
           <div className="absolute inset-0 hero-luxe-overlay" />
         </div>
         <div className="relative z-10 px-6 pb-16 md:pb-24 text-center max-w-3xl">
-          <span className="text-[11px] tracking-[0.35em] text-primary block mb-5 font-semibold">ORLANDO, FLORIDA</span>
+          <span className="text-[11px] tracking-[0.35em] text-secondary-dark block mb-5 font-semibold">ORLANDO, FLORIDA</span>
           <h1 className="display text-gold-gradient text-4xl md:text-6xl lg:text-7xl font-semibold leading-[1.08] mb-6">
             Your Premium Chauffeur in Orlando
           </h1>
@@ -53,7 +53,7 @@ export default function Home() {
       </Suspense>
 
       {/* SERVICES */}
-      <section className="py-14 md:py-20 bg-surface-container-lowest">
+      <section className="py-14 md:py-20 bg-surface-container-low border-y border-primary/15">
         <div className="px-6 max-w-7xl mx-auto text-center mb-10">
           <span className="text-[11px] tracking-[0.25em] text-primary mb-2 block">SERVICES</span>
           <h2 className="display text-gold-gradient text-3xl md:text-4xl font-semibold">Tailored to Excellence</h2>
@@ -61,8 +61,8 @@ export default function Home() {
         <div className="px-6 max-w-5xl mx-auto grid md:grid-cols-3 gap-4">
           {SERVICES.map((s) => (
             <div key={s.title} className="glass-dark gold-hairline p-6 rounded-2xl">
-              <div className="bg-primary/10 w-12 h-12 rounded-xl flex items-center justify-center mb-5">
-                <s.icon className="w-6 h-6 text-primary" />
+              <div className="bg-secondary/25 w-12 h-12 rounded-xl flex items-center justify-center mb-5">
+                <s.icon className="w-6 h-6 text-secondary-dark" />
               </div>
               <h3 className="display text-xl font-semibold mb-2">{s.title}</h3>
               <p className="text-on-surface-variant text-sm leading-relaxed">{s.desc}</p>
@@ -76,17 +76,17 @@ export default function Home() {
         <h2 className="display text-gold-gradient text-3xl md:text-4xl font-semibold text-center mb-8">The Imperial Odyssey Distinction</h2>
         <div className="grid grid-cols-2 gap-4">
           <div className="col-span-2 glass-dark gold-hairline p-8 rounded-2xl text-center">
-            <BadgeCheck className="w-10 h-10 text-primary mx-auto mb-4" />
+            <BadgeCheck className="w-10 h-10 text-gold mx-auto mb-4" />
             <h3 className="text-sm tracking-widest font-semibold mb-2">PROFESSIONALISM</h3>
             <p className="text-on-surface-variant text-xs">Vetted, uniformed chauffeurs with expert local knowledge.</p>
           </div>
           <div className="glass-dark gold-hairline p-6 rounded-2xl text-center">
-            <EyeOff className="w-8 h-8 text-primary mx-auto mb-4" />
+            <EyeOff className="w-8 h-8 text-secondary-dark mx-auto mb-4" />
             <h3 className="text-sm tracking-widest font-semibold mb-2">DISCRETION</h3>
             <p className="text-on-surface-variant text-[11px]">Your privacy is our utmost priority throughout every journey.</p>
           </div>
           <div className="glass-dark gold-hairline p-6 rounded-2xl text-center">
-            <Gem className="w-8 h-8 text-primary mx-auto mb-4" />
+            <Gem className="w-8 h-8 text-primary-dark mx-auto mb-4" />
             <h3 className="text-sm tracking-widest font-semibold mb-2">LUXURY</h3>
             <p className="text-on-surface-variant text-[11px]">Pristine interiors with premium amenities for ultimate comfort.</p>
           </div>

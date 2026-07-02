@@ -1,18 +1,9 @@
--- Gratuity on online bookings: fare subtotal + 15/18/22% gratuity = total_price
-
-ALTER TABLE public.reservations
-  ADD COLUMN IF NOT EXISTS fare_subtotal numeric(10,2),
-  ADD COLUMN IF NOT EXISTS gratuity_percent numeric(5,2),
-  ADD COLUMN IF NOT EXISTS gratuity_amount numeric(10,2);
-
-UPDATE public.reservations
-SET
-  fare_subtotal = total_price,
-  gratuity_percent = 0,
-  gratuity_amount = 0
-WHERE fare_subtotal IS NULL;
+-- REMOVE online vehicle availability blocking (ops handles offline).
+-- Run this in Supabase SQL Editor if bookings fail with
+-- "This vehicle is no longer available for the selected time".
 
 DROP FUNCTION IF EXISTS public.create_reservation(text, text, text, text, text, timestamptz, uuid, integer, integer, numeric, text, numeric);
+DROP FUNCTION IF EXISTS public.create_reservation(text, text, text, text, text, timestamptz, uuid, integer, integer, numeric, text, numeric, numeric);
 
 CREATE OR REPLACE FUNCTION public.create_reservation(
   p_customer_name    text,
@@ -47,7 +38,7 @@ BEGIN
   IF coalesce(btrim(p_customer_name), '')  = '' THEN RAISE EXCEPTION 'Customer name is required'; END IF;
   IF coalesce(btrim(p_customer_email), '') = '' THEN RAISE EXCEPTION 'Customer email is required'; END IF;
   IF coalesce(btrim(p_customer_phone), '') = '' THEN RAISE EXCEPTION 'Customer phone is required'; END IF;
-  IF p_pickup_time IS NULL OR p_pickup_time < now() + interval '15 minutes' THEN
+  IF p_pickup_time IS NULL OR p_pickup_time < now() + interval '10 minutes' THEN
     RAISE EXCEPTION 'Pickup must be at least 15 minutes from now';
   END IF;
 
@@ -56,6 +47,7 @@ BEGIN
     RAISE EXCEPTION 'Gratuity must be 15, 18, or 22 percent';
   END IF;
 
+  -- Any fleet row by ID — no status filter, no overlap / unit-count blocking.
   SELECT base_price, price_per_mile, coalesce(minimum_price, 0)
     INTO v_base_price, v_price_per_mile, v_minimum_price
   FROM public.fleet WHERE id = p_vehicle_id;

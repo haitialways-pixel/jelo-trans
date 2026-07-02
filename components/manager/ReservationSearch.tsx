@@ -63,7 +63,7 @@ export function ReservationSearch({
       <button
         type="submit"
         disabled={pending}
-        className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-black text-sm font-semibold hover:opacity-90 transition disabled:opacity-50 shrink-0"
+        className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl btn-gold text-sm font-semibold transition disabled:opacity-50 shrink-0"
       >
         {pending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
         Search

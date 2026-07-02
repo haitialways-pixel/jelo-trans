@@ -29,9 +29,9 @@ export default function ServicesPage() {
                 <p className="text-on-surface-variant mt-2 max-w-xl">{s.desc}</p>
               </div>
               <div className="text-right">
-                <div className="text-primary text-sm tracking-widest mb-1">STARTING AT</div>
-                <div className="text-3xl tabular-nums">{s.price}</div>
-                <Link href="/book" className="mt-4 inline-block text-sm tracking-widest underline underline-offset-4 hover:text-primary">BOOK THIS SERVICE →</Link>
+                <div className="text-gold-dark text-sm tracking-widest mb-1">STARTING AT</div>
+                <div className="text-3xl tabular-nums text-on-surface">{s.price}</div>
+                <Link href="/book" className="mt-4 inline-block text-sm tracking-widest text-secondary-dark underline underline-offset-4 hover:text-gold-dark">BOOK THIS SERVICE →</Link>
               </div>
             </div>
           ))}

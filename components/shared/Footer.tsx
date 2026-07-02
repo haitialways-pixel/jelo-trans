@@ -3,7 +3,7 @@ import { LogoMark } from './LogoMark'
 
 export function Footer() {
   return (
-    <footer className="bg-surface-container-lowest border-t border-outline-variant/30 pt-16 pb-10 text-sm text-on-surface-variant">
+    <footer className="bg-surface-container-low border-t border-primary/20 pt-16 pb-10 text-sm text-on-surface-variant">
       <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-12 gap-y-12">
         <div className="md:col-span-5">
           <div className="flex items-center gap-3 mb-4">
@@ -13,7 +13,7 @@ export function Footer() {
           <p className="text-on-surface-variant max-w-xs">
             Orlando’s premier luxury chauffeur service for airport transfers, weddings, corporate travel, and unforgettable nights.
           </p>
-          <div className="mt-6 text-primary font-medium">
+          <div className="mt-6 text-gold-dark font-medium">
             (678) 478-3506<br />
             Orlando, Florida
           </div>

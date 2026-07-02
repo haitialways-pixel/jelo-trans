@@ -42,7 +42,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${outfit.variable} ${playfair.variable} ${cinzel.variable} antialiased`}>
-      <body className="bg-background text-on-surface">
+      <body className="bg-background text-on-surface min-h-screen">
         {children}
         <ClientProviders />
       </body>

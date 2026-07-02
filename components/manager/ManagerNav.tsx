@@ -30,11 +30,11 @@ export function ManagerNav({
   }
 
   return (
-    <header className="sticky top-0 z-30 border-b border-outline-variant/20 bg-background/80 backdrop-blur-md">
+    <header className="sticky top-0 z-30 border-b border-primary/25 bg-white/90 backdrop-blur-xl shadow-[0_4px_20px_-8px_rgba(26,42,68,0.08)]">
       <div className="max-w-7xl mx-auto px-4 md:px-6 flex items-center justify-between h-16">
         <div className="flex items-center gap-8">
           <Link href="/manager" className="display text-lg font-semibold">
-            Imperial Odyssey <span className="text-primary">Ops</span>
+            Imperial Odyssey <span className="text-gold">Ops</span>
           </Link>
           <nav className="hidden md:flex items-center gap-1">
             {LINKS.map((l) => {
@@ -66,7 +66,7 @@ export function ManagerNav({
           <button
             onClick={signOut}
             title="Sign out"
-            className="flex items-center gap-1.5 text-xs text-on-surface-variant hover:text-red-300 border border-outline-variant/30 rounded-lg px-3 py-2 transition"
+            className="flex items-center gap-1.5 text-xs text-on-surface-variant hover:text-red-700 hover:bg-red-50 border border-outline-variant/40 rounded-lg px-3 py-2 transition"
           >
             <LogOut className="w-4 h-4" />
             <span className="hidden sm:inline">Sign out</span>

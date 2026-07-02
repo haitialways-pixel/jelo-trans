@@ -58,7 +58,7 @@ export function LifecycleControls({ r }: { r: ManagerReservation }) {
 
   if (r.status === 'cancelled') {
     return (
-      <div className="flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+      <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
         <Ban className="w-4 h-4" /> This reservation was cancelled.
       </div>
     )
@@ -154,7 +154,7 @@ export function LifecycleControls({ r }: { r: ManagerReservation }) {
         <button
           onClick={() => run('cancel', 'Cancel this reservation? This cannot be undone.')}
           disabled={pending}
-          className="flex items-center gap-1.5 text-xs text-red-300/80 hover:text-red-300 transition disabled:opacity-50"
+          className="flex items-center gap-1.5 text-xs text-red-600/80 hover:text-red-700 transition disabled:opacity-50"
         >
           <Ban className="w-3.5 h-3.5" /> Cancel reservation
         </button>
