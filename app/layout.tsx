@@ -1,17 +1,7 @@
 import type { Metadata } from "next";
-import dynamic from "next/dynamic";
 import { Outfit, Playfair_Display } from "next/font/google";
 import "./globals.css";
-
-const ChatWidgetGate = dynamic(
-  () => import("@/components/chatbot/ChatWidgetGate").then((m) => ({ default: m.ChatWidgetGate })),
-  { ssr: false },
-);
-
-const Toaster = dynamic(
-  () => import("sonner").then((m) => ({ default: m.Toaster })),
-  { ssr: false },
-);
+import { ClientProviders } from "@/components/shared/ClientProviders";
 
 const outfit = Outfit({
   variable: "--font-outfit",
@@ -45,8 +35,7 @@ export default function RootLayout({
     <html lang="en" className={`${outfit.variable} ${playfair.variable} antialiased`}>
       <body className="bg-background text-on-surface">
         {children}
-        <ChatWidgetGate />
-        <Toaster position="top-center" richColors />
+        <ClientProviders />
       </body>
     </html>
   );

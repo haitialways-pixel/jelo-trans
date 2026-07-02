@@ -1,14 +1,7 @@
-import dynamic from 'next/dynamic'
-import { Suspense } from 'react'
 import { Navbar } from '@/components/shared/Navbar'
 import { Footer } from '@/components/shared/Footer'
-import { BookingWizardSkeleton } from '@/components/booking/BookingWizardSkeleton'
+import { BookingWizardLazy } from '@/components/booking/BookingWizardLazy'
 import { getBookableFleet } from '@/lib/fleet'
-
-const BookingWizard = dynamic(
-  () => import('@/components/booking/BookingWizard').then((m) => ({ default: m.BookingWizard })),
-  { loading: () => <BookingWizardSkeleton />, ssr: false },
-)
 
 export const runtime = 'edge'
 export const revalidate = 300
@@ -31,9 +24,7 @@ export default async function BookPage() {
           </p>
         </div>
 
-        <Suspense fallback={<BookingWizardSkeleton />}>
-          <BookingWizard vehicles={vehicles} />
-        </Suspense>
+        <BookingWizardLazy vehicles={vehicles} />
       </div>
 
       <Footer />
