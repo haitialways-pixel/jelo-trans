@@ -83,7 +83,7 @@ function buildDriverDispatchContent(i: DriverDispatchInput): { html: string; tex
     `${textRows}\n\n` +
     `${replyLine}\n\n` +
     `Please confirm you are available and proceed to the pickup location on time.\n\n` +
-    `— Imperial Odyssey\n678-478-3506 · vipodyssey.com`
+    `— Imperial Odyssey\n678-478-3506 · phalotrans.com`
 
   const htmlRows = rows
     .map(
@@ -113,7 +113,7 @@ function buildDriverDispatchContent(i: DriverDispatchInput): { html: string; tex
                   Replies go directly to <a href="mailto:${escapeHtml(replyTo)}" style="color:#2563eb;">${escapeHtml(replyTo)}</a>.
                 </p>
                 <p style="margin:0 0 20px;color:#374151;line-height:1.5;">Please confirm you are available and proceed to the pickup location on time.</p>
-                <p style="margin:0;font-size:12px;color:#9ca3af;line-height:1.5;">Imperial Odyssey · 678-478-3506 · vipodyssey.com</p>
+                <p style="margin:0;font-size:12px;color:#9ca3af;line-height:1.5;">Imperial Odyssey · 678-478-3506 · phalotrans.com</p>
               </td>
             </tr>
           </table>

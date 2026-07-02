@@ -16,7 +16,7 @@ const COMPANY = 'Imperial Odyssey, LLC'
 const STATE = 'Florida'
 const CITY = 'Orlando'
 const PHONE = '(678) 478-3506'
-const EMAIL = 'info@vipodyssey.com'
+const EMAIL = 'info@phalotrans.com'
 
 const sections = [
   {

@@ -48,7 +48,7 @@ function buildBookingConfirmationContent(i: BookingEmailInput): { html: string; 
     `${textRows}\n\n` +
     `We look forward to providing you with excellent service.\n\n` +
     `Questions? Call us at 678-478-3506.\n\n` +
-    `— Imperial Odyssey\nvipodyssey.com`
+    `— Imperial Odyssey\nphalotrans.com`
 
   const htmlRows = rows
     .map(
@@ -75,7 +75,7 @@ function buildBookingConfirmationContent(i: BookingEmailInput): { html: string; 
                 <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 0 20px;width:100%;border-collapse:collapse;">${htmlRows}</table>
                 <p style="margin:0 0 16px;color:#374151;line-height:1.5;">We look forward to providing you with excellent service.</p>
                 <p style="margin:0 0 20px;color:#374151;line-height:1.5;">Questions? Call us at 678-478-3506.</p>
-                <p style="margin:0;font-size:12px;color:#9ca3af;line-height:1.5;">Imperial Odyssey · vipodyssey.com</p>
+                <p style="margin:0;font-size:12px;color:#9ca3af;line-height:1.5;">Imperial Odyssey · phalotrans.com</p>
               </td>
             </tr>
           </table>

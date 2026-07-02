@@ -18,7 +18,7 @@ export default function ContactPage() {
           </div>
           <div>
             <div className="text-primary text-xs tracking-[3px] mb-2">EMAIL</div>
-            <a href="mailto:concierge@vipodyssey.com" className="text-2xl hover:text-primary">concierge@vipodyssey.com</a>
+            <a href="mailto:concierge@phalotrans.com" className="text-2xl hover:text-primary">concierge@phalotrans.com</a>
           </div>
           <div>
             <div className="text-primary text-xs tracking-[3px] mb-2">LOCATION</div>

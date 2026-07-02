@@ -1,5 +1,5 @@
 /** Canonical public domain for Imperial Odyssey. */
-export const SITE_DOMAIN = 'vipodyssey.com'
+export const SITE_DOMAIN = 'phalotrans.com'
 
 /** Public site base URL for links in emails and redirects. Set SITE_URL in production. */
 export function getSiteUrl(): string {

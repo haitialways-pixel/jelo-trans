@@ -6,7 +6,7 @@
 // issues refunds — those intents route to `escalate` (human phone + management notice).
 
 export const HUMAN_PHONE = '(678) 478-3506'
-export const HUMAN_EMAIL = 'concierge@vipodyssey.com'
+export const HUMAN_EMAIL = 'concierge@phalotrans.com'
 
 /** The only things the assistant is allowed to DO — all read-only / low-risk. */
 export type ChatAction =

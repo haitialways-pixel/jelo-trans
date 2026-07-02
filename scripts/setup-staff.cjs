@@ -6,7 +6,7 @@
  *   npm run setup-staff -- --seed-all
  *
  * Optional env overrides:
- *   MANAGER_EMAIL=manager@vipodyssey.com
+ *   MANAGER_EMAIL=manager@phalotrans.com
  *   MANAGER_PASSWORD=YourSecurePassword123!
  *   MANAGER_NAME="Imperial Manager"
  */
@@ -39,7 +39,7 @@ const url = process.env.NEXT_PUBLIC_SUPABASE_URL
 const serviceKey =
   process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-const email = process.env.MANAGER_EMAIL ?? 'manager@vipodyssey.com'
+const email = process.env.MANAGER_EMAIL ?? 'manager@phalotrans.com'
 const password = process.env.MANAGER_PASSWORD ?? 'ImperialOdyssey2026!'
 const fullName = process.env.MANAGER_NAME ?? 'Imperial Manager'
 

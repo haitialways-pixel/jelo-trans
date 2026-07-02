@@ -47,7 +47,7 @@ const EmailLayout = ({ children, previewText }: { children: React.ReactNode; pre
         {/* Footer */}
         <Text style={{ color: '#666666', fontSize: '12px', textAlign: 'center', lineHeight: '1.5' }}>
           Imperial Odyssey LLC • 678-478-3506<br />
-          <Link href="https://vipodyssey.com" style={{ color: '#3b82f6' }}>vipodyssey.com</Link>
+          <Link href="https://phalotrans.com" style={{ color: '#3b82f6' }}>phalotrans.com</Link>
         </Text>
 
         {/* Disclaimer */}
@@ -61,7 +61,7 @@ const EmailLayout = ({ children, previewText }: { children: React.ReactNode; pre
           This is an automated message from Imperial Odyssey.
           Please do not reply to this email. For any questions or changes,
           please contact us at 678-478-3506 or visit{' '}
-          <Link href="https://vipodyssey.com" style={{ color: '#3b82f6' }}>vipodyssey.com</Link>.
+          <Link href="https://phalotrans.com" style={{ color: '#3b82f6' }}>phalotrans.com</Link>.
         </Text>
       </Container>
     </Body>

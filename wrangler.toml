@@ -35,7 +35,7 @@ binding = "ASSETS"
 # RESEND_API_KEY + BOOKING_FROM_ADDRESS — required for transactional email.
 # MANAGEMENT_EMAIL — ops alerts (new bookings, deposit paid); default info.phalotrans@gmail.com
 # Quote BOOKING_FROM_EMAIL in the dashboard if it contains spaces:
-#   Imperial Odyssey <bookings@vipodyssey.com>
+#   Imperial Odyssey <bookings@phalotrans.com>
 #
 # Deploy: npm run deploy
 # ----------------------------------------------------------------------------

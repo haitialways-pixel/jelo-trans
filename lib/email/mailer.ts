@@ -14,10 +14,10 @@ export const CUSTOMER_FROM_NAME = 'Imperial Odyssey Booking'
 export const DISPATCH_FROM_NAME = 'Trip Dispatch - Imperial Odyssey'
 
 /** Default bare sender addresses (must be verified in Resend) */
-export const CUSTOMER_FROM_ADDRESS = 'bookings@vipodyssey.com'
-export const DISPATCH_FROM_ADDRESS = 'no-reply@vipodyssey.com'
+export const CUSTOMER_FROM_ADDRESS = 'bookings@phalotrans.com'
+export const DISPATCH_FROM_ADDRESS = 'no-reply@phalotrans.com'
 
-const DISPATCH_REPLY_TO_DEFAULT = 'concierge@vipodyssey.com'
+const DISPATCH_REPLY_TO_DEFAULT = 'concierge@phalotrans.com'
 
 export type EmailSenderKind = 'customer' | 'dispatch'
 
@@ -158,7 +158,7 @@ export function isResendSandboxMode(): boolean {
   return resolveFromHeader({ fromKind: 'customer' }).includes(SANDBOX_FROM)
 }
 
-/** Reply-To for driver dispatch — driver replies land here (defaults to concierge@vipodyssey.com). */
+/** Reply-To for driver dispatch — driver replies land here (defaults to concierge@phalotrans.com). */
 export function getDispatchReplyToAddress(): string {
   const configured = process.env.DISPATCH_REPLY_TO_EMAIL?.trim()
   if (configured && configured.includes('@')) return configured
@@ -316,7 +316,7 @@ export function getMailSetupHint(): string | null {
     return (
       'Resend sandbox mode: customer emails can ONLY be delivered to your Resend account signup email ' +
       '(manager alerts to info.phalotrans@gmail.com may work, but other customer addresses will fail). ' +
-      'Verify vipodyssey.com in Resend, set BOOKING_FROM_ADDRESS=bookings@vipodyssey.com, then remove RESEND_USE_SANDBOX_FROM.'
+      'Verify phalotrans.com in Resend, set BOOKING_FROM_ADDRESS=bookings@phalotrans.com, then remove RESEND_USE_SANDBOX_FROM.'
     )
   }
   return null
