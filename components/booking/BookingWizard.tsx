@@ -12,9 +12,14 @@ const PaymentStep = dynamic(
 )
 import { Clock, MapPin, Navigation, Loader2 } from 'lucide-react'
 import {
+  CHARTER_HOUR_OPTIONS,
+  CHARTER_MIN_HOURS,
   DEFAULT_GRATUITY_PERCENT,
   GRATUITY_OPTIONS,
+  TRIP_TYPE_LABELS,
+  computeTripPrice,
   type GratuityPercent,
+  type TripType,
 } from '@/lib/pricing'
 import {
   isPickupTimeValid,
@@ -49,6 +54,8 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
     passengers: 2,
     luggage: 2,
     gratuityPercent: DEFAULT_GRATUITY_PERCENT,
+    tripType: 'one_way' as TripType,
+    charterHours: CHARTER_MIN_HOURS,
   })
   const [price, setPrice] = useState<any>(null)
   const [loading, setLoading] = useState(false)
@@ -65,18 +72,39 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
     setFormData((prev: any) => ({ ...prev, [field]: value }))
   }
 
-  const refreshPrice = async (gratuityPercent?: GratuityPercent) => {
-    if (!formData.vehicleId) return
+  const refreshPrice = async (
+    gratuityPercent?: GratuityPercent,
+    overrides?: { tripType?: TripType; charterHours?: number; vehicleId?: string },
+  ) => {
+    const vehicleId = overrides?.vehicleId ?? formData.vehicleId
+    if (!vehicleId) return
     const percent = gratuityPercent ?? formData.gratuityPercent ?? DEFAULT_GRATUITY_PERCENT
+    const tripType = overrides?.tripType ?? formData.tripType ?? 'one_way'
+    const charterHours = overrides?.charterHours ?? formData.charterHours ?? CHARTER_MIN_HOURS
     const result = await calculatePrice({
-      vehicleId: formData.vehicleId,
+      vehicleId,
       distanceMiles: Number(formData.distanceMiles || 0),
       pickupTime: formData.pickupTime,
       durationHours: Number(formData.durationHours),
       gratuityPercent: percent,
+      tripType,
+      charterHours: Number(charterHours),
     })
     if (!result.error) setPrice(result)
     return result
+  }
+
+  const setTripType = (tripType: TripType) => {
+    setFormData((prev: any) => ({
+      ...prev,
+      tripType,
+      // Keep selection; quote will update via card pricing
+      charterHours:
+        tripType === 'charter'
+          ? prev.charterHours || CHARTER_MIN_HOURS
+          : prev.charterHours,
+    }))
+    setError('')
   }
 
   const selectGratuity = async (percent: GratuityPercent) => {
@@ -97,7 +125,14 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
       if (!formData.pickupTime) return setError('Pickup Date & Time is required'), false
     }
     if (step === 1) {
+      if (!formData.tripType) return setError('Please choose One-way, Round trip, or Charter'), false
       if (!formData.vehicleId) return setError('Please select a vehicle'), false
+      if (formData.tripType === 'charter') {
+        const hours = Number(formData.charterHours)
+        if (!Number.isFinite(hours) || hours < CHARTER_MIN_HOURS) {
+          return setError(`Charter requires at least ${CHARTER_MIN_HOURS} hours`), false
+        }
+      }
     }
     if (step === 2) {
       if (!isPickupTimeValid(formData.pickupTime)) {
@@ -223,11 +258,21 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
     setCurrentStep(Math.max(0, currentStep - 1))
   }
 
-  const getVehiclePriceQuote = (basePrice: number, pricePerMile: number) => {
-    const miles = Number(formData.distanceMiles || 0)
-    const base = Math.round((basePrice + miles * pricePerMile) * 100) / 100
-    return base.toFixed(2)
+  const getVehiclePriceQuote = (basePrice: number, pricePerMile: number, minimumPrice = 0) => {
+    const priced = computeTripPrice({
+      basePrice,
+      pricePerMile,
+      distanceMiles: Number(formData.distanceMiles || 0),
+      minimumPrice,
+      gratuityPercent: 0, // show fare only on vehicle cards (gratuity chosen on review)
+      tripType: formData.tripType || 'one_way',
+      charterHours: Number(formData.charterHours || CHARTER_MIN_HOURS),
+    })
+    return priced.fareSubtotal.toFixed(2)
   }
+
+  const tripType: TripType = formData.tripType || 'one_way'
+  const isCharter = tripType === 'charter'
 
   // Deposit payment step (Stripe on): reservation created, awaiting the 10% deposit.
   if (bookingNumber && clientSecret && !paid) {
@@ -275,12 +320,26 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
 
         <div className="border-t border-outline-variant/30 pt-6 space-y-2 text-sm">
           <SummaryRow label="Name" value={formData.customerName} />
+          <SummaryRow label="Trip type" value={TRIP_TYPE_LABELS[tripType]} />
           <SummaryRow label="Pickup Time" value={formatPickup(formData.pickupTime)} />
           <SummaryRow label="Pickup" value={formData.pickupAddress} />
           <SummaryRow label="Dropoff" value={formData.dropoffAddress} />
           {price?.vehicleName && <SummaryRow label="Vehicle" value={price.vehicleName} />}
-          <SummaryRow label="Distance" value={formData.distanceText || `${formData.distanceMiles} mi`} />
-          <SummaryRow label="Travel Time" value={formData.durationText} />
+          {isCharter ? (
+            <SummaryRow label="Charter hours" value={`${formData.charterHours} hours`} />
+          ) : (
+            <>
+              <SummaryRow
+                label="Distance"
+                value={
+                  tripType === 'round_trip'
+                    ? `${formData.distanceText || `${formData.distanceMiles} mi`} each way`
+                    : formData.distanceText || `${formData.distanceMiles} mi`
+                }
+              />
+              <SummaryRow label="Travel Time" value={formData.durationText} />
+            </>
+          )}
           {price?.basePrice != null && (
             <SummaryRow label="Trip fare" value={`$${Number(price.basePrice).toFixed(2)}`} />
           )}
@@ -431,26 +490,105 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
 
         {currentStep === 1 && (
           <div>
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
               <div>
                 <h2 className="text-3xl font-semibold tracking-tight text-on-surface">Choose Your Vehicle</h2>
-                <p className="text-sm text-on-surface-variant mt-1">Select from our luxury Orlando fleet</p>
+                <p className="text-sm text-on-surface-variant mt-1">
+                  Select trip type, then pick from our luxury Orlando fleet
+                </p>
               </div>
-              <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-4 flex gap-6 text-sm">
-                <div className="flex items-center gap-1.5">
-                  <Navigation className="w-4 h-4 text-primary" />
-                  <span>{formData.distanceText}</span>
+              {!isCharter && (
+                <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-4 flex flex-wrap gap-4 text-sm">
+                  <div className="flex items-center gap-1.5">
+                    <Navigation className="w-4 h-4 text-primary" />
+                    <span>
+                      {formData.distanceText}
+                      {tripType === 'round_trip' ? ' each way' : ''}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="w-4 h-4 text-primary" />
+                    <span>{formData.durationText}</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <Clock className="w-4 h-4 text-primary" />
-                  <span>{formData.durationText}</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Navigation className="w-4 h-4 text-primary" />
-                  <span>Distance: {formData.distanceText}</span>
-                </div>
+              )}
+            </div>
+
+            {/* Trip type */}
+            <div className="mb-6">
+              <p className="text-xs text-primary uppercase tracking-wider font-semibold mb-3">
+                Trip type *
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {(
+                  [
+                    {
+                      id: 'one_way' as const,
+                      title: 'One-way',
+                      desc: 'Point-to-point transfer',
+                    },
+                    {
+                      id: 'round_trip' as const,
+                      title: 'Round trip',
+                      desc: 'Outbound + return (2× miles)',
+                    },
+                    {
+                      id: 'charter' as const,
+                      title: 'Charter',
+                      desc: `Hourly · ${CHARTER_MIN_HOURS}h minimum`,
+                    },
+                  ] as const
+                ).map((opt) => {
+                  const active = tripType === opt.id
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setTripType(opt.id)}
+                      className={`text-left rounded-2xl border px-4 py-4 transition ${
+                        active
+                          ? 'border-primary bg-primary/10 ring-2 ring-primary/40'
+                          : 'border-outline-variant/30 bg-card hover:border-primary/40'
+                      }`}
+                    >
+                      <span className="block font-semibold text-on-surface">{opt.title}</span>
+                      <span className="block text-xs text-on-surface-variant mt-1">{opt.desc}</span>
+                    </button>
+                  )
+                })}
               </div>
             </div>
+
+            {isCharter && (
+              <div className="mb-8 rounded-2xl border border-outline-variant/30 bg-surface-container-lowest p-5">
+                <label className="text-xs text-primary uppercase tracking-wider font-semibold block mb-3">
+                  Charter hours (minimum {CHARTER_MIN_HOURS})
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {CHARTER_HOUR_OPTIONS.map((h) => {
+                    const active = Number(formData.charterHours) === h
+                    return (
+                      <button
+                        key={h}
+                        type="button"
+                        onClick={() => updateForm('charterHours', h)}
+                        className={`min-w-[3.5rem] rounded-xl border px-3 py-2.5 text-sm font-semibold transition ${
+                          active
+                            ? 'border-primary bg-primary/15 text-primary'
+                            : 'border-outline-variant/30 text-on-surface-variant hover:border-primary/40'
+                        }`}
+                      >
+                        {h}h
+                      </button>
+                    )
+                  })}
+                </div>
+                <p className="text-xs text-on-surface-variant mt-3">
+                  Vehicle base rate is billed hourly for charters. As-directed service within your booked
+                  hours.
+                </p>
+              </div>
+            )}
 
             {vehicles.length === 0 ? (
               <p className="text-on-surface-variant">No vehicles are currently available online. Please contact us directly to arrange your trip.</p>
@@ -480,12 +618,21 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
                         </div>
                         <div className="font-semibold text-lg text-on-surface">{v.name}</div>
                         <div className="text-xs text-on-surface-variant mt-1">
-                          Up to {v.capacity} passengers · ${v.base_price} base + ${v.price_per_mile}/mi
+                          Up to {v.capacity} passengers
+                          {isCharter
+                            ? ` · $${v.base_price}/hr`
+                            : ` · $${v.base_price} base + $${v.price_per_mile}/mi`}
                         </div>
                       </div>
 
                       <div className="mt-6 pt-4 border-t border-outline-variant/20 flex justify-between items-end">
-                        <span className="text-xs text-on-surface-variant font-medium mb-0.5">Est. Total</span>
+                        <span className="text-xs text-on-surface-variant font-medium mb-0.5">
+                          {isCharter
+                            ? `Est. fare · ${formData.charterHours}h`
+                            : tripType === 'round_trip'
+                              ? 'Est. fare · round trip'
+                              : 'Est. fare · one-way'}
+                        </span>
                         <div className="text-right">
                           <span className="text-xl font-bold text-gold-dark">${calculatedTotal}</span>
                         </div>
@@ -506,6 +653,10 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
               <div className="space-y-4">
                 <div className="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/30 space-y-4">
                   <h3 className="text-xs text-primary uppercase tracking-wider font-semibold border-b border-outline-variant/30 pb-2">Route Details</h3>
+                  <div className="rounded-xl bg-primary/10 border border-primary/20 px-3 py-2 text-sm font-semibold text-primary">
+                    {TRIP_TYPE_LABELS[tripType]}
+                    {isCharter ? ` · ${formData.charterHours} hours` : ''}
+                  </div>
                   <div className="flex gap-3">
                     <MapPin className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                     <div>
@@ -522,12 +673,24 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
                   </div>
                   <div className="grid grid-cols-2 gap-2 pt-2 text-center text-xs">
                     <div className="bg-surface-container-low p-3 rounded-xl">
-                      <span className="text-on-surface-variant block">Distance</span>
-                      <span className="text-on-surface font-bold block mt-1">{formData.distanceText}</span>
+                      <span className="text-on-surface-variant block">
+                        {isCharter ? 'Hours' : 'Distance'}
+                      </span>
+                      <span className="text-on-surface font-bold block mt-1">
+                        {isCharter
+                          ? `${formData.charterHours}h`
+                          : tripType === 'round_trip'
+                            ? `${formData.distanceText} ×2`
+                            : formData.distanceText}
+                      </span>
                     </div>
                     <div className="bg-surface-container-low p-3 rounded-xl">
-                      <span className="text-on-surface-variant block">Est. Time</span>
-                      <span className="text-on-surface font-bold block mt-1">{formData.durationText}</span>
+                      <span className="text-on-surface-variant block">
+                        {isCharter ? 'Billing' : 'Est. Time'}
+                      </span>
+                      <span className="text-on-surface font-bold block mt-1">
+                        {isCharter ? 'Hourly rate' : formData.durationText}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -539,6 +702,16 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
                     Price Summary
                   </h3>
                   <SummaryRow label="Trip fare" value={`$${price.basePrice.toFixed(2)}`} />
+                  {isCharter && price.hourlyRate != null && (
+                    <p className="text-[11px] text-on-surface-variant -mt-1">
+                      {formData.charterHours}h × ${Number(price.hourlyRate).toFixed(2)}/hr
+                    </p>
+                  )}
+                  {tripType === 'round_trip' && (
+                    <p className="text-[11px] text-on-surface-variant -mt-1">
+                      Round trip includes return mileage
+                    </p>
+                  )}
 
                   <div>
                     <p className="text-xs text-primary uppercase tracking-wider font-semibold mb-2">

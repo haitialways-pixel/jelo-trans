@@ -16,6 +16,9 @@ import {
   computeTripPrice,
   DEFAULT_GRATUITY_PERCENT,
   isValidGratuityPercent,
+  normalizeCharterHours,
+  normalizeTripType,
+  type TripType,
 } from '@/lib/pricing'
 import {
   isPickupIsoValid,
@@ -91,6 +94,8 @@ async function createReservationDirect(
     durationHours: number
     specialRequests?: string | null
     distanceMiles: number
+    tripType?: TripType
+    charterHours?: number
   },
   pickupIso: string,
   gratuityPercent: number,
@@ -110,13 +115,39 @@ async function createReservationDirect(
     return { error: 'Selected vehicle not found' }
   }
 
+  const tripType = normalizeTripType(formData.tripType)
+  const charterHours =
+    tripType === 'charter' ? normalizeCharterHours(formData.charterHours) : undefined
+
   const priced = computeTripPrice({
     basePrice: Number(vehicle.base_price),
     pricePerMile: Number(vehicle.price_per_mile),
     distanceMiles: Number(formData.distanceMiles || 0),
     minimumPrice: Number(vehicle.minimum_price ?? 0),
     gratuityPercent,
+    tripType,
+    charterHours,
   })
+
+  const durationHours =
+    tripType === 'charter'
+      ? charterHours!
+      : tripType === 'round_trip'
+        ? Math.max(Number(formData.durationHours || 1) * 2, 0.5)
+        : Math.max(Number(formData.durationHours || 1), 0.25)
+
+  // Enrich charter note with rate when caller only sent the type line.
+  let special = formData.specialRequests?.trim() || null
+  if (tripType === 'charter' && special && !special.includes('/hr')) {
+    special = special.replace(
+      /Trip type: Charter · [\d.]+h/,
+      `Trip type: Charter · ${charterHours}h × $${Number(vehicle.base_price).toFixed(2)}/hr`,
+    )
+  }
+
+  const dropoff =
+    formData.dropoffAddress?.trim() ||
+    (tripType === 'charter' ? 'As directed (hourly charter)' : formData.dropoffAddress)
 
   const { data: row, error: insertError } = await admin
     .from('reservations')
@@ -125,12 +156,12 @@ async function createReservationDirect(
       customer_email: formData.customerEmail,
       customer_phone: formData.customerPhone,
       pickup_address: formData.pickupAddress,
-      dropoff_address: formData.dropoffAddress,
+      dropoff_address: dropoff,
       pickup_time: pickupIso,
       vehicle_id: formData.vehicleId,
       passengers: Math.max(formData.passengers || 1, 1),
       luggage: Math.max(formData.luggage || 0, 0),
-      duration_hours: Math.max(formData.durationHours || 3, 0.25),
+      duration_hours: durationHours,
       distance_miles: formData.distanceMiles || 0,
       fare_subtotal: priced.fareSubtotal,
       gratuity_percent: priced.gratuityPercent,
@@ -138,7 +169,7 @@ async function createReservationDirect(
       total_price: priced.total,
       status: 'pending',
       payment_status: 'unpaid',
-      special_requests: formData.specialRequests || null,
+      special_requests: special,
       source: 'web',
     })
     .select('id, booking_number')
@@ -202,12 +233,17 @@ export async function calculatePrice(data: {
   pickupTime?: string
   durationHours?: number
   gratuityPercent?: number
+  tripType?: TripType | string
+  charterHours?: number
 }) {
   try {
     const supabase = await createClient()
     const gratuityPercent = isValidGratuityPercent(Number(data.gratuityPercent))
       ? Number(data.gratuityPercent)
       : DEFAULT_GRATUITY_PERCENT
+    const tripType = normalizeTripType(data.tripType)
+    const charterHours =
+      tripType === 'charter' ? normalizeCharterHours(data.charterHours) : undefined
 
     if (!data.vehicleId?.trim()) {
       return { error: 'Please select a vehicle before continuing.' }
@@ -238,6 +274,8 @@ export async function calculatePrice(data: {
       distanceMiles: Number(data.distanceMiles || 0),
       minimumPrice: Number(vehicle.minimum_price ?? 0),
       gratuityPercent,
+      tripType,
+      charterHours,
     })
 
     return {
@@ -246,6 +284,10 @@ export async function calculatePrice(data: {
       gratuityAmount: priced.gratuityAmount,
       total: priced.total,
       vehicleName: vehicle.name,
+      tripType: priced.tripType,
+      charterHours: priced.charterHours,
+      billableMiles: priced.billableMiles,
+      hourlyRate: priced.hourlyRate,
     }
   } catch {
     return { error: 'Something went wrong while calculating price. Please try again.' }
@@ -293,18 +335,53 @@ export async function createReservation(formData: any) {
       }
     }
 
+    const tripType = normalizeTripType(formData.tripType)
+    const charterHours =
+      tripType === 'charter' ? normalizeCharterHours(formData.charterHours) : undefined
+
+    const dropoffAddress =
+      String(formData.dropoffAddress || '').trim() ||
+      (tripType === 'charter' ? 'As directed (hourly charter)' : '')
+
+    if (!dropoffAddress) {
+      return { success: false, error: 'Please enter a drop-off address.' }
+    }
+
+    // RPC only knows base + miles; map billable miles so round-trip still prices correctly
+    // as a fallback. Charter requires the direct path (hourly formula).
+    const oneWayMiles = Number(formData.distanceMiles) || 0
+    const rpcDistanceMiles = tripType === 'round_trip' ? oneWayMiles * 2 : oneWayMiles
+    const rpcDurationHours =
+      tripType === 'charter'
+        ? charterHours!
+        : tripType === 'round_trip'
+          ? Math.max(Number(formData.durationHours) || 1, 0.25) * 2
+          : Number(formData.durationHours) || 3
+
+    const tripNote =
+      tripType === 'charter'
+        ? `Trip type: Charter · ${charterHours}h`
+        : tripType === 'round_trip'
+          ? 'Trip type: Round trip'
+          : 'Trip type: One-way'
+    const specialRequests = [tripNote, formData.specialRequests?.trim()]
+      .filter(Boolean)
+      .join('\n')
+
     const directPayload = {
       customerName: formData.customerName,
       customerEmail: formData.customerEmail,
       customerPhone: formData.customerPhone,
       pickupAddress: formData.pickupAddress,
-      dropoffAddress: formData.dropoffAddress,
+      dropoffAddress,
       vehicleId: formData.vehicleId,
       passengers: parseInt(formData.passengers) || 2,
       luggage: parseInt(formData.luggage) || 0,
-      durationHours: Number(formData.durationHours) || 3,
-      specialRequests: formData.specialRequests || null,
-      distanceMiles: Number(formData.distanceMiles) || 0,
+      durationHours: rpcDurationHours,
+      specialRequests: specialRequests || null,
+      distanceMiles: oneWayMiles,
+      tripType,
+      charterHours,
     }
 
     let bookingNumber: string | null = null
@@ -319,6 +396,14 @@ export async function createReservation(formData: any) {
       }
     }
 
+    if (!bookingNumber && tripType === 'charter' && !isAdminConfigured()) {
+      return {
+        success: false,
+        error:
+          'Hourly charter booking is temporarily unavailable online. Please call (678) 478-3506 to book a charter.',
+      }
+    }
+
     if (!bookingNumber) {
       const { data: rpcBooking, error } = await supabase.rpc('create_reservation', {
         p_customer_name: directPayload.customerName,
@@ -330,9 +415,9 @@ export async function createReservation(formData: any) {
         p_vehicle_id: directPayload.vehicleId,
         p_passengers: directPayload.passengers,
         p_luggage: directPayload.luggage,
-        p_duration_hours: directPayload.durationHours,
-        p_special_requests: directPayload.specialRequests,
-        p_distance_miles: directPayload.distanceMiles,
+        p_duration_hours: rpcDurationHours,
+        p_special_requests: specialRequests || null,
+        p_distance_miles: rpcDistanceMiles,
         p_gratuity_percent: gratuityPercent,
       })
 
@@ -388,7 +473,8 @@ export async function createReservation(formData: any) {
         title: '🚗 New online booking (pending review)',
         message:
           `${formData.customerName} · ${bookingNumber}\n` +
-          `${formData.pickupAddress} → ${formData.dropoffAddress}\n` +
+          `${formData.pickupAddress} → ${dropoffAddress}\n` +
+          `Trip: ${tripType === 'charter' ? `Charter ${charterHours}h` : tripType === 'round_trip' ? 'Round trip' : 'One-way'}\n` +
           `Pickup: ${formData.pickupTime}\n` +
           `Vehicle: ${formData.vehicleName ?? '—'}\n` +
           `Phone: ${formData.customerPhone}\n` +
