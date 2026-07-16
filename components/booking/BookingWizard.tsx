@@ -36,6 +36,8 @@ export type Vehicle = {
   capacity: number
   base_price: number
   price_per_mile: number
+  /** Charter $/hr from fleet.hourly_rate */
+  hourly_rate: number
   image_url: string | null
 }
 
@@ -258,10 +260,16 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
     setCurrentStep(Math.max(0, currentStep - 1))
   }
 
-  const getVehiclePriceQuote = (basePrice: number, pricePerMile: number, minimumPrice = 0) => {
+  const getVehiclePriceQuote = (
+    basePrice: number,
+    pricePerMile: number,
+    hourlyRate: number,
+    minimumPrice = 0,
+  ) => {
     const priced = computeTripPrice({
       basePrice,
       pricePerMile,
+      hourlyRate,
       distanceMiles: Number(formData.distanceMiles || 0),
       minimumPrice,
       gratuityPercent: 0, // show fare only on vehicle cards (gratuity chosen on review)
@@ -596,7 +604,12 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
               <div className="grid md:grid-cols-3 gap-6">
                 {vehicles.map((v) => {
                   const isSelected = formData.vehicleId === v.id
-                  const calculatedTotal = getVehiclePriceQuote(v.base_price, v.price_per_mile)
+                  const hourly = Number(v.hourly_rate) > 0 ? Number(v.hourly_rate) : Number(v.base_price)
+                  const calculatedTotal = getVehiclePriceQuote(
+                    v.base_price,
+                    v.price_per_mile,
+                    hourly,
+                  )
 
                   return (
                     <div
@@ -620,7 +633,7 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
                         <div className="text-xs text-on-surface-variant mt-1">
                           Up to {v.capacity} passengers
                           {isCharter
-                            ? ` · $${v.base_price}/hr`
+                            ? ` · $${hourly}/hr`
                             : ` · $${v.base_price} base + $${v.price_per_mile}/mi`}
                         </div>
                       </div>

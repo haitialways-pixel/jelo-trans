@@ -27,7 +27,12 @@ export function CreateReservationForm({ fleet }: { fleet: ManagerFleetModel[] })
     luggage: '0',
     durationHours: '3',
     charterHours: '3',
-    hourlyRate: fleet[0]?.base_price ? String(fleet[0].base_price) : '',
+    hourlyRate: (() => {
+      const v = fleet[0]
+      if (!v) return ''
+      const h = Number(v.hourly_rate)
+      return h > 0 ? String(h) : v.base_price ? String(v.base_price) : ''
+    })(),
     totalPrice: '',
     distanceMiles: '',
     specialRequests: '',
@@ -38,13 +43,20 @@ export function CreateReservationForm({ fleet }: { fleet: ManagerFleetModel[] })
     setForm((prev) => ({ ...prev, [field]: value }))
   }
 
+  function vehicleHourly(v: ManagerFleetModel | undefined): string {
+    if (!v) return ''
+    const h = Number(v.hourly_rate)
+    if (Number.isFinite(h) && h > 0) return String(h)
+    return v.base_price ? String(v.base_price) : ''
+  }
+
   function setServiceType(next: ServiceType) {
     setForm((prev) => {
       const selected = fleet.find((v) => v.id === prev.vehicleId)
-      // Seed hourly rate from vehicle base price when switching to charter if blank.
+      // Seed from fleet.hourly_rate when switching to charter if blank.
       const hourlyRate =
         next === 'charter' && !prev.hourlyRate.trim() && selected
-          ? String(selected.base_price)
+          ? vehicleHourly(selected)
           : prev.hourlyRate
       return { ...prev, serviceType: next, hourlyRate }
     })
@@ -53,15 +65,13 @@ export function CreateReservationForm({ fleet }: { fleet: ManagerFleetModel[] })
   function onVehicleChange(vehicleId: string) {
     setForm((prev) => {
       const selected = fleet.find((v) => v.id === vehicleId)
-      // Only auto-fill hourly rate in charter mode when the field is empty or still
-      // matches the previous vehicle's base (so manual overrides are kept).
       const prevVehicle = fleet.find((v) => v.id === prev.vehicleId)
-      const stillDefault =
-        !prev.hourlyRate.trim() ||
-        (prevVehicle && prev.hourlyRate === String(prevVehicle.base_price))
+      // Keep manual overrides; only replace when still matching the previous default.
+      const prevDefault = vehicleHourly(prevVehicle)
+      const stillDefault = !prev.hourlyRate.trim() || prev.hourlyRate === prevDefault
       const hourlyRate =
         prev.serviceType === 'charter' && stillDefault && selected
-          ? String(selected.base_price)
+          ? vehicleHourly(selected)
           : prev.hourlyRate
       return { ...prev, vehicleId, hourlyRate }
     })

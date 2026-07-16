@@ -105,11 +105,22 @@ async function createReservationDirect(
   }
 
   const admin = createAdminClient()
-  const { data: vehicle, error: fleetError } = await admin
+  let { data: vehicle, error: fleetError } = await admin
     .from('fleet')
-    .select('id, base_price, price_per_mile, minimum_price')
+    .select('id, base_price, price_per_mile, minimum_price, hourly_rate')
     .eq('id', formData.vehicleId)
     .maybeSingle()
+
+  // Pre-migration fallback if hourly_rate column is missing
+  if (fleetError && /hourly_rate/i.test(fleetError.message)) {
+    const retry = await admin
+      .from('fleet')
+      .select('id, base_price, price_per_mile, minimum_price')
+      .eq('id', formData.vehicleId)
+      .maybeSingle()
+    vehicle = retry.data as typeof vehicle
+    fleetError = retry.error
+  }
 
   if (fleetError || !vehicle) {
     return { error: 'Selected vehicle not found' }
@@ -124,10 +135,15 @@ async function createReservationDirect(
     pricePerMile: Number(vehicle.price_per_mile),
     distanceMiles: Number(formData.distanceMiles || 0),
     minimumPrice: Number(vehicle.minimum_price ?? 0),
+    hourlyRate: Number((vehicle as { hourly_rate?: number }).hourly_rate ?? 0),
     gratuityPercent,
     tripType,
     charterHours,
   })
+
+  if (tripType === 'charter' && !(priced.hourlyRate && priced.hourlyRate > 0)) {
+    return { error: 'This vehicle does not have a charter hourly rate configured' }
+  }
 
   const durationHours =
     tripType === 'charter'
@@ -141,7 +157,7 @@ async function createReservationDirect(
   if (tripType === 'charter' && special && !special.includes('/hr')) {
     special = special.replace(
       /Trip type: Charter · [\d.]+h/,
-      `Trip type: Charter · ${charterHours}h × $${Number(vehicle.base_price).toFixed(2)}/hr`,
+      `Trip type: Charter · ${charterHours}h × $${Number(priced.hourlyRate).toFixed(2)}/hr`,
     )
   }
 
@@ -249,11 +265,21 @@ export async function calculatePrice(data: {
       return { error: 'Please select a vehicle before continuing.' }
     }
 
-    const { data: vehicle, error } = await supabase
+    let { data: vehicle, error } = await supabase
       .from('fleet')
-      .select('id, name, base_price, price_per_mile, minimum_price')
+      .select('id, name, base_price, price_per_mile, minimum_price, hourly_rate')
       .eq('id', data.vehicleId)
       .maybeSingle()
+
+    if (error && /hourly_rate/i.test(error.message)) {
+      const retry = await supabase
+        .from('fleet')
+        .select('id, name, base_price, price_per_mile, minimum_price')
+        .eq('id', data.vehicleId)
+        .maybeSingle()
+      vehicle = retry.data as typeof vehicle
+      error = retry.error
+    }
 
     if (error) {
       console.error('[calculatePrice] fleet lookup failed:', error.message, { vehicleId: data.vehicleId })
@@ -273,10 +299,15 @@ export async function calculatePrice(data: {
       pricePerMile: Number(vehicle.price_per_mile),
       distanceMiles: Number(data.distanceMiles || 0),
       minimumPrice: Number(vehicle.minimum_price ?? 0),
+      hourlyRate: Number((vehicle as { hourly_rate?: number }).hourly_rate ?? 0),
       gratuityPercent,
       tripType,
       charterHours,
     })
+
+    if (tripType === 'charter' && !(priced.hourlyRate && priced.hourlyRate > 0)) {
+      return { error: 'This vehicle does not have a charter hourly rate configured' }
+    }
 
     return {
       basePrice: priced.fareSubtotal,

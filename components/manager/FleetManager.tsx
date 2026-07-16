@@ -66,6 +66,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
   const [classLuggage, setClassLuggage] = useState('4')
   const [classBasePrice, setClassBasePrice] = useState('')
   const [classPricePerMile, setClassPricePerMile] = useState('')
+  const [classHourlyRate, setClassHourlyRate] = useState('')
   const [classImageUrl, setClassImageUrl] = useState('')
   const [classDesc, setClassDesc] = useState('')
   const [classTier, setClassTier] = useState('premium')
@@ -75,6 +76,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
   const [basePrice, setBasePrice] = useState<number>(0)
   const [pricePerMile, setPricePerMile] = useState<number>(0)
   const [minimumPrice, setMinimumPrice] = useState<number>(0)
+  const [hourlyRate, setHourlyRate] = useState<number>(0)
 
   // State for adding a unit (physical car)
   const [addingUnitModelId, setAddingUnitModelId] = useState<string | null>(null)
@@ -100,8 +102,13 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
     }
     const base = parseFloat(classBasePrice)
     const perMile = parseFloat(classPricePerMile)
+    const hourly = classHourlyRate.trim() ? parseFloat(classHourlyRate) : base
     if (isNaN(base) || base <= 0 || isNaN(perMile) || perMile <= 0) {
-      toast.error('Pricing values must be positive numbers')
+      toast.error('Base and per-mile prices must be positive numbers')
+      return
+    }
+    if (isNaN(hourly) || hourly <= 0) {
+      toast.error('Hourly charter rate must be a positive number')
       return
     }
 
@@ -115,13 +122,15 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
         perMile,
         classImageUrl.trim(),
         classDesc.trim(),
-        classTier
+        classTier,
+        hourly,
       )
       if (res.ok) {
         toast.success('Vehicle class created')
         setClassName('')
         setClassBasePrice('')
         setClassPricePerMile('')
+        setClassHourlyRate('')
         setClassImageUrl('')
         setClassDesc('')
         setShowAddClass(false)
@@ -150,12 +159,16 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
       toast.error('Base and per-mile prices must be positive numbers')
       return
     }
+    if (hourlyRate <= 0) {
+      toast.error('Hourly charter rate must be a positive number')
+      return
+    }
     if (minimumPrice < 0) {
       toast.error('Minimum price cannot be negative')
       return
     }
     start(async () => {
-      const res = await updateFleetPricing(modelId, basePrice, pricePerMile, minimumPrice)
+      const res = await updateFleetPricing(modelId, basePrice, pricePerMile, minimumPrice, hourlyRate)
       if (res.ok) {
         toast.success('Pricing updated successfully')
         setEditingPriceId(null)
@@ -279,6 +292,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
     setBasePrice(model.base_price)
     setPricePerMile(model.price_per_mile)
     setMinimumPrice(model.minimum_price ?? 0)
+    setHourlyRate(model.hourly_rate > 0 ? model.hourly_rate : model.base_price)
   }
 
   const handleStartEditUnit = (unit: VehicleUnit) => {
@@ -398,6 +412,20 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
                 </div>
 
                 <div className="space-y-1">
+                  <label className="block text-[11px] text-on-surface-variant uppercase font-medium">
+                    Hourly rate — charter ($/hr)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="Defaults to base if blank"
+                    value={classHourlyRate}
+                    onChange={(e) => setClassHourlyRate(e.target.value)}
+                    className="w-full rounded-lg px-3 py-2 text-xs text-on-surface"
+                  />
+                </div>
+
+                <div className="space-y-1">
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className="block text-[11px] text-on-surface-variant uppercase font-medium">Max Pax</label>
@@ -495,7 +523,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
                       {isEditingPrice ? (
                         <div className="flex flex-wrap items-center gap-3 bg-surface-container/60 border border-outline-variant/30 rounded-xl p-3">
                           <div className="space-y-1">
-                            <label className="block text-[10px] text-on-surface-variant uppercase">Base Price ($)</label>
+                            <label className="block text-[10px] text-on-surface-variant uppercase">Base ($)</label>
                             <input
                               type="number"
                               step="0.01"
@@ -506,7 +534,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
                             />
                           </div>
                           <div className="space-y-1">
-                            <label className="block text-[10px] text-on-surface-variant uppercase">Price / Mile ($)</label>
+                            <label className="block text-[10px] text-on-surface-variant uppercase">$/Mile</label>
                             <input
                               type="number"
                               step="0.01"
@@ -514,6 +542,18 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
                               onChange={(e) => setPricePerMile(parseFloat(e.target.value) || 0)}
                               className="w-20 rounded-md px-2 py-1 text-xs text-on-surface"
                               disabled={pending}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="block text-[10px] text-on-surface-variant uppercase">$/Hour</label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={hourlyRate}
+                              onChange={(e) => setHourlyRate(parseFloat(e.target.value) || 0)}
+                              className="w-20 rounded-md px-2 py-1 text-xs text-on-surface"
+                              disabled={pending}
+                              title="Charter hourly rate"
                             />
                           </div>
                           <div className="space-y-1">
@@ -551,6 +591,12 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
                             <p className="text-[10px] text-on-surface-variant uppercase tracking-wider">Pricing</p>
                             <p className="text-sm font-semibold text-primary">
                               ${model.base_price.toFixed(2)} base + ${model.price_per_mile.toFixed(2)}/mile
+                            </p>
+                            <p className="text-[10px] text-on-surface-variant mt-0.5">
+                              charter:{' '}
+                              <span className="text-on-surface font-semibold">
+                                ${(model.hourly_rate > 0 ? model.hourly_rate : model.base_price).toFixed(2)}/hr
+                              </span>
                             </p>
                             {model.minimum_price > 0 && (
                               <p className="text-[10px] text-on-surface-variant mt-0.5">

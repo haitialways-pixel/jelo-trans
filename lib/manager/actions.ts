@@ -267,14 +267,16 @@ export async function setUnitStatus(unitId: string, status: string): Promise<Act
   }
 }
 
-/** Update fleet category pricing (base, per-mile, minimum). */
+/** Update fleet category pricing (base, per-mile, minimum, hourly charter). */
 export async function updateFleetPricing(
   fleetId: string,
   basePrice: number,
   pricePerMile: number,
   minimumPrice: number,
+  hourlyRate: number,
 ): Promise<ActionResult> {
   try {
+    await assertStaff()
     const supabase = await staffDb()
     const { error } = await supabase
       .from('fleet')
@@ -282,7 +284,8 @@ export async function updateFleetPricing(
         base_price: basePrice,
         price_per_mile: pricePerMile,
         minimum_price: minimumPrice,
-        updated_at: new Date().toISOString()
+        hourly_rate: hourlyRate,
+        updated_at: new Date().toISOString(),
       })
       .eq('id', fleetId)
 
@@ -381,10 +384,16 @@ export async function createFleetModel(
   pricePerMile: number,
   imageUrl: string,
   description: string,
-  tier: string
+  tier: string,
+  hourlyRate?: number,
 ): Promise<ActionResult> {
   try {
+    await assertStaff()
     const supabase = await staffDb()
+    const charterRate =
+      hourlyRate != null && Number.isFinite(hourlyRate) && hourlyRate > 0
+        ? hourlyRate
+        : basePrice
     const { error } = await supabase
       .from('fleet')
       .insert({
@@ -394,6 +403,7 @@ export async function createFleetModel(
         luggage_capacity: luggageCapacity,
         base_price: basePrice,
         price_per_mile: pricePerMile,
+        hourly_rate: charterRate,
         image_url: imageUrl || null,
         description: description || null,
         tier: tier || null,

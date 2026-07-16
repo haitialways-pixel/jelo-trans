@@ -287,6 +287,8 @@ export type ManagerFleetModel = {
   base_price: number
   price_per_mile: number
   minimum_price: number
+  /** Charter hourly rate (USD/hr). */
+  hourly_rate: number
   image_url: string | null
   description: string | null
   featured: boolean
@@ -306,12 +308,17 @@ export async function getFleetModels(): Promise<ManagerFleetModel[]> {
     console.error('[manager] getFleetModels:', error.message)
     return []
   }
-  return data.map((v) => ({
-    ...v,
-    base_price: Number(v.base_price || 0),
-    price_per_mile: Number(v.price_per_mile || 0),
-    minimum_price: Number(v.minimum_price || 0),
-  })) as ManagerFleetModel[]
+  return data.map((v) => {
+    const base = Number(v.base_price || 0)
+    const hourly = Number(v.hourly_rate)
+    return {
+      ...v,
+      base_price: base,
+      price_per_mile: Number(v.price_per_mile || 0),
+      minimum_price: Number(v.minimum_price || 0),
+      hourly_rate: Number.isFinite(hourly) && hourly > 0 ? hourly : base,
+    }
+  }) as ManagerFleetModel[]
 }
 
 export type Chauffeur = {

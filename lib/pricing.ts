@@ -38,17 +38,35 @@ export function normalizeCharterHours(value: unknown): number {
 }
 
 /**
+ * Resolve charter $/hr from fleet.
+ * Prefer explicit hourly_rate; fall back to base_price only if hourly is missing/0
+ * (pre-migration rows).
+ */
+export function resolveHourlyRate(input: {
+  hourlyRate?: number | null
+  basePrice?: number | null
+}): number {
+  const hourly = Number(input.hourlyRate)
+  if (Number.isFinite(hourly) && hourly > 0) return hourly
+  const base = Number(input.basePrice)
+  if (Number.isFinite(base) && base > 0) return base
+  return 0
+}
+
+/**
  * Server-authoritative trip pricing.
  *
  * - one_way:     base + miles × per-mile (floor at minimum)
  * - round_trip:  base + (miles × 2) × per-mile (floor at minimum)
- * - charter:     hours × base (base is treated as the hourly rate); min hours apply
+ * - charter:     hours × hourly_rate (fleet.hourly_rate); min hours apply
  */
 export function computeTripPrice(input: {
   basePrice: number
   pricePerMile: number
   distanceMiles: number
   minimumPrice?: number
+  /** Charter rate from fleet.hourly_rate */
+  hourlyRate?: number | null
   gratuityPercent: number
   tripType?: TripType
   charterHours?: number
@@ -56,6 +74,10 @@ export function computeTripPrice(input: {
   const tripType = normalizeTripType(input.tripType)
   const charterHours =
     tripType === 'charter' ? normalizeCharterHours(input.charterHours) : null
+  const hourlyRate = resolveHourlyRate({
+    hourlyRate: input.hourlyRate,
+    basePrice: input.basePrice,
+  })
 
   const oneWayMiles = Math.max(Number(input.distanceMiles || 0), 0)
   const billableMiles =
@@ -63,7 +85,7 @@ export function computeTripPrice(input: {
 
   let fareSubtotal: number
   if (tripType === 'charter') {
-    fareSubtotal = Math.round((charterHours! * input.basePrice) * 100) / 100
+    fareSubtotal = Math.round((charterHours! * hourlyRate) * 100) / 100
   } else {
     fareSubtotal = Math.max(
       Math.round((input.basePrice + billableMiles * input.pricePerMile) * 100) / 100,
@@ -84,6 +106,6 @@ export function computeTripPrice(input: {
     charterHours,
     billableMiles,
     oneWayMiles,
-    hourlyRate: tripType === 'charter' ? input.basePrice : null,
+    hourlyRate: tripType === 'charter' ? hourlyRate : null,
   }
 }

@@ -93,6 +93,8 @@ CREATE TABLE public.fleet (
   base_price     numeric(10,2) NOT NULL DEFAULT 125.00,
   price_per_mile numeric(10,2) NOT NULL DEFAULT 3.50,
   minimum_price  numeric(10,2) NOT NULL DEFAULT 0,
+  -- Charter / as-directed hourly rate (USD). Transfer pricing uses base + per-mile.
+  hourly_rate    numeric(10,2) NOT NULL DEFAULT 125.00,
   image_url text,
   description text,
   featured boolean NOT NULL DEFAULT false,
@@ -1053,15 +1055,16 @@ EXCEPTION WHEN duplicate_object THEN /* already added */ END $$;
 -- Imperial Odyssey staff can edit these in the manager UI (/manager/fleet) at any time.
 -- ============================================================================
 INSERT INTO public.fleet
-  (name, type, capacity, luggage_capacity, base_price, price_per_mile, minimum_price, image_url, tier, featured, display_order, description)
+  (name, type, capacity, luggage_capacity, base_price, price_per_mile, minimum_price, hourly_rate, image_url, tier, featured, display_order, description)
 VALUES
-  ('Luxury Sedan',        'luxury_sedan',       4,  3,  50.00, 2.60,  80.00, '/images/luxury-sedan.png',                'premium',   true, 10,
+  -- hourly_rate starts equal to base_price; set real charter rates in Manager → Fleet.
+  ('Luxury Sedan',        'luxury_sedan',       4,  3,  50.00, 2.60,  80.00,  50.00, '/images/luxury-sedan.png',                'premium',   true, 10,
    'Indulge in first-class comfort. The ultimate choice for executive travel, airport transfers, and private clients.'),
-  ('Premium Executive',   'executive_suburban', 7,  6,  95.00, 3.75, 130.00, '/images/suburban-driver.jpg',             'executive', true, 20,
+  ('Premium Executive',   'executive_suburban', 7,  6,  95.00, 3.75, 130.00,  95.00, '/images/suburban-driver.jpg',             'executive', true, 20,
    'The dependable workhorse of executive transport. Unmatched space for passengers and cargo.'),
-  ('Luxury SUV',          'luxury_suv',         7,  6,  60.00, 3.10,  95.00, '/images/IMG_20250715_144013465_HDR.jpg',  'executive', true, 30,
+  ('Luxury SUV',          'luxury_suv',         7,  6,  60.00, 3.10,  95.00,  60.00, '/images/IMG_20250715_144013465_HDR.jpg',  'executive', true, 30,
    'A perfect blend of luxury, power, and security. Standard-setting space and elite comfort.'),
-  ('Luxury Sprinter Van', 'sprinter_van',      14, 14, 110.00, 4.25, 160.00, '/images/sprinter.png',                    'executive', true, 40,
+  ('Luxury Sprinter Van', 'sprinter_van',      14, 14, 110.00, 4.25, 160.00, 110.00, '/images/sprinter.png',                    'executive', true, 40,
    'Spacious and luxurious group travel. Ideal for corporate groups, events, and airport transfers.');
 
 INSERT INTO public.vehicle_units (model_id, label, year)
