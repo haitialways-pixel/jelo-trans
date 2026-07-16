@@ -5,14 +5,27 @@ import { createClient } from '@/lib/supabase/server'
 import { assertStaff } from '@/lib/manager/auth'
 import { staffDb } from '@/lib/manager/db'
 import { sendBookingReceived } from '@/lib/email/sendBookingReceived'
+import { sendRideComplete } from '@/lib/email/sendRideComplete'
 import { sendLifecycleEmails } from '@/lib/manager/lifecycleEmails'
 import { notifyDriverDispatch, dispatchDeliveryError } from '@/lib/manager/dispatch'
 import type { Chauffeur, ManagerReservation } from '@/lib/manager/data'
+import { formatMoney } from '@/lib/manager/format'
 import { isStripeConfigured } from '@/lib/stripe/server'
 import { chargeBalance } from '@/lib/stripe/payments'
 import { notifyManagement } from '@/lib/chatbot/notify'
+import { sendSms } from '@/lib/sms/notify'
+import { fmtDate } from '@/lib/email/format'
 
 export type ActionResult = { ok: true; warning?: string } | { ok: false; error: string }
+
+export type SendReceiptResult =
+  | {
+      ok: true
+      email?: { sent: boolean; reason?: string }
+      sms?: { sent: boolean; reason?: string }
+      warning?: string
+    }
+  | { ok: false; error: string }
 
 const VALID_STAGES = [
   'confirm',
@@ -219,6 +232,131 @@ export async function resendConfirmationEmail(id: string): Promise<ActionResult>
     return { ok: true }
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'Resend failed' }
+  }
+}
+
+/**
+ * Manually email and/or text a payment receipt for a reservation.
+ * Does not change reservation status — intended for resends and one-off delivery.
+ */
+export async function sendCustomerReceipt(
+  id: string,
+  channels: { email?: boolean; sms?: boolean },
+  overrides?: { email?: string; phone?: string },
+): Promise<SendReceiptResult> {
+  try {
+    await assertStaff()
+
+    const wantEmail = Boolean(channels.email)
+    const wantSms = Boolean(channels.sms)
+    if (!wantEmail && !wantSms) {
+      return { ok: false, error: 'Select email and/or text.' }
+    }
+
+    const admin = await staffDb()
+    const { data: res, error } = await admin
+      .from('reservations')
+      .select(
+        '*, fleet:vehicle_id (name, type), assigned_unit:assigned_unit_id (label, year)',
+      )
+      .eq('id', id)
+      .maybeSingle()
+    if (error || !res) return { ok: false, error: 'Reservation not found' }
+
+    if (res.status === 'cancelled') {
+      return { ok: false, error: 'Cannot send a receipt for a cancelled reservation.' }
+    }
+
+    const vehicleName =
+      (res as { fleet?: { name?: string } }).fleet?.name ??
+      (await (async () => {
+        if (!res.vehicle_id) return null
+        const { data: v } = await admin.from('fleet').select('name').eq('id', res.vehicle_id).maybeSingle()
+        return v?.name ?? null
+      })())
+
+    const toEmail = (overrides?.email ?? res.customer_email ?? '').trim()
+    const toPhone = (overrides?.phone ?? res.customer_phone ?? '').trim()
+    const total = res.total_price != null ? Number(res.total_price) : null
+    const transactionId =
+      (res.balance_intent_id as string | null) ?? (res.deposit_intent_id as string | null) ?? null
+    const paymentMethod = res.payment_status === 'paid' ? 'Card on file' : null
+
+    let emailChannel: { sent: boolean; reason?: string } | undefined
+    let smsChannel: { sent: boolean; reason?: string } | undefined
+
+    if (wantEmail) {
+      if (!toEmail) {
+        emailChannel = { sent: false, reason: 'No email on file' }
+      } else {
+        const emailResult = await sendRideComplete({
+          to: toEmail,
+          customerName: res.customer_name,
+          bookingNumber: res.booking_number,
+          pickupAddress: res.pickup_address,
+          dropoffAddress: res.dropoff_address,
+          pickupTime: res.pickup_time,
+          vehicleName,
+          chauffeurName: res.chauffeur_name,
+          totalAmount: total,
+          paymentMethod,
+          transactionId,
+          completedAt: res.completed_at ?? new Date().toISOString(),
+        })
+        emailChannel = { sent: emailResult.sent, reason: emailResult.reason }
+      }
+    }
+
+    if (wantSms) {
+      if (!toPhone) {
+        smsChannel = { sent: false, reason: 'No phone on file' }
+      } else {
+        const tripDate = res.pickup_time ? fmtDate(res.pickup_time) : 'N/A'
+        const totalLabel = total != null ? formatMoney(total) : 'N/A'
+        const body = [
+          `Imperial Odyssey receipt`,
+          `Booking #${res.booking_number}`,
+          `Total: ${totalLabel}`,
+          `Date: ${tripDate}`,
+          res.pickup_address ? `From: ${res.pickup_address}` : null,
+          res.dropoff_address ? `To: ${res.dropoff_address}` : null,
+          res.payment_status === 'paid' ? 'Status: Paid' : `Payment: ${res.payment_status}`,
+          `Thank you! Qs: 678-478-3506`,
+        ]
+          .filter(Boolean)
+          .join('\n')
+
+        const smsResult = await sendSms({ to: toPhone, body })
+        smsChannel = { sent: smsResult.sent, reason: smsResult.reason }
+      }
+    }
+
+    const emailOk = !wantEmail || emailChannel?.sent
+    const smsOk = !wantSms || smsChannel?.sent
+
+    if (!emailOk && !smsOk) {
+      const parts: string[] = []
+      if (wantEmail) parts.push(`email: ${emailChannel?.reason ?? 'failed'}`)
+      if (wantSms) parts.push(`text: ${smsChannel?.reason ?? 'failed'}`)
+      return { ok: false, error: `Receipt not delivered (${parts.join('; ')})` }
+    }
+
+    let warning: string | undefined
+    if (!emailOk || !smsOk) {
+      const parts: string[] = []
+      if (wantEmail && !emailChannel?.sent) parts.push(`email: ${emailChannel?.reason ?? 'failed'}`)
+      if (wantSms && !smsChannel?.sent) parts.push(`text: ${smsChannel?.reason ?? 'failed'}`)
+      warning = `Partial delivery — ${parts.join('; ')}`
+    }
+
+    return {
+      ok: true,
+      email: emailChannel,
+      sms: smsChannel,
+      warning,
+    }
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Send receipt failed' }
   }
 }
 

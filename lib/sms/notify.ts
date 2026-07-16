@@ -3,6 +3,14 @@
 
 export type SmsResult = { sent: boolean; reason?: string }
 
+export function isSmsConfigured(): boolean {
+  return Boolean(
+    process.env.TWILIO_ACCOUNT_SID &&
+      process.env.TWILIO_AUTH_TOKEN &&
+      process.env.TWILIO_FROM_NUMBER,
+  )
+}
+
 export async function sendSms(input: { to: string; body: string }): Promise<SmsResult> {
   const sid = process.env.TWILIO_ACCOUNT_SID
   const token = process.env.TWILIO_AUTH_TOKEN

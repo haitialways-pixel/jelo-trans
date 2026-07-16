@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { LayoutDashboard, CalendarRange, Car, LogOut } from 'lucide-react'
+import { LayoutDashboard, CalendarRange, Car, Receipt, LogOut } from 'lucide-react'
 import type { StaffSession } from '@/lib/manager/auth'
 import type { ManagerNotification } from '@/lib/manager/notifications'
 import { NotificationBell } from './NotificationBell'
@@ -11,6 +11,7 @@ import { NotificationBell } from './NotificationBell'
 const LINKS = [
   { href: '/manager', label: 'Dashboard', icon: LayoutDashboard, exact: true },
   { href: '/manager/reservations', label: 'Reservations', icon: CalendarRange, exact: false },
+  { href: '/manager/receipts', label: 'Receipts', icon: Receipt, exact: false },
   { href: '/manager/fleet', label: 'Fleet', icon: Car, exact: false },
 ]
 
