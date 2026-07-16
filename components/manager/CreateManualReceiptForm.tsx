@@ -12,7 +12,7 @@ import {
   Receipt,
   Trash2,
 } from 'lucide-react'
-import { sendManualReceipt } from '@/lib/manager/actions'
+import { sendManualReceipt } from '@/lib/manager/receiptActions'
 
 type LineItem = {
   key: string
@@ -200,62 +200,71 @@ export function CreateManualReceiptForm({ smsConfigured }: { smsConfigured: bool
     }
 
     start(async () => {
-      const res = await sendManualReceipt({
-        companyName: form.companyName.trim() || undefined,
-        companyAddress: form.companyAddress.trim() || undefined,
-        companyPhone: form.companyPhone.trim() || undefined,
-        companyEmail: form.companyEmail.trim() || undefined,
-        companyWebsite: form.companyWebsite.trim() || undefined,
-        receiptNumber: form.receiptNumber.trim() || undefined,
-        receiptDateTime: form.receiptDateTime
-          ? new Date(form.receiptDateTime).toISOString()
-          : undefined,
-        tripType: form.tripType,
-        customerName: form.customerName.trim(),
-        customerEmail: form.customerEmail.trim() || undefined,
-        customerPhone: form.customerPhone.trim() || undefined,
-        origin: form.origin.trim() || undefined,
-        destination: form.destination.trim() || undefined,
-        departureDateTime: form.departureDateTime
-          ? new Date(form.departureDateTime).toISOString()
-          : undefined,
-        returnDateTime:
-          form.tripType === 'round_trip' && form.returnDateTime
-            ? new Date(form.returnDateTime).toISOString()
+      try {
+        const res = await sendManualReceipt({
+          companyName: form.companyName.trim() || undefined,
+          companyAddress: form.companyAddress.trim() || undefined,
+          companyPhone: form.companyPhone.trim() || undefined,
+          companyEmail: form.companyEmail.trim() || undefined,
+          companyWebsite: form.companyWebsite.trim() || undefined,
+          receiptNumber: form.receiptNumber.trim() || undefined,
+          receiptDateTime: form.receiptDateTime
+            ? new Date(form.receiptDateTime).toISOString()
             : undefined,
-        bookingTicketNumber: form.bookingTicketNumber.trim() || undefined,
-        items: validItems,
-        taxMode: form.taxMode,
-        taxValue: form.taxValue.trim() ? parseFloat(form.taxValue) : undefined,
-        discount: form.discount.trim() ? parseFloat(form.discount) : undefined,
-        otherFees: form.otherFees.trim() ? parseFloat(form.otherFees) : undefined,
-        otherFeesLabel: form.otherFeesLabel.trim() || undefined,
-        paymentMethod: form.paymentMethod.trim() || undefined,
-        amountPaid: form.amountPaid.trim() ? parseFloat(form.amountPaid) : undefined,
-        paymentReference: form.paymentReference.trim() || undefined,
-        channels: {
-          email: wantEmail,
-          sms: wantSms && smsConfigured,
-        },
-      })
+          tripType: form.tripType,
+          customerName: form.customerName.trim(),
+          customerEmail: form.customerEmail.trim() || undefined,
+          customerPhone: form.customerPhone.trim() || undefined,
+          origin: form.origin.trim() || undefined,
+          destination: form.destination.trim() || undefined,
+          departureDateTime: form.departureDateTime
+            ? new Date(form.departureDateTime).toISOString()
+            : undefined,
+          returnDateTime:
+            form.tripType === 'round_trip' && form.returnDateTime
+              ? new Date(form.returnDateTime).toISOString()
+              : undefined,
+          bookingTicketNumber: form.bookingTicketNumber.trim() || undefined,
+          items: validItems,
+          taxMode: form.taxMode,
+          taxValue: form.taxValue.trim() ? parseFloat(form.taxValue) : undefined,
+          discount: form.discount.trim() ? parseFloat(form.discount) : undefined,
+          otherFees: form.otherFees.trim() ? parseFloat(form.otherFees) : undefined,
+          otherFeesLabel: form.otherFeesLabel.trim() || undefined,
+          paymentMethod: form.paymentMethod.trim() || undefined,
+          amountPaid: form.amountPaid.trim() ? parseFloat(form.amountPaid) : undefined,
+          paymentReference: form.paymentReference.trim() || undefined,
+          channels: {
+            email: wantEmail,
+            sms: wantSms && smsConfigured,
+          },
+        })
 
-      if (!res.ok) {
-        toast.error(res.error)
-        return
-      }
+        if (!res.ok) {
+          toast.error(res.error)
+          return
+        }
 
-      const refLabel = res.reference ? ` · ${res.reference}` : ''
-      if (res.warning) {
-        toast.warning(`${res.warning}${refLabel}`)
-      } else {
-        const parts: string[] = []
-        if (res.email?.sent) parts.push('email')
-        if (res.sms?.sent) parts.push('text')
-        toast.success(
-          `Receipt sent via ${parts.join(' & ') || 'selected channels'}${refLabel}`,
+        const refLabel = res.reference ? ` · ${res.reference}` : ''
+        if (res.warning) {
+          toast.warning(`${res.warning}${refLabel}`)
+        } else {
+          const parts: string[] = []
+          if (res.email?.sent) parts.push('email')
+          if (res.sms?.sent) parts.push('text')
+          toast.success(
+            `Receipt sent via ${parts.join(' & ') || 'selected channels'}${refLabel}`,
+          )
+          reset()
+          setOpen(false)
+        }
+      } catch (e) {
+        console.error('[CreateManualReceiptForm] send failed:', e)
+        toast.error(
+          e instanceof Error
+            ? e.message
+            : 'Could not send receipt. Refresh the page and try again.',
         )
-        reset()
-        setOpen(false)
       }
     })
   }

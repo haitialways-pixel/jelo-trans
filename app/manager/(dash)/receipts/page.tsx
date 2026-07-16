@@ -4,6 +4,7 @@ import { ReservationSearch } from '@/components/manager/ReservationSearch'
 import { ReceiptSender } from '@/components/manager/ReceiptSender'
 import { CreateManualReceiptForm } from '@/components/manager/CreateManualReceiptForm'
 import { isSmsConfigured } from '@/lib/sms/notify'
+import { isMailConfigured, getMailSetupHint } from '@/lib/email/mailer'
 import { STATUS_LABELS } from '@/lib/manager/format'
 
 export const dynamic = 'force-dynamic'
@@ -38,10 +39,17 @@ export default async function ReceiptsPage({
         : ''
   const query = (q ?? '').trim()
   const smsConfigured = isSmsConfigured()
+  const mailConfigured = isMailConfigured()
+  const mailHint = getMailSetupHint()
 
-  const reservations = query
-    ? await searchReservations(query, active ? { status: active, limit: 40 } : { limit: 40 })
-    : await getReservations(active ? { status: active, limit: 40 } : { limit: 40 })
+  let reservations: Awaited<ReturnType<typeof getReservations>> = []
+  try {
+    reservations = query
+      ? await searchReservations(query, active ? { status: active, limit: 40 } : { limit: 40 })
+      : await getReservations(active ? { status: active, limit: 40 } : { limit: 40 })
+  } catch (e) {
+    console.error('[receipts page] failed to load reservations:', e)
+  }
 
   // Receipts are most relevant for non-cancelled bookings; newest trips first.
   const list = reservations
@@ -65,12 +73,22 @@ export default async function ReceiptsPage({
         <CreateManualReceiptForm smsConfigured={smsConfigured} />
       </div>
 
+      {!mailConfigured && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          Email receipts are unavailable: {mailHint ?? 'RESEND_API_KEY is not set.'}
+        </div>
+      )}
+      {mailConfigured && mailHint && (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-900">
+          {mailHint}
+        </div>
+      )}
       {!smsConfigured && (
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-900">
           Text receipts are unavailable until Twilio is configured (
           <code className="text-xs">TWILIO_ACCOUNT_SID</code>,{' '}
           <code className="text-xs">TWILIO_AUTH_TOKEN</code>,{' '}
-          <code className="text-xs">TWILIO_FROM_NUMBER</code>). Email still works via Resend.
+          <code className="text-xs">TWILIO_FROM_NUMBER</code>).
         </div>
       )}
 

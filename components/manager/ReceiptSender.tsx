@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { Mail, MessageSquare, Send, Loader2, Phone } from 'lucide-react'
-import { sendCustomerReceipt } from '@/lib/manager/actions'
+import { sendCustomerReceipt } from '@/lib/manager/receiptActions'
 import type { ManagerReservation } from '@/lib/manager/data'
 import { formatDateTime, formatMoney, PAYMENT_LABELS } from '@/lib/manager/format'
 import { StatusBadge } from '@/components/manager/StatusBadge'
