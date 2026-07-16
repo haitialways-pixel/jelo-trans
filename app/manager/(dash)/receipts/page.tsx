@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { getReservations, searchReservations } from '@/lib/manager/data'
 import { ReservationSearch } from '@/components/manager/ReservationSearch'
 import { ReceiptSender } from '@/components/manager/ReceiptSender'
+import { CreateManualReceiptForm } from '@/components/manager/CreateManualReceiptForm'
 import { isSmsConfigured } from '@/lib/sms/notify'
 import { STATUS_LABELS } from '@/lib/manager/format'
 
@@ -53,12 +54,15 @@ export default async function ReceiptsPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="display text-2xl font-semibold">Receipts</h1>
-        <p className="text-on-surface-variant text-sm mt-1">
-          Email or text a payment receipt to the customer. Contact details can be edited before
-          sending.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="display text-2xl font-semibold">Receipts</h1>
+          <p className="text-on-surface-variant text-sm mt-1">
+            Email or text a payment receipt to the customer. Use a booking below, or create a manual
+            receipt for cash / off-system trips.
+          </p>
+        </div>
+        <CreateManualReceiptForm smsConfigured={smsConfigured} />
       </div>
 
       {!smsConfigured && (

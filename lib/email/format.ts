@@ -31,3 +31,28 @@ export function fmtTime(iso: string): string {
     return iso
   }
 }
+
+export function fmtDateTime(iso: string): string {
+  try {
+    return new Date(iso).toLocaleString('en-US', {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZone: TZ,
+    })
+  } catch {
+    return iso
+  }
+}
+
+export function fmtMoney(value: number): string {
+  return value.toLocaleString('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
+}
