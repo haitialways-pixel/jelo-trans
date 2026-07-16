@@ -1,0 +1,35 @@
+{
+  "id": "/manager",
+  "name": "Imperial Odyssey Manager",
+  "short_name": "VIP Manager",
+  "description": "Dispatcher and owner operations console for Imperial Odyssey luxury chauffeur service.",
+  "start_url": "/manager",
+  "scope": "/manager",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#fdfbf7",
+  "theme_color": "#d4af37",
+  "lang": "en-US",
+  "dir": "ltr",
+  "categories": ["business", "productivity"],
+  "icons": [
+    {
+      "src": "/manager/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/manager/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/manager/icons/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

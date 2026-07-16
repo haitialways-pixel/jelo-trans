@@ -11,7 +11,8 @@
     "deploy": "npx @opennextjs/cloudflare build && npx @opennextjs/cloudflare deploy",
     "setup-staff": "node scripts/setup-staff.cjs",
     "seed-staff": "node scripts/setup-staff.cjs -- --seed-all",
-    "provision-staff-auth": "node scripts/provision-staff-auth.cjs"
+    "provision-staff-auth": "node scripts/provision-staff-auth.cjs",
+    "pwa:icons": "node scripts/generate-manager-pwa-icons.cjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",

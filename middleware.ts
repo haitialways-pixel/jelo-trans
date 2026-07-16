@@ -52,6 +52,19 @@ export async function middleware(request: NextRequest) {
   }
 
   const { pathname } = request.nextUrl
+
+  // PWA shell assets must stay public (no auth redirect) so install / SW work
+  // even before login, and so the service worker can precache them.
+  const isManagerPwaAsset =
+    pathname === '/manager/sw.js' ||
+    pathname === '/manager/manifest.webmanifest' ||
+    pathname === '/manager/offline.html' ||
+    pathname.startsWith('/manager/icons/')
+
+  if (isManagerPwaAsset) {
+    return response
+  }
+
   const isLogin = pathname === '/manager/login'
   const isProtected = pathname.startsWith('/manager') && !isLogin
 
