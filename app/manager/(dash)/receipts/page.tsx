@@ -3,6 +3,7 @@ import { getReservations, searchReservations } from '@/lib/manager/data'
 import { ReservationSearch } from '@/components/manager/ReservationSearch'
 import { ReceiptSender } from '@/components/manager/ReceiptSender'
 import { CreateManualReceiptForm } from '@/components/manager/CreateManualReceiptForm'
+import { SendInvoiceForm } from '@/components/manager/SendInvoiceForm'
 import { isSmsConfigured } from '@/lib/sms/notify'
 import { isMailConfigured, getMailSetupHint } from '@/lib/email/mailer'
 import { STATUS_LABELS } from '@/lib/manager/format'
@@ -66,11 +67,12 @@ export default async function ReceiptsPage({
         <div>
           <h1 className="display text-2xl font-semibold">Receipts</h1>
           <p className="text-on-surface-variant text-sm mt-1">
-            Email or text a payment receipt to the customer. Use a booking below, or create a manual
-            receipt for cash / off-system trips.
+            Email or text a payment receipt to the customer, send a vendor invoice for completed
+            trips, or create a manual receipt for cash / off-system payments.
           </p>
         </div>
         <CreateManualReceiptForm smsConfigured={smsConfigured} />
+        <SendInvoiceForm />
       </div>
 
       {!mailConfigured && (

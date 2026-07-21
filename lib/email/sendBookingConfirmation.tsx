@@ -48,7 +48,7 @@ function buildBookingConfirmationContent(i: BookingEmailInput): { html: string; 
     `${textRows}\n\n` +
     `We look forward to providing you with excellent service.\n\n` +
     `Questions? Call us at 678-478-3506.\n\n` +
-    `— Imperial Odyssey\nphalotrans.com`
+    `— Imperial Odyssey\nwww.vipodyssey.com`
 
   const htmlRows = rows
     .map(

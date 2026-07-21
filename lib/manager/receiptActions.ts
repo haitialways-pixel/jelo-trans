@@ -12,6 +12,11 @@ import {
   sendReservationReceiptEmail,
   type ManualReceiptEmailProps,
 } from '@/lib/email/sendManualReceiptEmail'
+import {
+  sendVendorInvoiceEmail,
+  type InvoicePaymentMethod,
+  type VendorInvoiceEmailProps,
+} from '@/lib/email/sendVendorInvoiceEmail'
 import { sendSms } from '@/lib/sms/notify'
 import { fmtDate, fmtDateTime, fmtMoney } from '@/lib/email/format'
 import { isMailConfigured, getMailSetupHint } from '@/lib/email/mailer'
@@ -61,6 +66,46 @@ export type ManualReceiptInput = {
   channels: { email?: boolean; sms?: boolean }
 }
 
+export type VendorInvoiceLineInput = {
+  description: string
+  quantity: number
+  unitPrice: number
+}
+
+export type VendorInvoiceInput = {
+  companyName?: string
+  companyAddress?: string
+  companyPhone?: string
+  companyEmail?: string
+  companyWebsite?: string
+  invoiceNumber?: string
+  invoiceDateTime?: string
+  dueDate?: string
+  tripType?: 'one_way' | 'round_trip'
+  vendorName: string
+  vendorCompany?: string
+  vendorEmail: string
+  vendorPhone?: string
+  origin?: string
+  destination?: string
+  departureDateTime?: string
+  returnDateTime?: string
+  bookingTicketNumber?: string
+  items: VendorInvoiceLineInput[]
+  taxMode?: 'rate' | 'amount'
+  taxValue?: number
+  discount?: number
+  otherFees?: number
+  otherFeesLabel?: string
+  notes?: string
+  /** Payment methods the vendor may use (ACH, Zelle, credit card). */
+  acceptedMethods: InvoicePaymentMethod[]
+  achInstructions?: string
+  zelleInstructions?: string
+  cardInstructions?: string
+  cardPaymentLink?: string
+}
+
 function generateReceiptNumber(): string {
   const d = new Date()
   const y = d.getFullYear()
@@ -69,6 +114,17 @@ function generateReceiptNumber(): string {
   const rand = Math.random().toString(36).slice(2, 6).toUpperCase()
   return `RCP-${y}${m}${day}-${rand}`
 }
+
+function generateInvoiceNumber(): string {
+  const d = new Date()
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  const rand = Math.random().toString(36).slice(2, 6).toUpperCase()
+  return `INV-${y}${m}${day}-${rand}`
+}
+
+const VALID_INVOICE_METHODS = new Set<InvoicePaymentMethod>(['ach', 'zelle', 'credit_card'])
 
 function parseOptionalIso(value?: string): string | null {
   if (!value?.trim()) return null
@@ -393,6 +449,173 @@ export async function sendManualReceipt(input: ManualReceiptInput): Promise<Send
     return {
       ok: false,
       error: e instanceof Error ? e.message : 'Send manual receipt failed',
+    }
+  }
+}
+
+/**
+ * Email a vendor invoice for a completed trip (amount due, not a paid receipt).
+ * Accepts ACH, Zelle, and/or credit card payment instructions.
+ */
+export async function sendVendorInvoice(input: VendorInvoiceInput): Promise<SendReceiptResult> {
+  try {
+    await assertStaff()
+
+    if (!isMailConfigured()) {
+      return {
+        ok: false,
+        error: getMailSetupHint() ?? 'Email is not configured (RESEND_API_KEY missing).',
+      }
+    }
+
+    const vendorName = input.vendorName?.trim()
+    if (!vendorName) return { ok: false, error: 'Vendor / bill-to name is required.' }
+
+    const toEmail = (input.vendorEmail ?? '').trim()
+    if (!toEmail) return { ok: false, error: 'Vendor email is required to send an invoice.' }
+
+    const acceptedMethods = (Array.isArray(input.acceptedMethods) ? input.acceptedMethods : [])
+      .filter((m): m is InvoicePaymentMethod => VALID_INVOICE_METHODS.has(m as InvoicePaymentMethod))
+    if (acceptedMethods.length === 0) {
+      return {
+        ok: false,
+        error: 'Select at least one payment option (ACH, Zelle, or Credit card).',
+      }
+    }
+
+    const rawItems = Array.isArray(input.items) ? input.items : []
+    const items = rawItems
+      .map((row) => {
+        const description = String(row?.description ?? '').trim()
+        const quantity = Number(row?.quantity)
+        const unitPrice = Number(row?.unitPrice)
+        if (
+          !description ||
+          !Number.isFinite(quantity) ||
+          quantity <= 0 ||
+          !Number.isFinite(unitPrice)
+        ) {
+          return null
+        }
+        const lineTotal = Math.round(quantity * unitPrice * 100) / 100
+        return { description, quantity, unitPrice, lineTotal }
+      })
+      .filter((x): x is NonNullable<typeof x> => x != null)
+
+    if (items.length === 0) {
+      return {
+        ok: false,
+        error: 'Add at least one line item (description, quantity, unit price).',
+      }
+    }
+
+    const subtotal = Math.round(items.reduce((s, i) => s + i.lineTotal, 0) * 100) / 100
+
+    const taxMode = input.taxMode === 'amount' ? 'amount' : 'rate'
+    const taxValue = Number(input.taxValue ?? 0)
+    let taxAmount = 0
+    let taxLabel = 'Tax'
+    if (Number.isFinite(taxValue) && taxValue > 0) {
+      if (taxMode === 'rate') {
+        taxAmount = Math.round(subtotal * (taxValue / 100) * 100) / 100
+        taxLabel = `Tax (${taxValue}%)`
+      } else {
+        taxAmount = Math.round(taxValue * 100) / 100
+      }
+    }
+
+    const discount =
+      Number.isFinite(Number(input.discount)) && Number(input.discount) > 0
+        ? Math.round(Number(input.discount) * 100) / 100
+        : 0
+    const otherFees =
+      Number.isFinite(Number(input.otherFees)) && Number(input.otherFees) > 0
+        ? Math.round(Number(input.otherFees) * 100) / 100
+        : 0
+
+    const amountDue = Math.round((subtotal + taxAmount + otherFees - discount) * 100) / 100
+    if (amountDue < 0) {
+      return { ok: false, error: 'Amount due cannot be negative. Check discount.' }
+    }
+    if (amountDue === 0) {
+      return { ok: false, error: 'Amount due must be greater than zero.' }
+    }
+
+    const invoiceNumber = (input.invoiceNumber?.trim() || generateInvoiceNumber()).toUpperCase()
+    const invoiceIso = parseOptionalIso(input.invoiceDateTime) ?? new Date().toISOString()
+    const dueIso = parseOptionalIso(input.dueDate)
+    const departureIso = parseOptionalIso(input.departureDateTime)
+    const returnIso = parseOptionalIso(input.returnDateTime)
+    const tripType =
+      input.tripType === 'round_trip' || input.tripType === 'one_way' ? input.tripType : undefined
+
+    const companyName = input.companyName?.trim() || 'Imperial Odyssey, LLC'
+    const companyAddress = input.companyAddress?.trim() || 'Orlando, Florida'
+    const companyPhone = input.companyPhone?.trim() || '(678) 478-3506'
+    const companyEmail = input.companyEmail?.trim() || 'info@phalotrans.com'
+    const companyWebsite = input.companyWebsite?.trim() || 'phalotrans.com'
+
+    const emailProps: VendorInvoiceEmailProps = {
+      companyName,
+      companyAddress,
+      companyPhone,
+      companyEmail,
+      companyWebsite,
+      invoiceNumber,
+      invoiceDate: fmtDateTime(invoiceIso),
+      dueDate: dueIso ? fmtDate(dueIso) : undefined,
+      tripType,
+      vendorName,
+      vendorCompany: input.vendorCompany?.trim() || undefined,
+      vendorEmail: toEmail,
+      vendorPhone: input.vendorPhone?.trim() || undefined,
+      origin: input.origin?.trim() || undefined,
+      destination: input.destination?.trim() || undefined,
+      departureDateTime: departureIso ? fmtDateTime(departureIso) : undefined,
+      returnDateTime: returnIso ? fmtDateTime(returnIso) : undefined,
+      bookingTicketNumber: input.bookingTicketNumber?.trim() || undefined,
+      items,
+      subtotal,
+      taxLabel,
+      taxAmount,
+      discountAmount: discount,
+      otherFees,
+      otherFeesLabel: input.otherFeesLabel?.trim() || 'Other fees',
+      amountDue,
+      notes: input.notes?.trim() || undefined,
+      acceptedMethods,
+      achInstructions: acceptedMethods.includes('ach')
+        ? input.achInstructions?.trim() || undefined
+        : undefined,
+      zelleInstructions: acceptedMethods.includes('zelle')
+        ? input.zelleInstructions?.trim() || undefined
+        : undefined,
+      cardInstructions: acceptedMethods.includes('credit_card')
+        ? input.cardInstructions?.trim() || undefined
+        : undefined,
+      cardPaymentLink: acceptedMethods.includes('credit_card')
+        ? input.cardPaymentLink?.trim() || undefined
+        : undefined,
+    }
+
+    const emailResult = await sendVendorInvoiceEmail(toEmail, emailProps)
+    if (!emailResult.sent) {
+      return {
+        ok: false,
+        error: `Invoice not delivered (email: ${emailResult.reason ?? 'failed'})`,
+      }
+    }
+
+    return {
+      ok: true,
+      email: { sent: true },
+      reference: invoiceNumber,
+    }
+  } catch (e) {
+    console.error('[receipt] sendVendorInvoice error:', e)
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : 'Send invoice failed',
     }
   }
 }
