@@ -1,9 +1,15 @@
 import Link from 'next/link'
-import { getReservations, searchReservations } from '@/lib/manager/data'
+import {
+  getReservations,
+  getSentInvoices,
+  getVendors,
+  searchReservations,
+} from '@/lib/manager/data'
 import { ReservationSearch } from '@/components/manager/ReservationSearch'
 import { ReceiptSender } from '@/components/manager/ReceiptSender'
 import { CreateManualReceiptForm } from '@/components/manager/CreateManualReceiptForm'
 import { SendInvoiceForm } from '@/components/manager/SendInvoiceForm'
+import { SentInvoicesList } from '@/components/manager/SentInvoicesList'
 import { isSmsConfigured } from '@/lib/sms/notify'
 import { isMailConfigured, getMailSetupHint } from '@/lib/email/mailer'
 import { STATUS_LABELS } from '@/lib/manager/format'
@@ -44,12 +50,24 @@ export default async function ReceiptsPage({
   const mailHint = getMailSetupHint()
 
   let reservations: Awaited<ReturnType<typeof getReservations>> = []
+  let vendors: Awaited<ReturnType<typeof getVendors>> = []
+  let invoices: Awaited<ReturnType<typeof getSentInvoices>> = []
   try {
     reservations = query
       ? await searchReservations(query, active ? { status: active, limit: 40 } : { limit: 40 })
       : await getReservations(active ? { status: active, limit: 40 } : { limit: 40 })
   } catch (e) {
     console.error('[receipts page] failed to load reservations:', e)
+  }
+  try {
+    vendors = await getVendors()
+  } catch (e) {
+    console.error('[receipts page] failed to load vendors:', e)
+  }
+  try {
+    invoices = await getSentInvoices({ limit: 50 })
+  } catch (e) {
+    console.error('[receipts page] failed to load invoices:', e)
   }
 
   // Receipts are most relevant for non-cancelled bookings; newest trips first.
@@ -72,7 +90,7 @@ export default async function ReceiptsPage({
           </p>
         </div>
         <CreateManualReceiptForm smsConfigured={smsConfigured} />
-        <SendInvoiceForm />
+        <SendInvoiceForm vendors={vendors} />
       </div>
 
       {!mailConfigured && (
@@ -94,6 +112,12 @@ export default async function ReceiptsPage({
         </div>
       )}
 
+      <SentInvoicesList invoices={invoices} />
+
+      <div className="border-t border-outline-variant/20 pt-6 space-y-4">
+        <h2 className="text-sm tracking-widest text-on-surface-variant uppercase">
+          Customer receipts
+        </h2>
       <ReservationSearch defaultQuery={query} status={active} />
 
       <div className="flex items-center gap-1.5 overflow-x-auto hide-scrollbar">
@@ -136,6 +160,7 @@ export default async function ReceiptsPage({
           ))}
         </div>
       )}
+      </div>
     </div>
   )
 }

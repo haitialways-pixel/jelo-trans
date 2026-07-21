@@ -1,6 +1,7 @@
 'use client'
 
-import { useMemo, useState, useTransition } from 'react'
+import { useEffect, useMemo, useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
   Loader2,
@@ -10,9 +11,15 @@ import {
   FileText,
   Trash2,
   Building2,
+  Save,
 } from 'lucide-react'
-import { sendVendorInvoice } from '@/lib/manager/receiptActions'
+import {
+  sendVendorInvoice,
+  saveVendor,
+  deleteVendor,
+} from '@/lib/manager/receiptActions'
 import type { InvoicePaymentMethod } from '@/lib/email/sendVendorInvoiceEmail'
+import type { Vendor } from '@/lib/manager/data'
 
 type LineItem = {
   key: string
@@ -20,6 +27,11 @@ type LineItem = {
   quantity: string
   unitPrice: string
 }
+
+type TripType = 'one_way' | 'round_trip' | 'charter'
+
+/** Empty = pick from list; __new__ = add vendor; otherwise a vendor id. */
+type VendorSelection = '' | '__new__' | string
 
 function newLine(partial?: Partial<LineItem>): LineItem {
   return {
@@ -58,7 +70,8 @@ type FormState = typeof COMPANY_DEFAULTS & {
   invoiceNumber: string
   invoiceDateTime: string
   dueDate: string
-  tripType: 'one_way' | 'round_trip'
+  tripType: TripType
+  durationHours: string
   vendorName: string
   vendorCompany: string
   vendorEmail: string
@@ -87,6 +100,7 @@ function emptyForm(): FormState {
     invoiceDateTime: localDatetimeValue(),
     dueDate: defaultDueDate(),
     tripType: 'one_way',
+    durationHours: '',
     vendorName: '',
     vendorCompany: '',
     vendorEmail: '',
@@ -101,10 +115,12 @@ function emptyForm(): FormState {
     discount: '',
     otherFees: '',
     otherFeesLabel: '',
-    notes: 'Payment is due for transportation services rendered. Please include the invoice number with your remittance.',
+    notes:
+      'Payment is due for transportation services rendered. Please include the invoice number with your remittance.',
     achInstructions: '',
     zelleInstructions: '',
-    cardInstructions: 'Pay securely by credit card using the link below, or call us to pay by phone.',
+    cardInstructions:
+      'Pay securely by credit card using the link below, or call us to pay by phone.',
     cardPaymentLink: '',
   }
 }
@@ -115,6 +131,12 @@ function money(n: number): string {
     currency: 'USD',
     minimumFractionDigits: 2,
   })
+}
+
+function vendorLabel(v: Vendor): string {
+  const org = v.company?.trim()
+  if (org) return `${org} — ${v.name}`
+  return v.name
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
@@ -135,7 +157,8 @@ const PAYMENT_OPTIONS: {
   { id: 'credit_card', label: 'Credit card', hint: 'Optional payment link' },
 ]
 
-export function SendInvoiceForm() {
+export function SendInvoiceForm({ vendors: initialVendors }: { vendors: Vendor[] }) {
+  const router = useRouter()
   const [open, setOpen] = useState(false)
   const [pending, start] = useTransition()
   const [form, setForm] = useState<FormState>(emptyForm)
@@ -145,6 +168,12 @@ export function SendInvoiceForm() {
     zelle: true,
     credit_card: true,
   })
+  const [vendorSelection, setVendorSelection] = useState<VendorSelection>('')
+  const [localVendors, setLocalVendors] = useState<Vendor[]>(initialVendors)
+
+  useEffect(() => {
+    setLocalVendors(initialVendors)
+  }, [initialVendors])
 
   function update<K extends keyof FormState>(field: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -154,13 +183,46 @@ export function SendInvoiceForm() {
     setForm(emptyForm())
     setItems([newLine()])
     setMethods({ ach: true, zelle: true, credit_card: true })
+    setVendorSelection('')
+  }
+
+  function applyVendor(v: Vendor | null) {
+    if (!v) {
+      update('vendorName', '')
+      update('vendorCompany', '')
+      update('vendorEmail', '')
+      update('vendorPhone', '')
+      return
+    }
+    setForm((prev) => ({
+      ...prev,
+      vendorName: v.name ?? '',
+      vendorCompany: v.company ?? '',
+      vendorEmail: v.email ?? '',
+      vendorPhone: v.phone ?? '',
+    }))
+  }
+
+  function onVendorSelect(value: string) {
+    setVendorSelection(value as VendorSelection)
+    if (value === '' || value === '__new__') {
+      applyVendor(null)
+      return
+    }
+    const found = (localVendors.length ? localVendors : initialVendors).find((v) => v.id === value)
+    applyVendor(found ?? null)
   }
 
   const acceptedMethods = useMemo(
-    () =>
-      (Object.keys(methods) as InvoicePaymentMethod[]).filter((k) => methods[k]),
+    () => (Object.keys(methods) as InvoicePaymentMethod[]).filter((k) => methods[k]),
     [methods],
   )
+
+  const vendorList = localVendors.length ? localVendors : initialVendors
+  const isNewVendor = vendorSelection === '__new__'
+  const selectedVendorId =
+    vendorSelection && vendorSelection !== '__new__' ? vendorSelection : undefined
+  const showVendorFields = vendorSelection === '__new__' || Boolean(selectedVendorId)
 
   const totals = useMemo(() => {
     const parsed = items.map((row) => {
@@ -195,15 +257,89 @@ export function SendInvoiceForm() {
     return { subtotal, taxAmount, discount, otherFees, amountDue }
   }, [items, form.taxMode, form.taxValue, form.discount, form.otherFees])
 
-  function submit() {
+  function validateVendorFields(): boolean {
+    if (!vendorSelection) {
+      toast.error('Select a vendor from the list, or choose “Add new vendor”')
+      return false
+    }
     if (!form.vendorName.trim()) {
       toast.error('Vendor / bill-to name is required')
-      return
+      return false
     }
     if (!form.vendorEmail.trim()) {
-      toast.error('Vendor email is required to send an invoice')
-      return
+      toast.error('Vendor email is required')
+      return false
     }
+    return true
+  }
+
+  function handleSaveVendorOnly() {
+    if (!validateVendorFields()) return
+
+    start(async () => {
+      try {
+        const res = await saveVendor({
+          id: selectedVendorId,
+          name: form.vendorName.trim(),
+          company: form.vendorCompany.trim() || undefined,
+          email: form.vendorEmail.trim(),
+          phone: form.vendorPhone.trim() || undefined,
+        })
+        if (!res.ok) {
+          toast.error(res.error)
+          return
+        }
+        if (res.vendor) {
+          setLocalVendors((prev) => {
+            const without = prev.filter((v) => v.id !== res.vendor!.id)
+            const next: Vendor = {
+              id: res.vendor!.id,
+              name: res.vendor!.name,
+              company: res.vendor!.company,
+              email: res.vendor!.email,
+              phone: res.vendor!.phone,
+              notes: null,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            }
+            return [...without, next].sort((a, b) =>
+              vendorLabel(a).localeCompare(vendorLabel(b)),
+            )
+          })
+          setVendorSelection(res.vendor.id)
+        }
+        toast.success(isNewVendor ? 'Vendor added' : 'Vendor updated')
+        router.refresh()
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : 'Could not save vendor')
+      }
+    })
+  }
+
+  function handleDeleteVendor() {
+    if (!selectedVendorId) return
+    if (!confirm('Remove this vendor from the saved list?')) return
+
+    start(async () => {
+      try {
+        const res = await deleteVendor(selectedVendorId)
+        if (!res.ok) {
+          toast.error(res.error)
+          return
+        }
+        setLocalVendors((prev) => prev.filter((v) => v.id !== selectedVendorId))
+        setVendorSelection('')
+        applyVendor(null)
+        toast.success('Vendor removed')
+        router.refresh()
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : 'Could not delete vendor')
+      }
+    })
+  }
+
+  function submit() {
+    if (!validateVendorFields()) return
     if (acceptedMethods.length === 0) {
       toast.error('Select at least one payment option (ACH, Zelle, or Credit card)')
       return
@@ -246,10 +382,16 @@ export function SendInvoiceForm() {
             ? new Date(`${form.dueDate}T12:00:00`).toISOString()
             : undefined,
           tripType: form.tripType,
+          durationHours:
+            form.tripType === 'charter' && form.durationHours.trim()
+              ? parseFloat(form.durationHours)
+              : undefined,
+          vendorId: selectedVendorId,
           vendorName: form.vendorName.trim(),
           vendorCompany: form.vendorCompany.trim() || undefined,
           vendorEmail: form.vendorEmail.trim(),
           vendorPhone: form.vendorPhone.trim() || undefined,
+          saveVendor: true,
           origin: form.origin.trim() || undefined,
           destination: form.destination.trim() || undefined,
           departureDateTime: form.departureDateTime
@@ -280,9 +422,14 @@ export function SendInvoiceForm() {
         }
 
         const refLabel = res.reference ? ` · ${res.reference}` : ''
-        toast.success(`Invoice emailed${refLabel}`)
+        if (res.warning) {
+          toast.warning(`${res.warning}${refLabel}`)
+        } else {
+          toast.success(`Invoice emailed${refLabel}`)
+        }
         reset()
         setOpen(false)
+        router.refresh()
       } catch (e) {
         console.error('[SendInvoiceForm] send failed:', e)
         toast.error(
@@ -314,8 +461,8 @@ export function SendInvoiceForm() {
             <Building2 className="w-4 h-4" /> Vendor invoice
           </h2>
           <p className="text-xs text-on-surface-variant mt-1">
-            Bill a vendor for a completed trip. Amount due with ACH, Zelle, and/or credit card
-            payment options. Does not create a reservation.
+            Bill a vendor for a completed trip (one-way, round trip, or charter). Select a saved
+            vendor or add a new one. Payment options: ACH, Zelle, credit card.
           </p>
         </div>
         <button
@@ -407,38 +554,119 @@ export function SendInvoiceForm() {
                 />
                 Round Trip
               </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="invoiceTripType"
+                  checked={form.tripType === 'charter'}
+                  onChange={() => update('tripType', 'charter')}
+                />
+                Charter / As-directed
+              </label>
             </div>
           </div>
+          {form.tripType === 'charter' && (
+            <Field
+              label="Duration (hours)"
+              type="number"
+              value={form.durationHours}
+              onChange={(v) => update('durationHours', v)}
+              min="0"
+              step="0.5"
+              placeholder="e.g. 4"
+            />
+          )}
         </div>
       </section>
 
-      {/* Bill to */}
+      {/* Bill to — saved vendors */}
       <section className="space-y-3">
         <SectionTitle>Bill to (vendor)</SectionTitle>
         <div className="grid sm:grid-cols-2 gap-3">
-          <Field
-            label="Contact name *"
-            value={form.vendorName}
-            onChange={(v) => update('vendorName', v)}
-          />
-          <Field
-            label="Company / organization"
-            value={form.vendorCompany}
-            onChange={(v) => update('vendorCompany', v)}
-          />
-          <Field
-            label="Email *"
-            type="email"
-            value={form.vendorEmail}
-            onChange={(v) => update('vendorEmail', v)}
-            placeholder="billing@vendor.com"
-          />
-          <Field
-            label="Phone (optional)"
-            type="tel"
-            value={form.vendorPhone}
-            onChange={(v) => update('vendorPhone', v)}
-          />
+          <div className="sm:col-span-2">
+            <label className="block text-xs text-on-surface-variant mb-1.5">
+              Select vendor *
+            </label>
+            <select
+              value={vendorSelection}
+              onChange={(e) => onVendorSelect(e.target.value)}
+              className="w-full rounded-lg px-3 py-2.5 text-sm bg-card border border-outline-variant/30 text-on-surface"
+            >
+              <option value="">— Choose a saved vendor —</option>
+              {vendorList.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {vendorLabel(v)}
+                  {v.email ? ` · ${v.email}` : ''}
+                </option>
+              ))}
+              <option value="__new__">+ Add new vendor…</option>
+            </select>
+            {vendorList.length === 0 && (
+              <p className="text-[11px] text-on-surface-variant mt-1.5">
+                No vendors saved yet. Choose “Add new vendor” to create the first one.
+              </p>
+            )}
+          </div>
+
+          {showVendorFields && (
+            <>
+              {isNewVendor && (
+                <p className="sm:col-span-2 text-xs text-primary/90 bg-primary/5 border border-primary/20 rounded-lg px-3 py-2">
+                  Adding a new vendor. They will be saved to your list when you send the invoice
+                  (or click Save vendor).
+                </p>
+              )}
+              <Field
+                label="Contact name *"
+                value={form.vendorName}
+                onChange={(v) => update('vendorName', v)}
+              />
+              <Field
+                label="Company / organization"
+                value={form.vendorCompany}
+                onChange={(v) => update('vendorCompany', v)}
+              />
+              <Field
+                label="Email *"
+                type="email"
+                value={form.vendorEmail}
+                onChange={(v) => update('vendorEmail', v)}
+                placeholder="billing@vendor.com"
+              />
+              <Field
+                label="Phone (optional)"
+                type="tel"
+                value={form.vendorPhone}
+                onChange={(v) => update('vendorPhone', v)}
+              />
+              <div className="sm:col-span-2 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={handleSaveVendorOnly}
+                  disabled={pending}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-outline-variant/40 text-sm px-3 py-2 hover:bg-surface-container/50 transition disabled:opacity-50"
+                >
+                  {pending ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Save className="w-3.5 h-3.5" />
+                  )}
+                  {isNewVendor ? 'Save vendor' : 'Update vendor'}
+                </button>
+                {selectedVendorId && (
+                  <button
+                    type="button"
+                    onClick={handleDeleteVendor}
+                    disabled={pending}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 text-red-700 text-sm px-3 py-2 hover:bg-red-50 transition disabled:opacity-50"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Remove from list
+                  </button>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </section>
 
@@ -448,20 +676,29 @@ export function SendInvoiceForm() {
         <div className="grid sm:grid-cols-2 gap-3">
           <div className="sm:col-span-2">
             <Field
-              label="Origin / From"
+              label={form.tripType === 'charter' ? 'Pickup / start location' : 'Origin / From'}
               value={form.origin}
               onChange={(v) => update('origin', v)}
             />
           </div>
           <div className="sm:col-span-2">
             <Field
-              label="Destination / To"
+              label={
+                form.tripType === 'charter'
+                  ? 'Service area / notes (optional)'
+                  : 'Destination / To'
+              }
               value={form.destination}
               onChange={(v) => update('destination', v)}
+              placeholder={
+                form.tripType === 'charter' ? 'e.g. As directed · Orlando metro' : undefined
+              }
             />
           </div>
           <Field
-            label="Departure date & time"
+            label={
+              form.tripType === 'charter' ? 'Start date & time' : 'Departure date & time'
+            }
             type="datetime-local"
             value={form.departureDateTime}
             onChange={(v) => update('departureDateTime', v)}
@@ -488,6 +725,9 @@ export function SendInvoiceForm() {
         <SectionTitle>Line items</SectionTitle>
         <p className="text-[11px] text-on-surface-variant">
           Format: service description · quantity · unit price
+          {form.tripType === 'charter'
+            ? ' (for charter, qty can be hours × rate)'
+            : ''}
         </p>
         <div className="space-y-2">
           {items.map((row, idx) => {
@@ -509,12 +749,16 @@ export function SendInvoiceForm() {
                         prev.map((r) => (r.key === row.key ? { ...r, description: v } : r)),
                       )
                     }
-                    placeholder="e.g. Ground transport — completed trip"
+                    placeholder={
+                      form.tripType === 'charter'
+                        ? 'e.g. Executive charter — hourly'
+                        : 'e.g. Ground transport — completed trip'
+                    }
                   />
                 </div>
                 <div className="col-span-4 sm:col-span-2">
                   <Field
-                    label={idx === 0 ? 'Qty' : ''}
+                    label={idx === 0 ? (form.tripType === 'charter' ? 'Hrs / qty' : 'Qty') : ''}
                     type="number"
                     value={row.quantity}
                     onChange={(v) =>
@@ -523,7 +767,7 @@ export function SendInvoiceForm() {
                       )
                     }
                     min="0"
-                    step="1"
+                    step="0.5"
                   />
                 </div>
                 <div className="col-span-5 sm:col-span-2">
@@ -761,10 +1005,9 @@ export function SendInvoiceForm() {
           <p className="text-[11px] text-on-surface-variant pt-1">
             Payment options:{' '}
             {acceptedMethods
-              .map((m) =>
-                m === 'ach' ? 'ACH' : m === 'zelle' ? 'Zelle' : 'Credit card',
-              )
+              .map((m) => (m === 'ach' ? 'ACH' : m === 'zelle' ? 'Zelle' : 'Credit card'))
               .join(' · ')}
+            {form.tripType === 'charter' ? ' · Charter' : ''}
           </p>
         )}
       </div>
@@ -772,7 +1015,7 @@ export function SendInvoiceForm() {
       <button
         type="button"
         onClick={submit}
-        disabled={pending || acceptedMethods.length === 0}
+        disabled={pending || acceptedMethods.length === 0 || !vendorSelection}
         className="gold-shimmer w-full flex items-center justify-center gap-2 font-semibold tracking-wide text-sm py-3 rounded-xl disabled:opacity-60"
       >
         {pending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}

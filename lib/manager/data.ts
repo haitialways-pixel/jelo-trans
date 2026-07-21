@@ -345,3 +345,204 @@ export async function getChauffeurs(): Promise<Chauffeur[]> {
   }
   return data as Chauffeur[]
 }
+
+/** Bill-to vendor for staff invoices. */
+export type Vendor = {
+  id: string
+  name: string
+  company: string | null
+  email: string
+  phone: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export async function getVendors(): Promise<Vendor[]> {
+  const supabase = await staffDb()
+  const { data, error } = await supabase
+    .from('vendors')
+    .select('id, name, company, email, phone, notes, created_at, updated_at')
+    .order('name', { ascending: true })
+
+  if (error) {
+    // Table may not exist until migration is applied — degrade gracefully.
+    console.error('[manager] getVendors:', error.message)
+    return []
+  }
+  return (data ?? []) as Vendor[]
+}
+
+/** Line item snapshot stored on a sent invoice. */
+export type StoredInvoiceLineItem = {
+  description: string
+  quantity: number
+  unitPrice: number
+  lineTotal: number
+}
+
+/** Persisted vendor invoice (sent and retrievable by staff). */
+export type StoredInvoice = {
+  id: string
+  invoice_number: string
+  vendor_id: string | null
+  vendor_name: string
+  vendor_company: string | null
+  vendor_email: string
+  vendor_phone: string | null
+  company_name: string
+  company_address: string | null
+  company_phone: string | null
+  company_email: string | null
+  company_website: string | null
+  invoice_date: string
+  due_date: string | null
+  trip_type: 'one_way' | 'round_trip' | 'charter' | null
+  duration_hours: number | null
+  origin: string | null
+  destination: string | null
+  departure_at: string | null
+  return_at: string | null
+  booking_ticket_number: string | null
+  items: StoredInvoiceLineItem[]
+  subtotal: number
+  tax_label: string | null
+  tax_amount: number
+  discount_amount: number
+  other_fees: number
+  other_fees_label: string | null
+  amount_due: number
+  notes: string | null
+  accepted_methods: string[]
+  ach_instructions: string | null
+  zelle_instructions: string | null
+  card_instructions: string | null
+  card_payment_link: string | null
+  email_message_id: string | null
+  sent_to: string
+  sent_at: string
+  status: 'sent' | 'void'
+  created_at: string
+}
+
+function normalizeInvoiceRow(row: Record<string, unknown>): StoredInvoice {
+  const rawItems = Array.isArray(row.items) ? row.items : []
+  const items: StoredInvoiceLineItem[] = rawItems
+    .map((it) => {
+      if (!it || typeof it !== 'object') return null
+      const o = it as Record<string, unknown>
+      const description = String(o.description ?? '').trim()
+      const quantity = Number(o.quantity)
+      const unitPrice = Number(o.unitPrice ?? o.unit_price)
+      const lineTotal = Number(o.lineTotal ?? o.line_total)
+      if (!description || !Number.isFinite(quantity) || !Number.isFinite(unitPrice)) return null
+      return {
+        description,
+        quantity,
+        unitPrice,
+        lineTotal: Number.isFinite(lineTotal)
+          ? lineTotal
+          : Math.round(quantity * unitPrice * 100) / 100,
+      }
+    })
+    .filter((x): x is StoredInvoiceLineItem => x != null)
+
+  const methods = Array.isArray(row.accepted_methods)
+    ? (row.accepted_methods as string[])
+    : []
+
+  return {
+    id: String(row.id),
+    invoice_number: String(row.invoice_number),
+    vendor_id: (row.vendor_id as string | null) ?? null,
+    vendor_name: String(row.vendor_name ?? ''),
+    vendor_company: (row.vendor_company as string | null) ?? null,
+    vendor_email: String(row.vendor_email ?? ''),
+    vendor_phone: (row.vendor_phone as string | null) ?? null,
+    company_name: String(row.company_name ?? 'Imperial Odyssey, LLC'),
+    company_address: (row.company_address as string | null) ?? null,
+    company_phone: (row.company_phone as string | null) ?? null,
+    company_email: (row.company_email as string | null) ?? null,
+    company_website: (row.company_website as string | null) ?? null,
+    invoice_date: String(row.invoice_date),
+    due_date: (row.due_date as string | null) ?? null,
+    trip_type:
+      row.trip_type === 'one_way' ||
+      row.trip_type === 'round_trip' ||
+      row.trip_type === 'charter'
+        ? row.trip_type
+        : null,
+    duration_hours:
+      row.duration_hours != null && Number.isFinite(Number(row.duration_hours))
+        ? Number(row.duration_hours)
+        : null,
+    origin: (row.origin as string | null) ?? null,
+    destination: (row.destination as string | null) ?? null,
+    departure_at: (row.departure_at as string | null) ?? null,
+    return_at: (row.return_at as string | null) ?? null,
+    booking_ticket_number: (row.booking_ticket_number as string | null) ?? null,
+    items,
+    subtotal: Number(row.subtotal ?? 0),
+    tax_label: (row.tax_label as string | null) ?? null,
+    tax_amount: Number(row.tax_amount ?? 0),
+    discount_amount: Number(row.discount_amount ?? 0),
+    other_fees: Number(row.other_fees ?? 0),
+    other_fees_label: (row.other_fees_label as string | null) ?? null,
+    amount_due: Number(row.amount_due ?? 0),
+    notes: (row.notes as string | null) ?? null,
+    accepted_methods: methods,
+    ach_instructions: (row.ach_instructions as string | null) ?? null,
+    zelle_instructions: (row.zelle_instructions as string | null) ?? null,
+    card_instructions: (row.card_instructions as string | null) ?? null,
+    card_payment_link: (row.card_payment_link as string | null) ?? null,
+    email_message_id: (row.email_message_id as string | null) ?? null,
+    sent_to: String(row.sent_to ?? row.vendor_email ?? ''),
+    sent_at: String(row.sent_at ?? row.created_at),
+    status: row.status === 'void' ? 'void' : 'sent',
+    created_at: String(row.created_at ?? row.sent_at),
+  }
+}
+
+export async function getSentInvoices(opts?: {
+  limit?: number
+  vendorId?: string
+}): Promise<StoredInvoice[]> {
+  const supabase = await staffDb()
+  const limit = Math.min(Math.max(opts?.limit ?? 50, 1), 200)
+
+  let q = supabase
+    .from('invoices')
+    .select('*')
+    .order('sent_at', { ascending: false })
+    .limit(limit)
+
+  if (opts?.vendorId) {
+    q = q.eq('vendor_id', opts.vendorId)
+  }
+
+  const { data, error } = await q
+
+  if (error) {
+    console.error('[manager] getSentInvoices:', error.message)
+    return []
+  }
+
+  return (data ?? []).map((row) => normalizeInvoiceRow(row as Record<string, unknown>))
+}
+
+export async function getSentInvoiceById(id: string): Promise<StoredInvoice | null> {
+  if (!id?.trim()) return null
+  const supabase = await staffDb()
+  const { data, error } = await supabase
+    .from('invoices')
+    .select('*')
+    .eq('id', id.trim())
+    .maybeSingle()
+
+  if (error) {
+    console.error('[manager] getSentInvoiceById:', error.message)
+    return null
+  }
+  if (!data) return null
+  return normalizeInvoiceRow(data as Record<string, unknown>)
+}

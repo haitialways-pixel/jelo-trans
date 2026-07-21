@@ -23,7 +23,9 @@ export type VendorInvoiceEmailProps = {
   invoiceNumber: string
   invoiceDate: string
   dueDate?: string
-  tripType?: 'one_way' | 'round_trip'
+  tripType?: 'one_way' | 'round_trip' | 'charter'
+  /** Hours for charter / as-directed service. */
+  durationHours?: number
   vendorName: string
   vendorCompany?: string
   vendorEmail?: string
@@ -75,9 +77,11 @@ function buildInvoiceContent(props: VendorInvoiceEmailProps): {
   const tripLabel =
     props.tripType === 'round_trip'
       ? 'Round Trip'
-      : props.tripType === 'one_way'
-        ? 'One-Way'
-        : undefined
+      : props.tripType === 'charter'
+        ? 'Charter / As-directed'
+        : props.tripType === 'one_way'
+          ? 'One-Way'
+          : undefined
 
   const companyLine = [props.companyPhone, props.companyEmail, props.companyWebsite]
     .filter(Boolean)
@@ -85,6 +89,10 @@ function buildInvoiceContent(props: VendorInvoiceEmailProps): {
 
   const billTo = [props.vendorName, props.vendorCompany].filter(Boolean).join(' · ')
   const vendorContact = [props.vendorEmail, props.vendorPhone].filter(Boolean).join(' · ')
+  const durationLabel =
+    props.durationHours != null && props.durationHours > 0
+      ? `${props.durationHours} hour${props.durationHours === 1 ? '' : 's'}`
+      : undefined
 
   // ---- plain text ----
   const textLines: string[] = [
@@ -96,18 +104,32 @@ function buildInvoiceContent(props: VendorInvoiceEmailProps): {
     `Invoice date: ${props.invoiceDate}`,
     props.dueDate ? `Due date: ${props.dueDate}` : '',
     tripLabel ? `Trip type: ${tripLabel}` : '',
+    durationLabel ? `Duration: ${durationLabel}` : '',
     `Bill to: ${billTo}`,
     vendorContact,
     props.bookingTicketNumber ? `Booking / ticket #: ${props.bookingTicketNumber}` : '',
     '',
   ]
 
-  if (props.origin || props.destination || props.departureDateTime || props.returnDateTime) {
+  if (
+    props.origin ||
+    props.destination ||
+    props.departureDateTime ||
+    props.returnDateTime ||
+    durationLabel
+  ) {
     textLines.push('Trip details')
     if (props.origin) textLines.push(`From: ${props.origin}`)
-    if (props.destination) textLines.push(`To: ${props.destination}`)
-    if (props.departureDateTime) textLines.push(`Departure: ${props.departureDateTime}`)
+    if (props.destination) {
+      textLines.push(
+        props.tripType === 'charter'
+          ? `Service area / notes: ${props.destination}`
+          : `To: ${props.destination}`,
+      )
+    }
+    if (props.departureDateTime) textLines.push(`Start: ${props.departureDateTime}`)
     if (props.returnDateTime) textLines.push(`Return: ${props.returnDateTime}`)
+    if (durationLabel) textLines.push(`Duration: ${durationLabel}`)
     textLines.push('')
   }
 
@@ -172,6 +194,7 @@ function buildInvoiceContent(props: VendorInvoiceEmailProps): {
   const metaRows: Array<[string, string]> = [['Invoice date', props.invoiceDate]]
   if (props.dueDate) metaRows.push(['Due date', props.dueDate])
   if (tripLabel) metaRows.push(['Trip type', tripLabel])
+  if (durationLabel) metaRows.push(['Duration', durationLabel])
   metaRows.push(['Bill to', billTo])
   if (vendorContact) metaRows.push(['Contact', vendorContact])
   if (props.bookingTicketNumber) metaRows.push(['Booking / ticket #', props.bookingTicketNumber])
@@ -188,9 +211,20 @@ function buildInvoiceContent(props: VendorInvoiceEmailProps): {
 
   const journeyRows: Array<[string, string]> = []
   if (props.origin) journeyRows.push(['From', props.origin])
-  if (props.destination) journeyRows.push(['To', props.destination])
-  if (props.departureDateTime) journeyRows.push(['Departure', props.departureDateTime])
+  if (props.destination) {
+    journeyRows.push([
+      props.tripType === 'charter' ? 'Service area / notes' : 'To',
+      props.destination,
+    ])
+  }
+  if (props.departureDateTime) {
+    journeyRows.push([
+      props.tripType === 'charter' ? 'Start' : 'Departure',
+      props.departureDateTime,
+    ])
+  }
   if (props.returnDateTime) journeyRows.push(['Return', props.returnDateTime])
+  if (durationLabel) journeyRows.push(['Duration', durationLabel])
   const journeyHtml =
     journeyRows.length > 0
       ? `<h3 style="margin:20px 0 8px;font-size:15px;color:#1f2937;">Trip details</h3>
