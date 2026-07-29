@@ -44,7 +44,7 @@ export function Footer() {
         <div className="luxe-divider mt-20 mb-8" />
 
         <p className="text-xs text-on-surface-variant tracking-wide">
-          © {new Date().getFullYear()} Imperial Odyssey, LLC · Orlando, Florida
+          © {new Date().getFullYear()} Imperial Odyssey · Orlando, Florida
         </p>
       </div>
     </footer>

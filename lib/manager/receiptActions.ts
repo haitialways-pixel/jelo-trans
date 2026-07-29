@@ -392,7 +392,7 @@ export async function sendManualReceipt(input: ManualReceiptInput): Promise<Send
     const tripType =
       input.tripType === 'round_trip' || input.tripType === 'one_way' ? input.tripType : undefined
 
-    const companyName = input.companyName?.trim() || 'Imperial Odyssey, LLC'
+    const companyName = input.companyName?.trim() || 'Imperial Odyssey'
     const companyAddress = input.companyAddress?.trim() || 'Orlando, Florida'
     const companyPhone = input.companyPhone?.trim() || '(678) 478-3506'
     const companyEmail = input.companyEmail?.trim() || 'info@vipodyssey.com'
@@ -574,11 +574,11 @@ export async function sendVendorInvoice(input: VendorInvoiceInput): Promise<Send
         ? Math.round(durationHoursRaw * 100) / 100
         : undefined
 
-    const companyName = input.companyName?.trim() || 'Imperial Odyssey, LLC'
+    const companyName = input.companyName?.trim() || 'Imperial Odyssey'
     const companyAddress = input.companyAddress?.trim() || 'Orlando, Florida'
     const companyPhone = input.companyPhone?.trim() || '(678) 478-3506'
-    const companyEmail = input.companyEmail?.trim() || 'info@phalotrans.com'
-    const companyWebsite = input.companyWebsite?.trim() || 'phalotrans.com'
+    const companyEmail = input.companyEmail?.trim() || 'info@vipodyssey.com'
+    const companyWebsite = input.companyWebsite?.trim() || 'vipodyssey.com'
 
     const emailProps: VendorInvoiceEmailProps = {
       companyName,
@@ -921,7 +921,7 @@ export async function resendStoredInvoice(
         : undefined
 
     const emailProps: VendorInvoiceEmailProps = {
-      companyName: row.company_name || 'Imperial Odyssey, LLC',
+      companyName: row.company_name || 'Imperial Odyssey',
       companyAddress: row.company_address || undefined,
       companyPhone: row.company_phone || undefined,
       companyEmail: row.company_email || undefined,

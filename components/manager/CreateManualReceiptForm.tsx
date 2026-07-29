@@ -36,7 +36,7 @@ function localDatetimeValue(d = new Date()): string {
 }
 
 const COMPANY_DEFAULTS = {
-  companyName: 'Imperial Odyssey, LLC',
+  companyName: 'Imperial Odyssey',
   companyAddress: 'Orlando, Florida',
   companyPhone: '(678) 478-3506',
   companyEmail: 'info@vipodyssey.com',

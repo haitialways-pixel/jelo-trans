@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 }
 
 const EFFECTIVE_DATE = 'June 10, 2025'
-const COMPANY = 'Imperial Odyssey, LLC'
+const COMPANY = 'Imperial Odyssey'
 const STATE = 'Florida'
 const CITY = 'Orlando'
 const PHONE = '(678) 478-3506'

@@ -174,7 +174,7 @@ function buildInvoiceContent(props: VendorInvoiceEmailProps): {
   }
 
   textLines.push(`Please include invoice #${props.invoiceNumber} with your payment.`)
-  textLines.push(`Questions? ${props.companyPhone || '678-478-3506'} · ${props.companyWebsite || 'phalotrans.com'}`)
+  textLines.push(`Questions? ${props.companyPhone || '678-478-3506'} · ${props.companyWebsite || 'vipodyssey.com'}`)
 
   const text = textLines.filter((l) => l !== undefined && l !== '').join('\n')
 
@@ -347,7 +347,7 @@ function buildInvoiceContent(props: VendorInvoiceEmailProps): {
                   Thank you for your business.
                 </p>
                 <p style="margin:16px 0 0;font-size:12px;color:#9ca3af;line-height:1.5;">
-                  ${escapeHtml(props.companyName)} · ${escapeHtml(props.companyPhone || '678-478-3506')} · ${escapeHtml(props.companyWebsite || 'phalotrans.com')}<br />
+                  ${escapeHtml(props.companyName)} · ${escapeHtml(props.companyPhone || '678-478-3506')} · ${escapeHtml(props.companyWebsite || 'vipodyssey.com')}<br />
                   This is a transactional invoice for services rendered.
                 </p>
               </td>

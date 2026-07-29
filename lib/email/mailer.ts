@@ -315,7 +315,7 @@ export function getMailSetupHint(): string | null {
   if (isResendSandboxMode()) {
     return (
       'Resend sandbox mode: customer emails can ONLY be delivered to your Resend account signup email ' +
-      '(manager alerts to info.phalotrans@gmail.com may work, but other customer addresses will fail). ' +
+      '(manager alerts to info@vipodyssey.com may work, but other customer addresses will fail). ' +
       'Verify vipodyssey.com in Resend, set BOOKING_FROM_ADDRESS=bookings@vipodyssey.com, then remove RESEND_USE_SANDBOX_FROM.'
     )
   }

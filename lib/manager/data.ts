@@ -459,7 +459,7 @@ function normalizeInvoiceRow(row: Record<string, unknown>): StoredInvoice {
     vendor_company: (row.vendor_company as string | null) ?? null,
     vendor_email: String(row.vendor_email ?? ''),
     vendor_phone: (row.vendor_phone as string | null) ?? null,
-    company_name: String(row.company_name ?? 'Imperial Odyssey, LLC'),
+    company_name: String(row.company_name ?? 'Imperial Odyssey'),
     company_address: (row.company_address as string | null) ?? null,
     company_phone: (row.company_phone as string | null) ?? null,
     company_email: (row.company_email as string | null) ?? null,

@@ -46,7 +46,7 @@ const EmailLayout = ({ children, previewText }: { children: React.ReactNode; pre
 
         {/* Footer */}
         <Text style={{ color: '#666666', fontSize: '12px', textAlign: 'center', lineHeight: '1.5' }}>
-          Imperial Odyssey LLC • 678-478-3506<br />
+          Imperial Odyssey • 678-478-3506<br />
           <Link href="https://vipodyssey.com" style={{ color: '#3b82f6' }}>vipodyssey.com</Link>
         </Text>
 

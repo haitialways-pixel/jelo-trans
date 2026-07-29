@@ -59,11 +59,11 @@ function defaultDueDate(): string {
 }
 
 const COMPANY_DEFAULTS = {
-  companyName: 'Imperial Odyssey, LLC',
+  companyName: 'Imperial Odyssey',
   companyAddress: 'Orlando, Florida',
   companyPhone: '(678) 478-3506',
-  companyEmail: 'info@phalotrans.com',
-  companyWebsite: 'phalotrans.com',
+  companyEmail: 'info@vipodyssey.com',
+  companyWebsite: 'vipodyssey.com',
 }
 
 type FormState = typeof COMPANY_DEFAULTS & {
