@@ -1,4 +1,4 @@
-# Tarification Phalo Transportation — proposition
+# Tarification Imperial Odyssey — proposition
 
 *(Note perso pour le boss. Le détail chiffré est juste en dessous si tu veux creuser.)*
 
@@ -56,7 +56,7 @@ Fare = ( Base + Per-mile × miles + Per-minute × minutes ) × Surge  + Booking 
 | Surge | ×2–5 on trip portion | mostly flat (premium = stable) |
 | Example | 5 mi ≈ $15–22 | 10 mi / 20 min ≈ $45–65 |
 
-**Takeaways we copy:** (a) split price into legible components; (b) always enforce a **minimum fare**; (c) a **peak multiplier** for high demand. **What Uber Black teaches:** luxury buyers will pay 20–40%+ more for a *stable, premium, no-surprise* experience — that is exactly Phalo Transportation's lane.
+**Takeaways we copy:** (a) split price into legible components; (b) always enforce a **minimum fare**; (c) a **peak multiplier** for high demand. **What Uber Black teaches:** luxury buyers will pay 20–40%+ more for a *stable, premium, no-surprise* experience — that is exactly Imperial Odyssey's lane.
 
 ---
 
@@ -165,7 +165,7 @@ Presented to the customer as a clean **fixed price** ("$X, all-in, no surge") �
 
 ## 7. Competitive positioning
 
-| | Uber Black | **Phalo Transportation** |
+| | Uber Black | **Imperial Odyssey** |
 |---|---|---|
 | Price | Variable, can surge | **Fixed, all-in, no surprises** |
 | Vehicle | Whatever shows up | **Guaranteed specific vehicle** |

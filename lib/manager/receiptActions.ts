@@ -326,8 +326,8 @@ export async function sendManualReceipt(input: ManualReceiptInput): Promise<Send
     const companyName = input.companyName?.trim() || 'Imperial Odyssey, LLC'
     const companyAddress = input.companyAddress?.trim() || 'Orlando, Florida'
     const companyPhone = input.companyPhone?.trim() || '(678) 478-3506'
-    const companyEmail = input.companyEmail?.trim() || 'info@phalotrans.com'
-    const companyWebsite = input.companyWebsite?.trim() || 'phalotrans.com'
+    const companyEmail = input.companyEmail?.trim() || 'info@vipodyssey.com'
+    const companyWebsite = input.companyWebsite?.trim() || 'vipodyssey.com'
 
     const emailProps: ManualReceiptEmailProps = {
       companyName,

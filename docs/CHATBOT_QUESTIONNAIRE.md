@@ -1,4 +1,4 @@
-# Phalo Transportation — Assistant Policy Sheet (quick-fill)
+# Imperial Odyssey — Assistant Policy Sheet (quick-fill)
 
 **For:** ownership / management. **Time to fill:** ~15 minutes.
 
@@ -187,7 +187,7 @@ stuff (fleet, live prices, availability, booking). Here we just need your **poli
     A:
 72. Hours of operation:
     [ ] 24/7   [ ] Other ___
-73. One line on what makes Phalo Transportation better than Uber/Lyft or a taxi:
+73. One line on what makes Imperial Odyssey better than Uber/Lyft or a taxi:
     A:
 74. Anything customers often ask that we haven't covered here?
     A:

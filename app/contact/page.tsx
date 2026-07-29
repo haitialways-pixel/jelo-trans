@@ -23,8 +23,8 @@ export default function ContactPage() {
           </div>
           <div>
             <p className="text-xs tracking-[0.25em] uppercase text-on-surface-variant mb-3">Email</p>
-            <a href="mailto:concierge@phalotrans.com" className="text-xl hover:text-gold transition">
-              concierge@phalotrans.com
+            <a href="mailto:concierge@vipodyssey.com" className="text-xl hover:text-gold transition">
+              concierge@vipodyssey.com
             </a>
           </div>
           <div>

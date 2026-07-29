@@ -1,4 +1,4 @@
-# Phalo Transportation — Project Handoff & Status
+# Imperial Odyssey — Project Handoff & Status
 
 **For:** ownership / management · **Date:** 2026-06-03
 One page: what works, what's left, and the decisions we need from you.

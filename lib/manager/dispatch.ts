@@ -50,7 +50,7 @@ export async function notifyDriverDispatch(input: DispatchInput): Promise<Dispat
     `\nPassengers: ${r.passengers}` +
     (r.luggage ? `\nLuggage: ${r.luggage}` : '') +
     (r.special_requests ? `\nNotes: ${r.special_requests}` : '') +
-    `\nReply to: concierge@phalotrans.com`
+    `\nReply to: concierge@vipodyssey.com`
 
   const result: DispatchResult = {
     email: channelIdle('email not configured'),

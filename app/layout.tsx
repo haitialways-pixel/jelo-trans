@@ -21,7 +21,7 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://phalotrans.com"),
+  metadataBase: new URL("https://vipodyssey.com"),
   title: "Imperial Odyssey | Premium Orlando Chauffeur Service",
   description: "Luxury limousine and chauffeur service in Orlando, Florida. MCO airport transfers, hourly rentals, weddings, and corporate events. Professional chauffeurs available 24/7.",
   icons: { icon: "/favicon.ico" },

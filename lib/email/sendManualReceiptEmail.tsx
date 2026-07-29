@@ -115,7 +115,7 @@ function buildManualReceiptContent(props: ManualReceiptEmailProps): {
   if (props.paymentReference) textLines.push(`Payment reference: ${props.paymentReference}`)
   textLines.push('')
   textLines.push(`Thank you for choosing ${props.companyName}.`)
-  textLines.push('Questions? Call 678-478-3506 · phalotrans.com')
+  textLines.push('Questions? Call 678-478-3506 · vipodyssey.com')
 
   const text = textLines.filter((l) => l !== undefined).join('\n')
 
@@ -260,7 +260,7 @@ function buildManualReceiptContent(props: ManualReceiptEmailProps): {
                   Thank you for choosing <strong>${escapeHtml(props.companyName)}</strong>. We appreciate your business.
                 </p>
                 <p style="margin:16px 0 0;font-size:12px;color:#9ca3af;line-height:1.5;">
-                  Imperial Odyssey · 678-478-3506 · phalotrans.com<br />
+                  Imperial Odyssey · 678-478-3506 · vipodyssey.com<br />
                   This is a transactional receipt. For questions, call us at 678-478-3506.
                 </p>
               </td>
@@ -369,7 +369,7 @@ export async function sendReservationReceiptEmail(input: {
     ...rows.map(([l, v]) => `${l}: ${v}`),
     '',
     'Thank you for choosing Imperial Odyssey!',
-    'Questions? Call 678-478-3506 · phalotrans.com',
+    'Questions? Call 678-478-3506 · vipodyssey.com',
   ].join('\n')
 
   const html = `<!DOCTYPE html>
@@ -391,7 +391,7 @@ export async function sendReservationReceiptEmail(input: {
                 </table>
                 <p style="margin:0 0 16px;color:#374151;line-height:1.5;">We hope to serve you again soon.</p>
                 <p style="margin:0;font-size:12px;color:#9ca3af;line-height:1.5;">
-                  Imperial Odyssey · 678-478-3506 · phalotrans.com
+                  Imperial Odyssey · 678-478-3506 · vipodyssey.com
                 </p>
               </td>
             </tr>

@@ -1,7 +1,7 @@
-# Phalo Transportation — Codebase Handoff
+# Imperial Odyssey — Codebase Handoff
 
 A luxury chauffeur booking platform built on Next.js 16 + Supabase + Stripe.
-This codebase has been pre-branded for **Phalo Transportation** but every
+This codebase has been pre-branded for **Imperial Odyssey** but every
 configuration value (API keys, phone number, fleet photos) needs to be filled
 in by your team before going live.
 
@@ -51,7 +51,7 @@ cp .env.example .env.local
 # In Supabase Dashboard → Authentication → Add user → enter the manager email & password,
 # then in the SQL Editor:
 #   INSERT INTO public.staff (id, full_name, role)
-#   VALUES ('<user-id-from-auth>', 'Phalo Manager', 'admin');
+#   VALUES ('<user-id-from-auth>', 'Imperial Odyssey Manager', 'admin');
 
 # 5. Launch
 npm run dev
@@ -74,7 +74,7 @@ npm run dev
 | `GOOGLE_MAPS_API_KEY` | Distance & autocomplete | Google Cloud Console — enable Distance Matrix API + Places API |
 | `RESEND_API_KEY` | Email | Resend Dashboard → API Keys |
 | `BOOKING_FROM_EMAIL` | Email | The verified sender address for Resend |
-| `SITE_URL` | Email links | Your public URL (e.g. `https://phalotransportation.com`) |
+| `SITE_URL` | Email links | Your public URL (e.g. `https://vipodyssey.com`) |
 | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | Optional | @BotFather on Telegram, then `/getUpdates` to find chat id |
 | `MANAGEMENT_EMAIL` | Optional fallback | Recipient for ops alerts if Telegram isn't set |
 
@@ -117,15 +117,15 @@ The repo also supports deployment to Cloudflare (see `npm run deploy` and `npm r
 
 ---
 
-## Things Phalo must customize before going live
+## Things Imperial Odyssey must customize before going live
 
 - [ ] **Fleet photos** — replace files in `public/images/` (Suburban, Yukon XL, Expedition, Sprinter, Sedan). The current paths are placeholders.
 - [ ] **Hero image** — `public/images/stitch-hero-night.jpg` is the homepage background.
 - [ ] **Fleet pricing** — open `/manager/fleet` and edit base price, per-mile rate, and minimum per vehicle. (Or seed your own values in `supabase/schema.sql` before first run.)
-- [ ] **About / contact / services copy** — `app/about/page.tsx`, `app/contact/page.tsx`, `app/services/page.tsx` carry the brand voice; rewrite to match Phalo's positioning.
-- [ ] **Chatbot knowledge** — `lib/chatbot/knowledge.ts` contains the FAQ answers; update to reflect Phalo's policies.
+- [ ] **About / contact / services copy** — `app/about/page.tsx`, `app/contact/page.tsx`, `app/services/page.tsx` carry the brand voice; rewrite to match Imperial Odyssey's positioning.
+- [ ] **Chatbot knowledge** — `lib/chatbot/knowledge.ts` contains the FAQ answers; update to reflect Imperial Odyssey's policies.
 - [ ] **Email copy** — `lib/email/sendBookingConfirmation.ts`, `sendChauffeurArrived.ts`, `sendRideComplete.ts` use a concierge voice; review and adjust.
-- [ ] **Brand domain** — search and replace `phalotransportation.com` with the real domain once registered.
+- [ ] **Brand domain** — search and replace `vipodyssey.com` with the real domain once registered.
 
 ---
 
@@ -172,7 +172,7 @@ lib/
   security/rateLimit.ts  # DB-backed rate limiting helper
   chatbot/               # LLM-free retrieval bot + safe actions
 supabase/schema.sql      # Complete schema with RLS + RPCs; idempotent.
-public/images/           # Brand assets (replace with Phalo's photos)
+public/images/           # Brand assets (replace with Imperial Odyssey's photos)
 docs/                    # Internal documentation
 ```
 
@@ -184,4 +184,4 @@ The code is self-contained and documented inline. Start with `supabase/schema.sq
 (the database is the source of truth) and `lib/fleet.ts` (the entry point used by
 every page that needs vehicle data).
 
-Good luck — Phalo Transportation is going to look great. 🚙
+Good luck — Imperial Odyssey is going to look great. 🚙
