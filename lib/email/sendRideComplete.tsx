@@ -2,6 +2,7 @@ import * as React from 'react'
 import { sendTemplatedMail } from './mailer'
 import { RideCompletedEmail } from '@/lib/emails'
 import { fmtDate, EMAIL_RE } from './format'
+import { BRAND_NAME } from '@/lib/site'
 
 export type Input = {
   to: string
@@ -24,7 +25,7 @@ export async function sendRideComplete(i: Input): Promise<EmailResult> {
   return sendTemplatedMail({
     to: i.to,
     fromKind: 'customer',
-    subject: `Thank you for riding with Imperial Odyssey — Booking #${i.bookingNumber}`,
+    subject: `Thank you for riding with ${BRAND_NAME} — Booking #${i.bookingNumber}`,
     react: (
       <RideCompletedEmail
         customerName={i.customerName}

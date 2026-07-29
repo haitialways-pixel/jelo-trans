@@ -2,6 +2,7 @@
 // sendBookingConfirmation. React Email render has failed on Workers/serverless.
 import { sendMail } from './mailer'
 import { EMAIL_RE, fmtMoney } from './format'
+import { BRAND_NAME, BRAND_PHONE, BRAND_WEBSITE, normalizeBrandWebsite } from '@/lib/site'
 
 export type EmailResult = { sent: boolean; reason?: string; id?: string }
 
@@ -66,7 +67,8 @@ function buildManualReceiptContent(props: ManualReceiptEmailProps): {
         : undefined
   const balance = Math.max(0, props.grandTotal - props.amountPaid)
 
-  const companyLine = [props.companyPhone, props.companyEmail, props.companyWebsite]
+  const companyWebsite = normalizeBrandWebsite(props.companyWebsite)
+  const companyLine = [props.companyPhone, props.companyEmail, companyWebsite]
     .filter(Boolean)
     .join(' · ')
 
@@ -115,7 +117,7 @@ function buildManualReceiptContent(props: ManualReceiptEmailProps): {
   if (props.paymentReference) textLines.push(`Payment reference: ${props.paymentReference}`)
   textLines.push('')
   textLines.push(`Thank you for choosing ${props.companyName}.`)
-  textLines.push('Questions? Call 678-478-3506 · vipodyssey.com')
+  textLines.push(`Questions? Call ${BRAND_PHONE} · ${companyWebsite}`)
 
   const text = textLines.filter((l) => l !== undefined).join('\n')
 
@@ -260,8 +262,8 @@ function buildManualReceiptContent(props: ManualReceiptEmailProps): {
                   Thank you for choosing <strong>${escapeHtml(props.companyName)}</strong>. We appreciate your business.
                 </p>
                 <p style="margin:16px 0 0;font-size:12px;color:#9ca3af;line-height:1.5;">
-                  Imperial Odyssey · 678-478-3506 · vipodyssey.com<br />
-                  This is a transactional receipt. For questions, call us at 678-478-3506.
+                  ${escapeHtml(props.companyName)} · ${BRAND_PHONE} · ${escapeHtml(companyWebsite || BRAND_WEBSITE)}<br />
+                  This is a transactional receipt. For questions, call us at ${BRAND_PHONE}.
                 </p>
               </td>
             </tr>
@@ -365,11 +367,11 @@ export async function sendReservationReceiptEmail(input: {
   const text = [
     `Dear ${input.customerName},`,
     '',
-    'Your Imperial Odyssey payment receipt:',
+    `Your ${BRAND_NAME} payment receipt:`,
     ...rows.map(([l, v]) => `${l}: ${v}`),
     '',
-    'Thank you for choosing Imperial Odyssey!',
-    'Questions? Call 678-478-3506 · vipodyssey.com',
+    `Thank you for choosing ${BRAND_NAME}!`,
+    `Questions? Call ${BRAND_PHONE} · ${BRAND_WEBSITE}`,
   ].join('\n')
 
   const html = `<!DOCTYPE html>
@@ -384,14 +386,14 @@ export async function sendReservationReceiptEmail(input: {
                 <h1 style="margin:0 0 16px;font-size:22px;color:#1f2937;">Payment Receipt</h1>
                 <p style="margin:0 0 16px;color:#374151;line-height:1.5;">Dear ${escapeHtml(input.customerName)},</p>
                 <p style="margin:0 0 16px;color:#374151;line-height:1.5;">
-                  Thank you for riding with <strong>Imperial Odyssey</strong>. Here is your receipt.
+                  Thank you for riding with <strong>${BRAND_NAME}</strong>. Here is your receipt.
                 </p>
                 <table role="presentation" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;margin:0 0 20px;">
                   ${htmlRows}
                 </table>
                 <p style="margin:0 0 16px;color:#374151;line-height:1.5;">We hope to serve you again soon.</p>
                 <p style="margin:0;font-size:12px;color:#9ca3af;line-height:1.5;">
-                  Imperial Odyssey · 678-478-3506 · vipodyssey.com
+                  ${BRAND_NAME} · ${BRAND_PHONE} · ${escapeHtml(BRAND_WEBSITE)}
                 </p>
               </td>
             </tr>

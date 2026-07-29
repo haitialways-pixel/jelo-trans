@@ -1,6 +1,7 @@
 import { sendDriverDispatch } from '@/lib/email/sendDriverDispatch'
 import { sendSms } from '@/lib/sms/notify'
 import type { ManagerReservation } from '@/lib/manager/data'
+import { BRAND_CONCIERGE_EMAIL, BRAND_NAME } from '@/lib/site'
 
 export type ChauffeurContact = {
   id: string
@@ -38,7 +39,7 @@ export async function notifyDriverDispatch(input: DispatchInput): Promise<Dispat
   const { reservation: r, chauffeur: c, vehicleName } = input
   const unitLabel = r.assigned_unit?.label ?? null
   const body =
-    `Imperial Odyssey — Trip Assignment\n` +
+    `${BRAND_NAME} — Trip Assignment\n` +
     `Booking: ${r.booking_number}\n` +
     `Customer: ${r.customer_name}\n` +
     `Phone: ${r.customer_phone}\n` +
@@ -50,7 +51,7 @@ export async function notifyDriverDispatch(input: DispatchInput): Promise<Dispat
     `\nPassengers: ${r.passengers}` +
     (r.luggage ? `\nLuggage: ${r.luggage}` : '') +
     (r.special_requests ? `\nNotes: ${r.special_requests}` : '') +
-    `\nReply to: concierge@vipodyssey.com`
+    `\nReply to: ${BRAND_CONCIERGE_EMAIL}`
 
   const result: DispatchResult = {
     email: channelIdle('email not configured'),

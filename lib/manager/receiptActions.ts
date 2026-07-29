@@ -20,6 +20,13 @@ import {
 import { sendSms } from '@/lib/sms/notify'
 import { fmtDate, fmtDateTime, fmtMoney } from '@/lib/email/format'
 import { isMailConfigured, getMailSetupHint } from '@/lib/email/mailer'
+import {
+  BRAND_NAME,
+  BRAND_PHONE,
+  BRAND_PHONE_DISPLAY,
+  normalizeBrandEmail,
+  normalizeBrandWebsite,
+} from '@/lib/site'
 import { revalidatePath } from 'next/cache'
 
 export type InvoiceTripType = 'one_way' | 'round_trip' | 'charter'
@@ -268,14 +275,14 @@ export async function sendCustomerReceipt(
         const tripDate = res.pickup_time ? fmtDate(res.pickup_time) : 'N/A'
         const totalLabel = total != null ? fmtMoney(total) : 'N/A'
         const body = [
-          `Imperial Odyssey receipt`,
+          `${BRAND_NAME} receipt`,
           `Booking #${res.booking_number}`,
           `Total: ${totalLabel}`,
           `Date: ${tripDate}`,
           res.pickup_address ? `From: ${res.pickup_address}` : null,
           res.dropoff_address ? `To: ${res.dropoff_address}` : null,
           res.payment_status === 'paid' ? 'Status: Paid' : `Payment: ${res.payment_status}`,
-          `Thank you! Qs: 678-478-3506`,
+          `Thank you! Qs: ${BRAND_PHONE}`,
         ]
           .filter(Boolean)
           .join('\n')
@@ -392,11 +399,11 @@ export async function sendManualReceipt(input: ManualReceiptInput): Promise<Send
     const tripType =
       input.tripType === 'round_trip' || input.tripType === 'one_way' ? input.tripType : undefined
 
-    const companyName = input.companyName?.trim() || 'Imperial Odyssey'
+    const companyName = input.companyName?.trim() || BRAND_NAME
     const companyAddress = input.companyAddress?.trim() || 'Orlando, Florida'
-    const companyPhone = input.companyPhone?.trim() || '(678) 478-3506'
-    const companyEmail = input.companyEmail?.trim() || 'info@vipodyssey.com'
-    const companyWebsite = input.companyWebsite?.trim() || 'vipodyssey.com'
+    const companyPhone = input.companyPhone?.trim() || BRAND_PHONE_DISPLAY
+    const companyEmail = normalizeBrandEmail(input.companyEmail)
+    const companyWebsite = normalizeBrandWebsite(input.companyWebsite)
 
     const emailProps: ManualReceiptEmailProps = {
       companyName,
@@ -574,11 +581,11 @@ export async function sendVendorInvoice(input: VendorInvoiceInput): Promise<Send
         ? Math.round(durationHoursRaw * 100) / 100
         : undefined
 
-    const companyName = input.companyName?.trim() || 'Imperial Odyssey'
+    const companyName = input.companyName?.trim() || BRAND_NAME
     const companyAddress = input.companyAddress?.trim() || 'Orlando, Florida'
-    const companyPhone = input.companyPhone?.trim() || '(678) 478-3506'
-    const companyEmail = input.companyEmail?.trim() || 'info@vipodyssey.com'
-    const companyWebsite = input.companyWebsite?.trim() || 'vipodyssey.com'
+    const companyPhone = input.companyPhone?.trim() || BRAND_PHONE_DISPLAY
+    const companyEmail = normalizeBrandEmail(input.companyEmail)
+    const companyWebsite = normalizeBrandWebsite(input.companyWebsite)
 
     const emailProps: VendorInvoiceEmailProps = {
       companyName,
@@ -921,11 +928,11 @@ export async function resendStoredInvoice(
         : undefined
 
     const emailProps: VendorInvoiceEmailProps = {
-      companyName: row.company_name || 'Imperial Odyssey',
+      companyName: row.company_name || BRAND_NAME,
       companyAddress: row.company_address || undefined,
-      companyPhone: row.company_phone || undefined,
-      companyEmail: row.company_email || undefined,
-      companyWebsite: row.company_website || undefined,
+      companyPhone: row.company_phone || BRAND_PHONE_DISPLAY,
+      companyEmail: normalizeBrandEmail(row.company_email),
+      companyWebsite: normalizeBrandWebsite(row.company_website),
       invoiceNumber: row.invoice_number,
       invoiceDate: row.invoice_date
         ? fmtDateTime(row.invoice_date)

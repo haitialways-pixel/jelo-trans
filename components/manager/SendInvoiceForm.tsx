@@ -20,6 +20,7 @@ import {
 } from '@/lib/manager/receiptActions'
 import type { InvoicePaymentMethod } from '@/lib/email/sendVendorInvoiceEmail'
 import type { Vendor } from '@/lib/manager/data'
+import { BRAND_EMAIL, BRAND_NAME, BRAND_PHONE_DISPLAY, BRAND_WEBSITE } from '@/lib/site'
 
 type LineItem = {
   key: string
@@ -59,11 +60,11 @@ function defaultDueDate(): string {
 }
 
 const COMPANY_DEFAULTS = {
-  companyName: 'Imperial Odyssey',
+  companyName: BRAND_NAME,
   companyAddress: 'Orlando, Florida',
-  companyPhone: '(678) 478-3506',
-  companyEmail: 'info@vipodyssey.com',
-  companyWebsite: 'vipodyssey.com',
+  companyPhone: BRAND_PHONE_DISPLAY,
+  companyEmail: BRAND_EMAIL,
+  companyWebsite: BRAND_WEBSITE,
 }
 
 type FormState = typeof COMPANY_DEFAULTS & {

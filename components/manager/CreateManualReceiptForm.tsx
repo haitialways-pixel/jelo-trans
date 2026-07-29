@@ -13,6 +13,7 @@ import {
   Trash2,
 } from 'lucide-react'
 import { sendManualReceipt } from '@/lib/manager/receiptActions'
+import { BRAND_EMAIL, BRAND_NAME, BRAND_PHONE_DISPLAY, BRAND_WEBSITE } from '@/lib/site'
 
 type LineItem = {
   key: string
@@ -36,11 +37,11 @@ function localDatetimeValue(d = new Date()): string {
 }
 
 const COMPANY_DEFAULTS = {
-  companyName: 'Imperial Odyssey',
+  companyName: BRAND_NAME,
   companyAddress: 'Orlando, Florida',
-  companyPhone: '(678) 478-3506',
-  companyEmail: 'info@vipodyssey.com',
-  companyWebsite: 'vipodyssey.com',
+  companyPhone: BRAND_PHONE_DISPLAY,
+  companyEmail: BRAND_EMAIL,
+  companyWebsite: BRAND_WEBSITE,
 }
 
 type FormState = typeof COMPANY_DEFAULTS & {

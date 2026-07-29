@@ -1,5 +1,6 @@
 import { sendMail } from './mailer'
 import { fmtDate, fmtTime, EMAIL_RE } from './format'
+import { BRAND_NAME, BRAND_PHONE, BRAND_WEBSITE } from '@/lib/site'
 
 export type BookingEmailInput = {
   to: string
@@ -44,11 +45,11 @@ function buildBookingConfirmationContent(i: BookingEmailInput): { html: string; 
   const textRows = rows.map(([label, value]) => `${label}: ${value}`).join('\n')
   const text =
     `Dear ${i.customerName},\n\n` +
-    `Great news — your Imperial Odyssey reservation has been confirmed by our team.\n\n` +
+    `Great news — your ${BRAND_NAME} reservation has been confirmed by our team.\n\n` +
     `${textRows}\n\n` +
     `We look forward to providing you with excellent service.\n\n` +
-    `Questions? Call us at 678-478-3506.\n\n` +
-    `— Imperial Odyssey\nwww.vipodyssey.com`
+    `Questions? Call us at ${BRAND_PHONE}.\n\n` +
+    `— ${BRAND_NAME}\n${BRAND_WEBSITE}`
 
   const htmlRows = rows
     .map(
@@ -70,12 +71,12 @@ function buildBookingConfirmationContent(i: BookingEmailInput): { html: string; 
                 <h1 style="margin:0 0 16px;font-size:22px;color:#1f2937;">Your Reservation is Confirmed!</h1>
                 <p style="margin:0 0 16px;color:#374151;line-height:1.5;">Dear ${escapeHtml(i.customerName)},</p>
                 <p style="margin:0 0 16px;color:#374151;line-height:1.5;">
-                  Great news — your <strong>Imperial Odyssey</strong> reservation has been confirmed by our team.
+                  Great news — your <strong>${BRAND_NAME}</strong> reservation has been confirmed by our team.
                 </p>
                 <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 0 20px;width:100%;border-collapse:collapse;">${htmlRows}</table>
                 <p style="margin:0 0 16px;color:#374151;line-height:1.5;">We look forward to providing you with excellent service.</p>
-                <p style="margin:0 0 20px;color:#374151;line-height:1.5;">Questions? Call us at 678-478-3506.</p>
-                <p style="margin:0;font-size:12px;color:#9ca3af;line-height:1.5;">Imperial Odyssey · vipodyssey.com</p>
+                <p style="margin:0 0 20px;color:#374151;line-height:1.5;">Questions? Call us at ${BRAND_PHONE}.</p>
+                <p style="margin:0;font-size:12px;color:#9ca3af;line-height:1.5;">${BRAND_NAME} · ${BRAND_WEBSITE}</p>
               </td>
             </tr>
           </table>
@@ -100,7 +101,7 @@ export async function sendBookingConfirmation(i: BookingEmailInput): Promise<Ema
   const result = await sendMail({
     to,
     fromKind: 'customer',
-    subject: `Your Imperial Odyssey booking #${i.bookingNumber} is confirmed`,
+    subject: `Your ${BRAND_NAME} booking #${i.bookingNumber} is confirmed`,
     html,
     text,
   })

@@ -2,6 +2,7 @@ import * as React from 'react'
 import { sendTemplatedMail } from './mailer'
 import { CancellationEmail } from '@/lib/emails'
 import { EMAIL_RE } from './format'
+import { BRAND_NAME } from '@/lib/site'
 
 export type Input = {
   to: string
@@ -17,7 +18,7 @@ export async function sendCancellation(i: Input): Promise<EmailResult> {
   return sendTemplatedMail({
     to: i.to,
     fromKind: 'customer',
-    subject: `Your Imperial Odyssey booking #${i.bookingNumber} has been cancelled`,
+    subject: `Your ${BRAND_NAME} booking #${i.bookingNumber} has been cancelled`,
     react: (
       <CancellationEmail
         customerName={i.customerName}

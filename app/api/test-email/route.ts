@@ -6,6 +6,7 @@ import {
   resolveFromHeader,
   sendMail,
 } from '@/lib/email/mailer'
+import { BRAND_NAME } from '@/lib/site'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
@@ -18,7 +19,7 @@ export async function GET(request: Request) {
     const result = await sendMail({
       to: testEmail,
       fromKind: kind,
-      subject: `🧪 Imperial Odyssey - Test Email (${kind})`,
+      subject: `🧪 ${BRAND_NAME} - Test Email (${kind})`,
       html: `
         <h2>Test Email Successful ✅</h2>
         <p>Kind: <strong>${kind}</strong></p>

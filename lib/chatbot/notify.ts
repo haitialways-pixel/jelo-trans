@@ -2,12 +2,13 @@
 // alerts (new booking, etc.).
 //
 // Telegram is optional and instant when configured. Email goes to MANAGEMENT_EMAIL
-// (defaults to info@vipodyssey.com). New online bookings always trigger email
+// (defaults to brand ops inbox). New online bookings always trigger email
 // even when Telegram is configured or deposit is unpaid.
 
 import { sendMail } from '@/lib/email/mailer'
+import { BRAND_EMAIL, rewriteLegacyEmailAddress } from '@/lib/site'
 
-const MANAGEMENT_EMAIL_DEFAULT = 'info@vipodyssey.com'
+const MANAGEMENT_EMAIL_DEFAULT = BRAND_EMAIL
 
 type NotifyInput = {
   message: string
@@ -28,7 +29,9 @@ type NotifyInput = {
 /** Ops inbox for booking alerts and escalations. Override with MANAGEMENT_EMAIL. */
 export function getManagementEmail(): string {
   const configured = process.env.MANAGEMENT_EMAIL?.trim()
-  if (configured && configured.includes('@')) return configured
+  if (configured && configured.includes('@')) {
+    return rewriteLegacyEmailAddress(configured, MANAGEMENT_EMAIL_DEFAULT)
+  }
   return MANAGEMENT_EMAIL_DEFAULT
 }
 

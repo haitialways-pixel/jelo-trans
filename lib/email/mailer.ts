@@ -2,6 +2,16 @@
 import { Resend } from 'resend'
 import { render } from '@react-email/render'
 import type { ReactElement } from 'react'
+import {
+  BRAND_BOOKINGS_EMAIL,
+  BRAND_CONCIERGE_EMAIL,
+  BRAND_EMAIL,
+  BRAND_NAME,
+  BRAND_NOREPLY_EMAIL,
+  BRAND_WEBSITE,
+  rewriteLegacyBrandText,
+  rewriteLegacyEmailAddress,
+} from '@/lib/site'
 
 let _resend: Resend | null = null
 
@@ -10,14 +20,14 @@ const SEND_TIMEOUT_MS = 15_000
 const SANDBOX_FROM = 'onboarding@resend.dev'
 
 /** Default display names per email category */
-export const CUSTOMER_FROM_NAME = 'Imperial Odyssey Booking'
-export const DISPATCH_FROM_NAME = 'Trip Dispatch - Imperial Odyssey'
+export const CUSTOMER_FROM_NAME = `${BRAND_NAME} Booking`
+export const DISPATCH_FROM_NAME = `Trip Dispatch - ${BRAND_NAME}`
 
 /** Default bare sender addresses (must be verified in Resend) */
-export const CUSTOMER_FROM_ADDRESS = 'bookings@vipodyssey.com'
-export const DISPATCH_FROM_ADDRESS = 'no-reply@vipodyssey.com'
+export const CUSTOMER_FROM_ADDRESS = BRAND_BOOKINGS_EMAIL
+export const DISPATCH_FROM_ADDRESS = BRAND_NOREPLY_EMAIL
 
-const DISPATCH_REPLY_TO_DEFAULT = 'concierge@vipodyssey.com'
+const DISPATCH_REPLY_TO_DEFAULT = BRAND_CONCIERGE_EMAIL
 
 export type EmailSenderKind = 'customer' | 'dispatch'
 
@@ -97,11 +107,15 @@ export function formatFromHeader(displayName: string, email: string): string {
 
 function readBareAddress(envKey: string, legacyEnvKey: string | null, fallback: string): string {
   const explicit = process.env[envKey]?.trim()
-  if (explicit && explicit.includes('@')) return explicit
+  if (explicit && explicit.includes('@')) {
+    return rewriteLegacyEmailAddress(explicit, fallback)
+  }
 
   if (legacyEnvKey) {
     const legacy = process.env[legacyEnvKey]?.trim()
-    if (legacy && legacy.includes('@')) return parseFromEmail(legacy)
+    if (legacy && legacy.includes('@')) {
+      return rewriteLegacyEmailAddress(parseFromEmail(legacy), fallback)
+    }
   }
 
   return fallback
@@ -123,7 +137,17 @@ function defaultAddressForKind(kind: EmailSenderKind): string {
 
 /** Resolve the full From header for a sender profile. */
 export function resolveFromHeader(overrides: FromOverrides = {}): string {
-  if (overrides.from?.trim()) return overrides.from.trim()
+  if (overrides.from?.trim()) {
+    const raw = overrides.from.trim()
+    const email = rewriteLegacyEmailAddress(parseFromEmail(raw), CUSTOMER_FROM_ADDRESS)
+    const name = parseFromName(raw) || defaultNameForKind(overrides.fromKind ?? 'customer')
+    if (useSandboxFrom()) return formatFromHeader(name, SANDBOX_FROM)
+    if (!isValidResendFromAddress(email)) {
+      console.warn('[email] invalid from address; using Resend sandbox sender', { email })
+      return formatFromHeader(name, SANDBOX_FROM)
+    }
+    return formatFromHeader(name, email)
+  }
 
   const kind = overrides.fromKind ?? 'customer'
 
@@ -132,7 +156,11 @@ export function resolveFromHeader(overrides: FromOverrides = {}): string {
     return formatFromHeader(name, SANDBOX_FROM)
   }
 
-  const email = overrides.fromAddress?.trim() || defaultAddressForKind(kind)
+  const fallback = defaultAddressForKind(kind)
+  const email = rewriteLegacyEmailAddress(
+    overrides.fromAddress?.trim() || fallback,
+    fallback,
+  )
   if (!isValidResendFromAddress(email)) {
     console.warn('[email] invalid from address; using Resend sandbox sender', { kind, email })
     const name = overrides.fromName?.trim() || defaultNameForKind(kind)
@@ -161,7 +189,9 @@ export function isResendSandboxMode(): boolean {
 /** Reply-To for driver dispatch — driver replies land here (defaults to concierge@vipodyssey.com). */
 export function getDispatchReplyToAddress(): string {
   const configured = process.env.DISPATCH_REPLY_TO_EMAIL?.trim()
-  if (configured && configured.includes('@')) return configured
+  if (configured && configured.includes('@')) {
+    return rewriteLegacyEmailAddress(configured, DISPATCH_REPLY_TO_DEFAULT)
+  }
   return DISPATCH_REPLY_TO_DEFAULT
 }
 
@@ -243,17 +273,23 @@ export async function sendTemplatedMail(
 
   const from = resolveFromHeader(input)
   try {
-    const html = await withTimeout(render(input.react), 'render email', RENDER_TIMEOUT_MS)
-    const text = htmlToPlainText(html)
+    const rendered = await withTimeout(render(input.react), 'render email', RENDER_TIMEOUT_MS)
+    // Final safety net: never deliver retired Phalo domains in any template email.
+    const html = rewriteLegacyBrandText(rendered)
+    const text = rewriteLegacyBrandText(htmlToPlainText(html))
+    const subject = rewriteLegacyBrandText(input.subject)
+    const replyTo = input.replyTo
+      ? rewriteLegacyEmailAddress(input.replyTo, DISPATCH_REPLY_TO_DEFAULT)
+      : undefined
 
     const result = await withTimeout(
       r.emails.send({
         from,
         to: input.to,
-        subject: input.subject,
+        subject,
         html,
         text,
-        ...(input.replyTo ? { replyTo: input.replyTo } : {}),
+        ...(replyTo ? { replyTo } : {}),
       }),
       'resend send',
     )
@@ -264,7 +300,7 @@ export async function sendTemplatedMail(
       return { sent: false, reason }
     }
 
-    console.info('[email] sent', { to: input.to, subject: input.subject, from, id: result.data?.id })
+    console.info('[email] sent', { to: input.to, subject, from, id: result.data?.id })
     return { sent: true, id: result.data?.id }
   } catch (e) {
     const reason = friendlyResendError(e instanceof Error ? e.message : 'send failed', from, input.to)
@@ -280,15 +316,22 @@ export async function sendMail(
   if (!r) return { sent: false, reason: 'Resend not configured' }
 
   const from = resolveFromHeader(input)
+  // Final safety net: never deliver retired Phalo domains in any plain-HTML email.
+  const html = rewriteLegacyBrandText(input.html)
+  const text = input.text ? rewriteLegacyBrandText(input.text) : undefined
+  const subject = rewriteLegacyBrandText(input.subject)
+  const replyTo = input.replyTo
+    ? rewriteLegacyEmailAddress(input.replyTo, DISPATCH_REPLY_TO_DEFAULT)
+    : undefined
   try {
     const result = await withTimeout(
       r.emails.send({
         from,
         to: input.to,
-        subject: input.subject,
-        html: input.html,
-        ...(input.text ? { text: input.text } : {}),
-        ...(input.replyTo ? { replyTo: input.replyTo } : {}),
+        subject,
+        html,
+        ...(text ? { text } : {}),
+        ...(replyTo ? { replyTo } : {}),
       }),
       'resend send',
     )
@@ -297,7 +340,7 @@ export async function sendMail(
       console.error('[email] Resend API error:', reason, { to: input.to, from })
       return { sent: false, reason }
     }
-    console.info('[email] sent', { to: input.to, subject: input.subject, from, id: result.data?.id })
+    console.info('[email] sent', { to: input.to, subject, from, id: result.data?.id })
     return { sent: true, id: result.data?.id }
   } catch (e) {
     const reason = friendlyResendError(e instanceof Error ? e.message : 'send failed', from, input.to)
@@ -315,8 +358,8 @@ export function getMailSetupHint(): string | null {
   if (isResendSandboxMode()) {
     return (
       'Resend sandbox mode: customer emails can ONLY be delivered to your Resend account signup email ' +
-      '(manager alerts to info@vipodyssey.com may work, but other customer addresses will fail). ' +
-      'Verify vipodyssey.com in Resend, set BOOKING_FROM_ADDRESS=bookings@vipodyssey.com, then remove RESEND_USE_SANDBOX_FROM.'
+      `(manager alerts to ${BRAND_EMAIL} may work, but other customer addresses will fail). ` +
+      `Verify ${BRAND_WEBSITE} in Resend, set BOOKING_FROM_ADDRESS=${BRAND_BOOKINGS_EMAIL}, then remove RESEND_USE_SANDBOX_FROM.`
     )
   }
   return null

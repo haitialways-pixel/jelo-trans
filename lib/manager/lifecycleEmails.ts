@@ -7,6 +7,7 @@ import { sendRideComplete } from '@/lib/email/sendRideComplete'
 import { sendCancellation } from '@/lib/email/sendCancellation'
 import { notifyDriverDispatch } from '@/lib/manager/dispatch'
 import type { Chauffeur, ManagerReservation } from '@/lib/manager/data'
+import { BRAND_NAME } from '@/lib/site'
 
 type LifecycleStage =
   | 'confirm'
@@ -109,7 +110,7 @@ export async function sendLifecycleEmails({
         to: common.to,
         customerName: common.customerName,
         bookingNumber: common.bookingNumber,
-        cancellationReason: 'Cancelled by Imperial Odyssey',
+        cancellationReason: `Cancelled by ${BRAND_NAME}`,
       })
     default:
       return { sent: false, reason: `unknown stage: ${stage}` }
