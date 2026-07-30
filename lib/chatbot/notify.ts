@@ -2,13 +2,16 @@
 // alerts (new booking, etc.).
 //
 // Telegram is optional and instant when configured. Email goes to MANAGEMENT_EMAIL
-// (defaults to brand ops inbox). New online bookings always trigger email
+// (defaults to info.phalotrans@gmail.com for ops). New online bookings always trigger email
 // even when Telegram is configured or deposit is unpaid.
+//
+// Note: the management *recipient* is intentionally not rewritten by the
+// vipodyssey brand filter — ops may use a separate inbox (including Phalo addresses).
 
 import { sendMail } from '@/lib/email/mailer'
-import { BRAND_EMAIL, rewriteLegacyEmailAddress } from '@/lib/site'
 
-const MANAGEMENT_EMAIL_DEFAULT = BRAND_EMAIL
+/** Default ops inbox for new-booking + escalation alerts. */
+export const MANAGEMENT_EMAIL_DEFAULT = 'info.phalotrans@gmail.com'
 
 type NotifyInput = {
   message: string
@@ -29,9 +32,7 @@ type NotifyInput = {
 /** Ops inbox for booking alerts and escalations. Override with MANAGEMENT_EMAIL. */
 export function getManagementEmail(): string {
   const configured = process.env.MANAGEMENT_EMAIL?.trim()
-  if (configured && configured.includes('@')) {
-    return rewriteLegacyEmailAddress(configured, MANAGEMENT_EMAIL_DEFAULT)
-  }
+  if (configured && configured.includes('@')) return configured
   return MANAGEMENT_EMAIL_DEFAULT
 }
 
