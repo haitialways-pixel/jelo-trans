@@ -37,5 +37,8 @@ binding = "ASSETS"
 # Quote BOOKING_FROM_EMAIL in the dashboard if it contains spaces:
 #   Imperial Odyssey <bookings@vipodyssey.com>
 #
-# Deploy: npm run deploy
+# Deploy (local): npm run deploy
+# Workers Builds (Git): Build command must be `npm run build`
+#   (that script runs @opennextjs/cloudflare build, not plain next build).
+#   Deploy command: npx wrangler deploy
 # ----------------------------------------------------------------------------

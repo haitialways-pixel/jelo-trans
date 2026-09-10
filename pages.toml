@@ -1,7 +1,9 @@
 # Cloudflare Workers Builds configuration for Imperial Odyssey.
 # Connect your Git repo in the Cloudflare dashboard and use:
-#   Build command: npm run build:pages
-#   Deploy command: npx @opennextjs/cloudflare deploy
+#   Build command: npm run build
+#     (runs @opennextjs/cloudflare build — required; plain `next build` is not enough)
+#   Deploy command: npx wrangler deploy
+#     (or: npx @opennextjs/cloudflare deploy)
 
 project_name = "imperial-odyssey"
 
