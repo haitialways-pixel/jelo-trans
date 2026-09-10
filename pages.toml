@@ -2,8 +2,8 @@
 # Connect your Git repo in the Cloudflare dashboard and use:
 #   Build command: npm run build
 #     (OpenNext adapter; inner Next.js compile is `npx next build` via open-next.config.ts)
-#   Deploy command: npx wrangler deploy
-#     (or: npx @opennextjs/cloudflare deploy)
+#   Deploy command: npx wrangler deploy --keep-vars
+#     (keep-vars preserves dashboard secrets; public vars come from wrangler.toml)
 
 project_name = "imperial-odyssey"
 

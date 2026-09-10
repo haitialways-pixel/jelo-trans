@@ -9,7 +9,7 @@
     "build:pages": "npx @opennextjs/cloudflare build",
     "vercel-build": "next build",
     "preview": "npx @opennextjs/cloudflare build && npx @opennextjs/cloudflare preview",
-    "deploy": "npx @opennextjs/cloudflare build && npx @opennextjs/cloudflare deploy",
+    "deploy": "npx @opennextjs/cloudflare build && npx @opennextjs/cloudflare deploy -- --keep-vars",
     "setup-staff": "node scripts/setup-staff.cjs",
     "seed-staff": "node scripts/setup-staff.cjs -- --seed-all",
     "provision-staff-auth": "node scripts/provision-staff-auth.cjs",

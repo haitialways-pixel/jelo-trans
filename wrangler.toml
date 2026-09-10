@@ -10,6 +10,13 @@ compatibility_flags = ["nodejs_compat"]
 directory = ".open-next/assets"
 binding = "ASSETS"
 
+# Public runtime vars (also inlined from .env.production at build).
+# Secrets must NOT go here — set them in the dashboard and deploy with --keep-vars.
+[vars]
+NEXT_PUBLIC_SUPABASE_URL = "https://eeytcoibulhxuxlsrjhe.supabase.co"
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_2--HE36Tk9Ziv68DqDEeig_W3aYNYGI"
+NEXT_PUBLIC_SITE_URL = "https://jelo-trans.info-phalotrans.workers.dev"
+
 # ----------------------------------------------------------------------------
 # Environment variables & secrets for Cloudflare deployment
 # ----------------------------------------------------------------------------
@@ -40,5 +47,5 @@ binding = "ASSETS"
 # Deploy (local): npm run deploy
 # Workers Builds (Git): Build command must be `npm run build`
 #   (that script runs @opennextjs/cloudflare build, not plain next build).
-#   Deploy command: npx wrangler deploy
+#   Deploy command: npx wrangler deploy --keep-vars
 # ----------------------------------------------------------------------------
