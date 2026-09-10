@@ -11,7 +11,6 @@ const TIER_LABELS: Record<string, string> = {
   premium: 'Premium SUV',
 }
 
-export const runtime = 'edge'
 export const revalidate = 300
 
 async function FleetContent() {

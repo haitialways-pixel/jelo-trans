@@ -3,7 +3,6 @@ import { Footer } from '@/components/shared/Footer'
 import { BookingWizardLazy } from '@/components/booking/BookingWizardLazy'
 import { getBookableFleetForBooking } from '@/lib/fleet'
 
-export const runtime = 'edge'
 export const dynamic = 'force-dynamic'
 
 export default async function BookPage() {

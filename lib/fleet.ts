@@ -1,4 +1,5 @@
 import { cache } from 'react'
+import { getSupabasePublicKey, getSupabaseUrl } from '@/lib/supabase/env'
 
 // Single source of truth for fleet data. Every page (home, fleet, services, booking)
 // derives from these — no hardcoded vehicle lists anywhere.
@@ -65,8 +66,8 @@ async function fetchFleetRows(
   searchParams: Record<string, string>,
   options?: { fresh?: boolean },
 ): Promise<Vehicle[]> {
-  const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const baseUrl = getSupabaseUrl()
+  const anonKey = getSupabasePublicKey()
   if (!baseUrl || !anonKey) return []
 
   const params = new URLSearchParams({

@@ -30,7 +30,7 @@ binding = "ASSETS"
 #
 # Manager login requires these at minimum:
 #   NEXT_PUBLIC_SUPABASE_URL
-#   NEXT_PUBLIC_SUPABASE_ANON_KEY
+#   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (or NEXT_PUBLIC_SUPABASE_ANON_KEY)
 # SUPABASE_SERVICE_ROLE_KEY — required for Stripe webhooks.
 # RESEND_API_KEY + BOOKING_FROM_ADDRESS — required for transactional email.
 # MANAGEMENT_EMAIL — ops alerts (new bookings, deposit paid); default info.phalotrans@gmail.com

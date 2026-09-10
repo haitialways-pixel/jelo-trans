@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server'
 import { checkRateLimit, getClientIpFromRequest } from '@/lib/security/rateLimit'
 
-export const runtime = 'edge'
-
 export async function GET(request: Request) {
   // Rate-limit: 60 lookups/min/IP. Protects the Google Distance Matrix quota
   // from being scraped via our endpoint (which would inflate the bill).

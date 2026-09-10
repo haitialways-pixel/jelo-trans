@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server'
 import { checkRateLimit, getClientIpFromRequest } from '@/lib/security/rateLimit'
 
-export const runtime = 'edge'
-
 export async function GET(request: Request) {
   // Rate-limit: 120 keystrokes/min/IP — generous for typing, but caps scraping.
   const ip = getClientIpFromRequest(request)

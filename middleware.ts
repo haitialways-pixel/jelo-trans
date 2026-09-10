@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { getSupabasePublicKey, getSupabaseUrl } from '@/lib/supabase/env'
 
 /** Server Actions POST with an action id — must never be redirected or they hang client-side. */
 function isServerActionRequest(request: NextRequest): boolean {
@@ -15,16 +16,18 @@ export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request })
   const serverAction = isServerActionRequest(request)
 
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+  const supabaseUrl = getSupabaseUrl()
+  const supabaseKey = getSupabasePublicKey()
+  if (!supabaseUrl || !supabaseKey) {
     return new Response(
-      'Middleware needs NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.',
+      'Middleware needs NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (or NEXT_PUBLIC_SUPABASE_ANON_KEY).',
       { status: 500 },
     )
   }
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    supabaseUrl,
+    supabaseKey,
     {
       cookies: {
         getAll() {

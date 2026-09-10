@@ -7,7 +7,6 @@ import { FeaturedFleetSection } from '@/components/home/FeaturedFleetSection'
 import { FeaturedFleetSkeleton } from '@/components/home/FeaturedFleetSkeleton'
 import { PlaneTakeoff, Briefcase, PartyPopper, BadgeCheck, EyeOff, Gem } from 'lucide-react'
 
-export const runtime = 'edge'
 export const revalidate = 300
 
 const SERVICES = [

@@ -22,5 +22,6 @@ SITE_URL=https://vipodyssey.com
 
 # Public ones (if your preview build needs them at runtime):
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 NEXT_PUBLIC_SUPABASE_ANON_KEY=ey...
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_here

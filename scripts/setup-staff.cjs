@@ -38,7 +38,9 @@ loadEnvFile('.env')
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL
 const serviceKey =
   process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const anonKey =
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 const email = process.env.MANAGER_EMAIL ?? 'manager@vipodyssey.com'
 const password = process.env.MANAGER_PASSWORD ?? 'ImperialOdyssey2026!'
 const fullName = process.env.MANAGER_NAME ?? 'Imperial Manager'
@@ -50,7 +52,7 @@ function fail(message) {
 
 if (!url || !serviceKey || !anonKey) {
   fail(
-    'Missing NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, or a service key\n' +
+    'Missing NEXT_PUBLIC_SUPABASE_URL, a public key (NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY), or a service key\n' +
       '(SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SECRET_KEY).\n' +
       'Copy keys from Supabase Dashboard → Project Settings → API.',
   )
@@ -226,7 +228,7 @@ main().catch((err) => {
       'Supabase rejected the service role key.\n' +
         'After changing the project URL, you must also update BOTH keys in .env.local\n' +
         'from the same project:\n' +
-        '  • NEXT_PUBLIC_SUPABASE_ANON_KEY\n' +
+        '  • NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (or NEXT_PUBLIC_SUPABASE_ANON_KEY)\n' +
         '  • SUPABASE_SERVICE_ROLE_KEY\n' +
         'Supabase Dashboard → Project Settings → API',
     )
