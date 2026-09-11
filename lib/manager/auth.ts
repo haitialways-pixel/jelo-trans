@@ -95,6 +95,25 @@ export async function assertStaff(): Promise<StaffSession> {
   return session
 }
 
+export function isAdminRole(role: string): boolean {
+  return role === 'admin'
+}
+
+/** Admin-only surfaces (tax ID last4, 1099 print). Staff still pass requireStaff. */
+export async function requireAdmin(): Promise<StaffSession> {
+  const session = await requireStaff()
+  if (!isAdminRole(session.role)) {
+    redirect('/manager/reports')
+  }
+  return session
+}
+
+export async function assertAdmin(): Promise<StaffSession> {
+  const session = await assertStaff()
+  if (!isAdminRole(session.role)) throw new Error('Admin only')
+  return session
+}
+
 /** Used after browser sign-in to confirm staff registry membership. */
 export async function verifyStaffMembership(userId: string): Promise<StaffSession | null> {
   const supabase = await createClient()

@@ -2,7 +2,8 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
-import { assertStaff } from '@/lib/manager/auth'
+import { assertStaff, isAdminRole } from '@/lib/manager/auth'
+import { sealTaxId, type TaxIdType } from '@/lib/manager/taxId'
 import { staffDb } from '@/lib/manager/db'
 import { sendBookingReceived } from '@/lib/email/sendBookingReceived'
 import { sendLifecycleEmails } from '@/lib/manager/lifecycleEmails'
@@ -574,34 +575,100 @@ export async function sendDriverDispatchNotification(
   }
 }
 
-/** Add a new chauffeur. */
+export type ChauffeurUpsertInput = {
+  id?: string
+  name: string
+  phone?: string
+  email?: string
+  notifyEmail?: boolean
+  notifySms?: boolean
+  status?: string
+  driverLicenseId: string
+  driverLicenseExpiresOn?: string
+  is1099Contractor?: boolean
+  legalName?: string
+  taxIdType?: TaxIdType | ''
+  taxId?: string
+  addressLine1?: string
+  addressLine2?: string
+  city?: string
+  state?: string
+  zip?: string
+}
+
+/** Add or update a chauffeur. Tax ID is admin-only and never written to audit_log. */
+export async function upsertChauffeur(input: ChauffeurUpsertInput): Promise<ActionResult> {
+  try {
+    const staff = await assertStaff()
+    const name = input.name.trim()
+    const driverLicenseId = input.driverLicenseId.trim()
+    if (!name) return { ok: false, error: 'Name is required' }
+    if (!driverLicenseId) return { ok: false, error: 'Driver ID is required' }
+
+    const row: Record<string, unknown> = {
+      name,
+      phone: input.phone?.trim() || null,
+      email: input.email?.trim() || null,
+      notify_email: input.notifyEmail !== false,
+      notify_sms: input.notifySms !== false,
+      status: input.status?.trim() || 'available',
+      driver_license_id: driverLicenseId,
+      driver_license_expires_on: input.driverLicenseExpiresOn?.trim() || null,
+      is_1099_contractor: Boolean(input.is1099Contractor),
+      legal_name: input.legalName?.trim() || null,
+      address_line1: input.addressLine1?.trim() || null,
+      address_line2: input.addressLine2?.trim() || null,
+      city: input.city?.trim() || null,
+      state: input.state?.trim() || null,
+      zip: input.zip?.trim() || null,
+    }
+
+    if (isAdminRole(staff.role)) {
+      const type = input.taxIdType === 'ein' || input.taxIdType === 'ssn' ? input.taxIdType : null
+      row.tax_id_type = type
+      const raw = input.taxId?.trim() ?? ''
+      if (raw) {
+        const sealed = await sealTaxId(raw)
+        row.tax_id_last4 = sealed.last4 || null
+        row.tax_id_encrypted = sealed.encrypted
+      }
+    }
+
+    const supabase = await staffDb()
+    if (input.id) {
+      const { error } = await supabase.from('chauffeurs').update(row).eq('id', input.id)
+      if (error) return { ok: false, error: error.message }
+    } else {
+      const { error } = await supabase.from('chauffeurs').insert(row)
+      if (error) return { ok: false, error: error.message }
+    }
+
+    revalidatePath('/manager/fleet')
+    revalidatePath('/manager/reservations')
+    revalidatePath('/manager/reports')
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Action failed' }
+  }
+}
+
+/** @deprecated Use upsertChauffeur — Driver ID is required. */
 export async function addChauffeur(
   name: string,
   phone: string,
   email: string = '',
   notifyEmail = true,
   notifySms = true,
+  driverLicenseId = '',
 ): Promise<ActionResult> {
-  try {
-    const supabase = await staffDb()
-    const { error } = await supabase
-      .from('chauffeurs')
-      .insert({
-        name,
-        phone: phone || null,
-        email: email || null,
-        notify_email: notifyEmail,
-        notify_sms: notifySms,
-      })
-
-    if (error) return { ok: false, error: error.message }
-
-    revalidatePath('/manager/fleet')
-    revalidatePath('/manager/reservations')
-    return { ok: true }
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : 'Action failed' }
-  }
+  return upsertChauffeur({
+    name,
+    phone,
+    email,
+    notifyEmail,
+    notifySms,
+    driverLicenseId,
+  })
 }
 
 /** Delete a chauffeur. */

@@ -321,6 +321,8 @@ export async function getFleetModels(): Promise<ManagerFleetModel[]> {
   }) as ManagerFleetModel[]
 }
 
+export type TaxIdType = 'ssn' | 'ein'
+
 export type Chauffeur = {
   id: string
   name: string
@@ -330,20 +332,84 @@ export type Chauffeur = {
   notify_sms: boolean
   status: string
   created_at: string
+  driver_license_id: string | null
+  driver_license_expires_on: string | null
+  is_1099_contractor: boolean
+  legal_name: string | null
+  tax_id_type: TaxIdType | null
+  address_line1: string | null
+  address_line2: string | null
+  city: string | null
+  state: string | null
+  zip: string | null
+  hasTaxId: boolean
+  /** Admin-only. Never sent on staff list payloads. */
+  tax_id_last4?: string | null
 }
 
-export async function getChauffeurs(): Promise<Chauffeur[]> {
+const CHAUFFEUR_SAFE_COLUMNS =
+  'id, name, phone, email, notify_email, notify_sms, status, created_at, driver_license_id, driver_license_expires_on, is_1099_contractor, legal_name, tax_id_type, address_line1, address_line2, city, state, zip, tax_id_last4'
+
+function mapChauffeur(row: Record<string, unknown>, includeLast4: boolean): Chauffeur {
+  const last4 = typeof row.tax_id_last4 === 'string' ? row.tax_id_last4 : null
+  const mapped: Chauffeur = {
+    id: String(row.id),
+    name: String(row.name ?? ''),
+    phone: (row.phone as string | null) ?? null,
+    email: (row.email as string | null) ?? null,
+    notify_email: Boolean(row.notify_email),
+    notify_sms: Boolean(row.notify_sms),
+    status: String(row.status ?? 'available'),
+    created_at: String(row.created_at ?? ''),
+    driver_license_id: (row.driver_license_id as string | null) ?? null,
+    driver_license_expires_on: (row.driver_license_expires_on as string | null) ?? null,
+    is_1099_contractor: Boolean(row.is_1099_contractor),
+    legal_name: (row.legal_name as string | null) ?? null,
+    tax_id_type: (row.tax_id_type as TaxIdType | null) ?? null,
+    address_line1: (row.address_line1 as string | null) ?? null,
+    address_line2: (row.address_line2 as string | null) ?? null,
+    city: (row.city as string | null) ?? null,
+    state: (row.state as string | null) ?? null,
+    zip: (row.zip as string | null) ?? null,
+    hasTaxId: Boolean(last4),
+  }
+  if (includeLast4) mapped.tax_id_last4 = last4
+  return mapped
+}
+
+export async function getChauffeurs(opts?: { includeTaxLast4?: boolean }): Promise<Chauffeur[]> {
   const supabase = await staffDb()
   const { data, error } = await supabase
     .from('chauffeurs')
-    .select('*')
+    .select(CHAUFFEUR_SAFE_COLUMNS)
     .order('name', { ascending: true })
 
   if (error) {
-    console.error('[manager] getChauffeurs:', error.message)
-    return []
+    const { data: legacy, error: legacyError } = await supabase
+      .from('chauffeurs')
+      .select('id, name, phone, email, notify_email, notify_sms, status, created_at')
+      .order('name', { ascending: true })
+    if (legacyError) {
+      console.error('[manager] getChauffeurs:', error.message)
+      return []
+    }
+    return (legacy ?? []).map((row) =>
+      mapChauffeur(row as Record<string, unknown>, Boolean(opts?.includeTaxLast4)),
+    )
   }
-  return data as Chauffeur[]
+  return (data ?? []).map((row) => mapChauffeur(row as Record<string, unknown>, Boolean(opts?.includeTaxLast4)))
+}
+
+/** Admin 1099 print — encrypted blob never returned on list APIs. */
+export async function getChauffeurTaxCipher(id: string): Promise<string | null> {
+  const supabase = await staffDb()
+  const { data, error } = await supabase
+    .from('chauffeurs')
+    .select('tax_id_encrypted')
+    .eq('id', id)
+    .maybeSingle()
+  if (error || !data) return null
+  return (data.tax_id_encrypted as string | null) ?? null
 }
 
 /** Bill-to vendor for staff invoices. */

@@ -10,6 +10,12 @@ export const BRAND_URL = `https://${BRAND_WEBSITE}`
 /** Public brand name used in subjects / footers. */
 export const BRAND_NAME = 'Imperial Odyssey'
 
+/** Legal payer name on 1099 contractor statements. */
+export const PAYER_LEGAL_NAME = 'Imperial Odyssey, LLC'
+
+/** Payer mailing address lines for 1099 print. */
+export const PAYER_ADDRESS_LINES = ['Orlando, Florida'] as const
+
 /** Default public contact phone (display form, no parens). */
 export const BRAND_PHONE = '678-478-3506'
 

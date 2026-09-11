@@ -14,7 +14,6 @@ import {
   Tag, 
   Calendar,
   AlertCircle,
-  Users,
   Image as ImageIcon,
   DollarSign
 } from 'lucide-react'
@@ -26,15 +25,15 @@ import {
   setUnitStatus,
   createFleetModel,
   deleteFleetModel,
-  addChauffeur,
-  deleteChauffeur
 } from '@/lib/manager/actions'
 import type { ManagerFleetModel, VehicleUnit, Chauffeur } from '@/lib/manager/data'
+import { ChauffeurManager } from './ChauffeurManager'
 
 type Props = {
   models: ManagerFleetModel[]
   units: VehicleUnit[]
   chauffeurs: Chauffeur[]
+  isAdmin?: boolean
 }
 
 const STATUS_OPTIONS = [
@@ -53,7 +52,7 @@ const TYPE_OPTIONS = [
   { value: 'party_bus', label: 'Party Bus' },
 ]
 
-export function FleetManager({ models, units, chauffeurs }: Props) {
+export function FleetManager({ models, units, chauffeurs, isAdmin = false }: Props) {
   const router = useRouter()
   const [pending, start] = useTransition()
   const [activeTab, setActiveTab] = useState<'fleet' | 'chauffeurs'>('fleet')
@@ -90,10 +89,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
   const [editYear, setEditYear] = useState('')
   const [editPlate, setEditPlate] = useState('')
 
-  // State for adding a chauffeur
-  const [chauffeurName, setChauffeurName] = useState('')
-  const [chauffeurPhone, setChauffeurPhone] = useState('')
-  const [chauffeurEmail, setChauffeurEmail] = useState('')
+
 
   const handleCreateClass = () => {
     if (!className.trim()) {
@@ -251,41 +247,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
     })
   }
 
-  const handleAddChauffeur = () => {
-    if (!chauffeurName.trim()) {
-      toast.error('Chauffeur name is required')
-      return
-    }
-    start(async () => {
-      const res = await addChauffeur(
-        chauffeurName.trim(),
-        chauffeurPhone.trim(),
-        chauffeurEmail.trim(),
-      )
-      if (res.ok) {
-        toast.success('Chauffeur added')
-        setChauffeurName('')
-        setChauffeurPhone('')
-        setChauffeurEmail('')
-        router.refresh()
-      } else {
-        toast.error(res.error)
-      }
-    })
-  }
 
-  const handleDeleteChauffeur = (id: string, name: string) => {
-    if (!window.confirm(`Remove chauffeur "${name}"?`)) return
-    start(async () => {
-      const res = await deleteChauffeur(id)
-      if (res.ok) {
-        toast.success(`Chauffeur "${name}" removed`)
-        router.refresh()
-      } else {
-        toast.error(res.error)
-      }
-    })
-  }
 
   const handleStartEditPrice = (model: ManagerFleetModel) => {
     setEditingPriceId(model.id)
@@ -834,94 +796,7 @@ export function FleetManager({ models, units, chauffeurs }: Props) {
         </div>
       )}
 
-      {activeTab === 'chauffeurs' && (
-        <div className="space-y-6">
-          {/* Add chauffeur form */}
-          <div className="glass-dark gold-hairline rounded-2xl p-6 space-y-4">
-            <h3 className="text-sm font-semibold text-on-surface">Add New Chauffeur</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="block text-[11px] text-on-surface-variant uppercase font-medium">Chauffeur Name</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Jean Dupont"
-                  value={chauffeurName}
-                  onChange={(e) => setChauffeurName(e.target.value)}
-                  className="w-full rounded-lg px-3 py-2 text-xs text-on-surface"
-                  disabled={pending}
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="block text-[11px] text-on-surface-variant uppercase font-medium">Phone (for SMS dispatch)</label>
-                <input
-                  type="text"
-                  placeholder="e.g. +1 (555) 019-2834"
-                  value={chauffeurPhone}
-                  onChange={(e) => setChauffeurPhone(e.target.value)}
-                  className="w-full rounded-lg px-3 py-2 text-xs text-on-surface"
-                  disabled={pending}
-                />
-              </div>
-              <div className="space-y-1 sm:col-span-2">
-                <label className="block text-[11px] text-on-surface-variant uppercase font-medium">Email (for dispatch notifications)</label>
-                <input
-                  type="email"
-                  placeholder="driver@example.com"
-                  value={chauffeurEmail}
-                  onChange={(e) => setChauffeurEmail(e.target.value)}
-                  className="w-full rounded-lg px-3 py-2 text-xs text-on-surface"
-                  disabled={pending}
-                />
-              </div>
-            </div>
-            <div className="flex justify-end pt-2">
-              <button
-                onClick={handleAddChauffeur}
-                className="flex items-center gap-1.5 px-4 py-2 text-xs rounded-lg bg-primary hover:bg-primary-dark text-black font-semibold transition"
-                disabled={pending}
-              >
-                {pending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-                Add Chauffeur
-              </button>
-            </div>
-          </div>
-
-          {/* Chauffeurs List */}
-          <div className="glass-dark gold-hairline rounded-2xl p-6 space-y-4">
-            <h3 className="text-sm font-semibold text-on-surface">Chauffeurs List ({chauffeurs.length} drivers)</h3>
-            {chauffeurs.length === 0 ? (
-              <p className="text-xs text-on-surface-variant">No chauffeurs configured. Chauffeurs can still be assigned by typing their name manually.</p>
-            ) : (
-              <div className="grid gap-2">
-                {chauffeurs.map((c) => (
-                  <div
-                    key={c.id}
-                    className="glass-dark border border-outline-variant/10 rounded-xl px-4 py-3 flex items-center justify-between gap-4"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Users className="w-4 h-4 text-on-surface-variant shrink-0" />
-                      <div>
-                        <p className="font-medium text-sm text-on-surface">{c.name}</p>
-                        <p className="text-xs text-on-surface-variant mt-0.5">
-                          {[c.phone, c.email].filter(Boolean).join(' · ') || 'No contact on file'}
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => handleDeleteChauffeur(c.id, c.name)}
-                      className="p-1.5 rounded-lg border border-red-200 text-red-600 hover:text-red-700 hover:bg-red-50 transition"
-                      title="Remove Chauffeur"
-                      disabled={pending}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      {activeTab === 'chauffeurs' && <ChauffeurManager chauffeurs={chauffeurs} isAdmin={isAdmin} />}
     </div>
   )
 }

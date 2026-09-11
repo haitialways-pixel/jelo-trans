@@ -2,9 +2,16 @@ import { getDispatchReplyToAddress, sendMail } from './mailer'
 import { fmtDate, fmtTime, EMAIL_RE } from './format'
 import { BRAND_NAME, BRAND_PHONE, BRAND_WEBSITE } from '@/lib/site'
 
+/**
+ * Driver assignment email — hard rule:
+ * Include only driver name + driver phone, plus existing trip details.
+ * Never include SSN/EIN/last4, Driver ID/license/expiration, home or tax address,
+ * driver email (except as the To: recipient), or customer SSN / chauffeur PII.
+ */
 export type DriverDispatchInput = {
   to: string
   driverName: string
+  driverPhone?: string | null
   customerName: string
   customerEmail?: string | null
   customerPhone?: string | null
@@ -45,10 +52,16 @@ function buildDriverDispatchContent(i: DriverDispatchInput): { html: string; tex
   const pickupTime = fmtTime(i.pickupTime)
 
   const rows: Array<[string, string]> = [
+    ['Driver', i.driverName],
+  ]
+  const driverPhone = formatOptional(i.driverPhone)
+  if (driverPhone) rows.push(['Driver phone', driverPhone])
+
+  rows.push(
     ['Booking ID', `#${i.bookingNumber}`],
     ['Status', i.status ?? 'dispatched'],
     ['Customer', i.customerName],
-  ]
+  )
 
   const customerEmail = formatOptional(i.customerEmail)
   if (customerEmail) rows.push(['Customer email', customerEmail])

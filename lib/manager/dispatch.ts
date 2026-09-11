@@ -66,6 +66,7 @@ export async function notifyDriverDispatch(input: DispatchInput): Promise<Dispat
       const emailResult = await sendDriverDispatch({
         to: email,
         driverName: c.name,
+        driverPhone: c.phone,
         customerName: r.customer_name,
         customerEmail: r.customer_email,
         customerPhone: r.customer_phone,

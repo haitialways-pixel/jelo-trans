@@ -1,13 +1,15 @@
 import { getFleetModels, getVehicleUnits, getChauffeurs } from '@/lib/manager/data'
 import { FleetManager } from '@/components/manager/FleetManager'
+import { requireStaff, isAdminRole } from '@/lib/manager/auth'
 
 export const dynamic = 'force-dynamic'
 
 export default async function FleetPage() {
+  const staff = await requireStaff()
   const [models, units, chauffeurs] = await Promise.all([
     getFleetModels(),
     getVehicleUnits(),
-    getChauffeurs(),
+    getChauffeurs({ includeTaxLast4: isAdminRole(staff.role) }),
   ])
 
   const availableCount = units.filter((u) => u.status === 'available').length
@@ -21,7 +23,7 @@ export default async function FleetPage() {
         </p>
       </div>
 
-      <FleetManager models={models} units={units} chauffeurs={chauffeurs} />
+      <FleetManager models={models} units={units} chauffeurs={chauffeurs} isAdmin={isAdminRole(staff.role)} />
     </div>
   )
 }
