@@ -1,5 +1,5 @@
 import { sendMail } from './mailer'
-import { fmtDate, fmtTime, EMAIL_RE } from './format'
+import { fmtDate, fmtTime, EMAIL_RE, fmtMoney } from './format'
 import { BRAND_NAME, BRAND_PHONE, BRAND_WEBSITE } from '@/lib/site'
 
 export type BookingReceivedInput = {
@@ -30,7 +30,11 @@ function buildBookingReceivedContent(i: BookingReceivedInput): { html: string; t
   rows.push(['Pickup', `${i.pickupAddress} on ${pickupDate} at ${pickupTime}`])
   if (i.dropoffAddress) rows.push(['Drop-off', i.dropoffAddress])
   if (i.vehicleName) rows.push(['Vehicle', i.vehicleName])
-  if (i.totalPrice > 0) rows.push(['Estimated total', `$${i.totalPrice.toFixed(2)}`])
+  if (i.totalPrice > 0) {
+    rows.push(['Total fare', fmtMoney(i.totalPrice)])
+    rows.push(['Deposit', 'No deposit taken'])
+    rows.push(['Total amount due', fmtMoney(i.totalPrice)])
+  }
 
   const textRows = rows.map(([label, value]) => `${label}: ${value}`).join('\n')
   const text =

@@ -1,6 +1,7 @@
 import { sendMail } from './mailer'
-import { fmtDate, fmtTime, EMAIL_RE } from './format'
+import { fmtDate, fmtTime, EMAIL_RE, fmtMoney } from './format'
 import { BRAND_NAME, BRAND_PHONE, BRAND_WEBSITE } from '@/lib/site'
+import { paymentRows, summarizePayment } from '@/lib/payments/summary'
 
 export type BookingEmailInput = {
   to: string
@@ -13,6 +14,16 @@ export type BookingEmailInput = {
   chauffeurName?: string | null
   chauffeurPhone?: string | null
   totalPrice: number
+  fareSubtotal?: number | null
+  gratuityPercent?: number | null
+  gratuityAmount?: number | null
+  durationHours?: number | null
+  specialRequests?: string | null
+  paymentStatus?: string | null
+  depositAmount?: number | null
+  balanceAmount?: number | null
+  depositPaidAt?: string | null
+  balancePaidAt?: string | null
 }
 export type EmailResult = { sent: boolean; reason?: string }
 
@@ -40,7 +51,25 @@ function buildBookingConfirmationContent(i: BookingEmailInput): { html: string; 
       i.chauffeurPhone ? `${i.chauffeurName} (${i.chauffeurPhone})` : i.chauffeurName,
     ])
   }
-  rows.push(['Total amount', `$${i.totalPrice}`])
+  const pay = summarizePayment({
+    totalPrice: i.totalPrice,
+    fareSubtotal: i.fareSubtotal,
+    gratuityPercent: i.gratuityPercent,
+    gratuityAmount: i.gratuityAmount,
+    durationHours: i.durationHours,
+    specialRequests: i.specialRequests,
+    paymentStatus: i.paymentStatus,
+    depositAmount: i.depositAmount,
+    balanceAmount: i.balanceAmount,
+    depositPaidAt: i.depositPaidAt,
+    balancePaidAt: i.balancePaidAt,
+  })
+  for (const [label, value] of paymentRows(pay)) {
+    rows.push([label, value])
+  }
+  if (!pay.depositCollected && !pay.depositScheduled && pay.amountDue > 0) {
+    rows.push(['Payment', `No deposit taken — ${fmtMoney(pay.amountDue)} is due`])
+  }
 
   const textRows = rows.map(([label, value]) => `${label}: ${value}`).join('\n')
   const text =

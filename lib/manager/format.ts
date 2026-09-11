@@ -5,6 +5,17 @@ export function formatMoney(value: number | string | null | undefined): string {
   return n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
 }
 
+/** Payment amounts — always show cents. */
+export function formatMoneyExact(value: number | string | null | undefined): string {
+  const n = Number(value ?? 0)
+  return n.toLocaleString('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
+}
+
 export function formatDateTime(value: string | null | undefined): string {
   if (!value) return '—'
   return new Date(value).toLocaleString('en-US', {

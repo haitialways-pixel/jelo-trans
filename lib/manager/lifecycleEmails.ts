@@ -65,6 +65,16 @@ export async function sendLifecycleEmails({
         chauffeurName: common.chauffeurName,
         chauffeurPhone: common.chauffeurPhone,
         totalPrice: Number(res.total_price),
+        fareSubtotal: res.fare_subtotal,
+        gratuityPercent: res.gratuity_percent,
+        gratuityAmount: res.gratuity_amount,
+        durationHours: res.duration_hours,
+        specialRequests: res.special_requests,
+        paymentStatus: res.payment_status,
+        depositAmount: res.deposit_amount,
+        balanceAmount: res.balance_amount,
+        depositPaidAt: res.deposit_paid_at,
+        balancePaidAt: res.balance_paid_at,
       })
     case 'dispatch': {
       const enRoute = await sendChauffeurEnRoute({

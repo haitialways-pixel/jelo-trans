@@ -15,7 +15,8 @@ import { getReservation, getVehicleUnits, getAuditLog, getChauffeurs, type Manag
 import { StatusBadge } from '@/components/manager/StatusBadge'
 import { LifecycleControls } from '@/components/manager/LifecycleControls'
 import { AssignForm } from '@/components/manager/AssignForm'
-import { formatDateTime, formatMoney, PAYMENT_LABELS, SOURCE_LABELS, auditLabel } from '@/lib/manager/format'
+import { formatDateTime, formatMoney, formatMoneyExact, PAYMENT_LABELS, SOURCE_LABELS, auditLabel } from '@/lib/manager/format'
+import { summarizePayment } from '@/lib/payments/summary'
 
 export const dynamic = 'force-dynamic'
 
@@ -202,65 +203,138 @@ function Detail({
 }
 
 function PaymentPanel({ r }: { r: ManagerReservation }) {
-  const deposit = Number(r.deposit_amount ?? 0)
-  const balance = Number(r.balance_amount ?? 0)
-  const total = Number(r.total_price ?? 0)
-  const depositPaid = Boolean(r.deposit_paid_at)
-  const balancePaid = Boolean(r.balance_paid_at)
-  const collected = (depositPaid ? deposit : 0) + (balancePaid ? balance : 0)
-  const fully = r.payment_status === 'paid'
+  const p = summarizePayment({
+    totalPrice: r.total_price,
+    fareSubtotal: r.fare_subtotal,
+    gratuityPercent: r.gratuity_percent,
+    gratuityAmount: r.gratuity_amount,
+    durationHours: r.duration_hours,
+    distanceMiles: r.distance_miles,
+    specialRequests: r.special_requests,
+    paymentStatus: r.payment_status,
+    depositAmount: r.deposit_amount,
+    balanceAmount: r.balance_amount,
+    depositPaidAt: r.deposit_paid_at,
+    balancePaidAt: r.balance_paid_at,
+  })
+
+  const headline = p.fullyPaid
+    ? 'Fully paid'
+    : p.depositCollected
+      ? 'Deposit collected'
+      : 'No deposit taken'
 
   return (
     <div className="space-y-3">
       <div
         className={`rounded-xl border px-4 py-3 text-center ${
-          fully ? 'border-emerald-500/40 bg-emerald-500/10' : 'border-outline-variant/30 bg-surface-container/40'
+          p.fullyPaid
+            ? 'border-emerald-500/40 bg-emerald-500/10'
+            : 'border-amber-500/30 bg-amber-500/10'
         }`}
       >
-        <p className="text-xs text-on-surface-variant">
-          {fully ? 'Fully paid' : depositPaid ? 'Deposit paid' : 'Awaiting payment'}
+        <p className="text-xs text-on-surface-variant">{headline}</p>
+        <p className="text-[11px] text-on-surface-variant mt-1">Total amount due</p>
+        <p
+          className={`display text-2xl font-semibold mt-0.5 ${
+            p.fullyPaid ? 'text-emerald-700' : 'text-on-surface'
+          }`}
+        >
+          {formatMoneyExact(p.amountDue)}
         </p>
-        <p className={`display text-2xl font-semibold mt-1 ${fully ? 'text-emerald-700' : 'text-on-surface'}`}>
-          {formatMoney(collected)}
-          <span className="text-sm text-on-surface-variant"> / {formatMoney(total)}</span>
+        <p className="text-[11px] text-on-surface-variant mt-1">
+          Collected {formatMoneyExact(p.collected)} of {formatMoneyExact(p.total)}
         </p>
       </div>
-      {r.fare_subtotal != null && (
-        <PayRow label="Trip fare" amount={Number(r.fare_subtotal)} paid={fully} pendingLabel="in total" />
-      )}
-      {r.gratuity_amount != null && r.gratuity_percent != null && (
+
+      {p.isCharter && p.charterHours != null && p.charterHourlyRate != null && (
         <PayRow
-          label={`Gratuity (${r.gratuity_percent}%)`}
-          amount={Number(r.gratuity_amount)}
-          paid={fully}
-          pendingLabel="in total"
+          label={`Charter · ${p.charterHours}h × ${formatMoneyExact(p.charterHourlyRate)}/hr`}
+          value={formatMoneyExact(p.fareSubtotal ?? p.charterHours * p.charterHourlyRate)}
         />
       )}
-      <PayRow label="Deposit (10%)" amount={deposit} paid={depositPaid} />
-      <PayRow label="Balance" amount={balance} paid={balancePaid} pendingLabel="due after ride" />
+      {!p.isCharter && p.fareSubtotal != null && (
+        <PayRow
+          label={
+            p.distanceMiles != null
+              ? `Trip fare · ${p.distanceMiles.toFixed(1)} mi`
+              : 'Trip fare'
+          }
+          value={formatMoneyExact(p.fareSubtotal)}
+        />
+      )}
+      {p.gratuityAmount != null && p.gratuityPercent != null && (
+        <PayRow
+          label={`Gratuity (${p.gratuityPercent}%)`}
+          value={formatMoneyExact(p.gratuityAmount)}
+        />
+      )}
+      <PayRow label="Total fare" value={formatMoneyExact(p.total)} emphasize />
+
+      {p.depositCollected ? (
+        <PayRow
+          label="Deposit"
+          value={formatMoneyExact(p.depositAmount)}
+          note="collected"
+          notePaid
+        />
+      ) : p.depositScheduled ? (
+        <PayRow
+          label="Deposit (10%)"
+          value={formatMoneyExact(p.depositAmount)}
+          note="not collected"
+        />
+      ) : (
+        <PayRow label="Deposit" value="No deposit taken" note="full fare due" />
+      )}
+
+      {p.depositCollected && !p.fullyPaid && (
+        <PayRow
+          label="Balance"
+          value={formatMoneyExact(p.balanceAmount)}
+          note="due after ride"
+        />
+      )}
+
+      <PayRow label="Collected" value={formatMoneyExact(p.collected)} />
+      <PayRow
+        label="Total amount due"
+        value={formatMoneyExact(p.amountDue)}
+        emphasize
+        note={p.fullyPaid ? 'paid in full' : undefined}
+        notePaid={p.fullyPaid}
+      />
     </div>
   )
 }
 
 function PayRow({
   label,
-  amount,
-  paid,
-  pendingLabel,
+  value,
+  note,
+  notePaid,
+  emphasize,
 }: {
   label: string
-  amount: number
-  paid: boolean
-  pendingLabel?: string
+  value: string
+  note?: string
+  notePaid?: boolean
+  emphasize?: boolean
 }) {
   return (
-    <div className="flex items-center justify-between rounded-lg bg-surface-container/40 px-3 py-2 text-sm">
-      <span className="text-on-surface-variant">{label}</span>
-      <div className="text-right">
-        <span className="text-on-surface">{formatMoney(amount)}</span>
-        <span className={`ml-2 text-[11px] ${paid ? 'text-emerald-700' : 'text-on-surface-variant'}`}>
-          {paid ? '✓ paid' : (pendingLabel ?? 'pending')}
-        </span>
+    <div
+      className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm ${
+        emphasize ? 'bg-surface-container/70 font-medium' : 'bg-surface-container/40'
+      }`}
+    >
+      <span className="text-on-surface-variant pr-3">{label}</span>
+      <div className="text-right shrink-0">
+        <span className="text-on-surface">{value}</span>
+        {note ? (
+          <span className={`ml-2 text-[11px] ${notePaid ? 'text-emerald-700' : 'text-on-surface-variant'}`}>
+            {note}
+          </span>
+        ) : null}
       </div>
     </div>
   )
