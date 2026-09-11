@@ -1,7 +1,7 @@
 # wrangler.toml — Cloudflare Workers deployment for Imperial Odyssey
 # See: https://developers.cloudflare.com/workers/framework-guides/web-apps/nextjs/
 
-name = "imperial-odyssey"
+name = "jelo-trans"
 main = ".open-next/worker.js"
 compatibility_date = "2026-07-02"
 compatibility_flags = ["nodejs_compat"]

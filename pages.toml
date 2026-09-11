@@ -5,7 +5,7 @@
 #   Deploy command: npx wrangler deploy --keep-vars
 #     (keep-vars preserves dashboard secrets; public vars come from wrangler.toml)
 
-project_name = "imperial-odyssey"
+project_name = "jelo-trans"
 
 [build]
 command = "npm run build:pages"
