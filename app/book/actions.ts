@@ -18,6 +18,7 @@ import {
   isValidGratuityPercent,
   normalizeCharterHours,
   normalizeTripType,
+  resolveHourlyRate,
   type TripType,
 } from '@/lib/pricing'
 import {
@@ -378,16 +379,44 @@ export async function createReservation(formData: any) {
       return { success: false, error: 'Please enter a drop-off address.' }
     }
 
-    // RPC only knows base + miles; map billable miles so round-trip still prices correctly
-    // as a fallback. Charter requires the direct path (hourly formula).
     const oneWayMiles = Number(formData.distanceMiles) || 0
-    const rpcDistanceMiles = tripType === 'round_trip' ? oneWayMiles * 2 : oneWayMiles
+    let rpcDistanceMiles = tripType === 'round_trip' ? oneWayMiles * 2 : oneWayMiles
     const rpcDurationHours =
       tripType === 'charter'
         ? charterHours!
         : tripType === 'round_trip'
           ? Math.max(Number(formData.durationHours) || 1, 0.25) * 2
           : Number(formData.durationHours) || 3
+
+    // Guest RPC prices transfers as base + miles × per-mile. Until the charter
+    // SQL migration is applied, encode hourly fare as equivalent miles so the
+    // stored total matches hours × hourly_rate. New RPC ignores this and uses
+    // the hourly formula when special_requests starts with "Trip type: Charter".
+    if (tripType === 'charter') {
+      let { data: charterVehicle, error: charterFleetError } = await supabase
+        .from('fleet')
+        .select('base_price, price_per_mile, hourly_rate')
+        .eq('id', formData.vehicleId)
+        .maybeSingle()
+
+      if (charterFleetError && /hourly_rate/i.test(charterFleetError.message)) {
+        const retry = await supabase
+          .from('fleet')
+          .select('base_price, price_per_mile')
+          .eq('id', formData.vehicleId)
+          .maybeSingle()
+        charterVehicle = retry.data as typeof charterVehicle
+      }
+
+      const hourly = resolveHourlyRate({
+        hourlyRate: Number((charterVehicle as { hourly_rate?: number } | null)?.hourly_rate ?? 0),
+        basePrice: Number(charterVehicle?.base_price ?? 0),
+      })
+      const base = Number(charterVehicle?.base_price ?? 0)
+      const ppm = Number(charterVehicle?.price_per_mile ?? 0)
+      const targetFare = charterHours! * hourly
+      rpcDistanceMiles = ppm > 0 ? Math.max((targetFare - base) / ppm, 0) : 0
+    }
 
     const tripNote =
       tripType === 'charter'
@@ -424,14 +453,6 @@ export async function createReservation(formData: any) {
         bookingNumber = direct.bookingNumber
       } else {
         console.warn('[createReservation] direct insert failed, trying RPC:', direct.error)
-      }
-    }
-
-    if (!bookingNumber && tripType === 'charter' && !isAdminConfigured()) {
-      return {
-        success: false,
-        error:
-          'Hourly charter booking is temporarily unavailable online. Please call (678) 478-3506 to book a charter.',
       }
     }
 

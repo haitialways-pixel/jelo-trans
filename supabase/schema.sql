@@ -566,12 +566,14 @@ DECLARE
   v_base_price       numeric(10,2);
   v_price_per_mile   numeric(10,2);
   v_minimum_price    numeric(10,2);
+  v_hourly_rate      numeric(10,2);
   v_fare             numeric(10,2);
   v_gratuity_percent numeric(5,2);
   v_gratuity_amount  numeric(10,2);
   v_total            numeric(10,2);
   v_booking          text;
   v_reservation_id   uuid;
+  v_is_charter       boolean := btrim(coalesce(p_special_requests, '')) LIKE 'Trip type: Charter%';
 BEGIN
   IF coalesce(btrim(p_customer_name), '')  = '' THEN RAISE EXCEPTION 'Customer name is required'; END IF;
   IF coalesce(btrim(p_customer_email), '') = '' THEN RAISE EXCEPTION 'Customer email is required'; END IF;
@@ -585,12 +587,25 @@ BEGIN
     RAISE EXCEPTION 'Gratuity must be 15, 18, or 22 percent';
   END IF;
 
-  SELECT base_price, price_per_mile, coalesce(minimum_price, 0)
-    INTO v_base_price, v_price_per_mile, v_minimum_price
-  FROM public.fleet WHERE id = p_vehicle_id;
+  BEGIN
+    SELECT base_price, price_per_mile, coalesce(minimum_price, 0),
+           coalesce(nullif(hourly_rate, 0), base_price)
+      INTO v_base_price, v_price_per_mile, v_minimum_price, v_hourly_rate
+      FROM public.fleet WHERE id = p_vehicle_id;
+  EXCEPTION WHEN undefined_column THEN
+    SELECT base_price, price_per_mile, coalesce(minimum_price, 0), base_price
+      INTO v_base_price, v_price_per_mile, v_minimum_price, v_hourly_rate
+      FROM public.fleet WHERE id = p_vehicle_id;
+  END;
   IF NOT FOUND THEN RAISE EXCEPTION 'Selected vehicle not found'; END IF;
 
-  v_fare := greatest(round((v_base_price + (v_distance * v_price_per_mile)), 2), v_minimum_price);
+  IF v_is_charter THEN
+    v_duration := greatest(v_duration, 3);
+    v_distance := 0;
+    v_fare := round(v_duration * coalesce(v_hourly_rate, v_base_price), 2);
+  ELSE
+    v_fare := greatest(round((v_base_price + (v_distance * v_price_per_mile)), 2), v_minimum_price);
+  END IF;
   v_gratuity_amount := round(v_fare * v_gratuity_percent / 100, 2);
   v_total := round(v_fare + v_gratuity_amount, 2);
 
