@@ -148,33 +148,17 @@ export async function sendDriverDispatch(i: DriverDispatchInput): Promise<EmailR
   const replyTo = getDispatchReplyToAddress()
   const subject = `Trip assignment — Booking #${i.bookingNumber}`
 
-  // Same sendMail path as booking confirmation. Prefer the dispatch From address;
-  // if Resend rejects it, retry with the bookings@ sender that already works.
-  let result = await sendMail({
+  // Use the same From address as booking confirmation (bookings@vipodyssey.com).
+  // That sender already delivers in production. Keep dispatch display name + reply-to.
+  const result = await sendMail({
     to,
-    fromKind: 'dispatch',
+    fromKind: 'customer',
+    fromName: DISPATCH_FROM_NAME,
     replyTo,
     subject,
     html,
     text,
   })
-
-  if (!result.sent) {
-    console.warn('[email] sendDriverDispatch: dispatch sender failed, retrying with booking sender', {
-      reason: result.reason,
-      bookingNumber: i.bookingNumber,
-      to,
-    })
-    result = await sendMail({
-      to,
-      fromKind: 'customer',
-      fromName: DISPATCH_FROM_NAME,
-      replyTo,
-      subject,
-      html,
-      text,
-    })
-  }
 
   if (!result.sent) {
     console.warn('[email] sendDriverDispatch failed:', result.reason, {

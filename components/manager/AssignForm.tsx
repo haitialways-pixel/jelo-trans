@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Loader2, UserCog, Send } from 'lucide-react'
-import { assignReservation, sendDriverDispatchNotification } from '@/lib/manager/actions'
+import { assignReservation } from '@/lib/manager/actions'
 import type { ManagerReservation, VehicleUnit, Chauffeur } from '@/lib/manager/data'
 
 export function AssignForm({
@@ -69,20 +69,22 @@ export function AssignForm({
     start(async () => {
       try {
         const parsedPay = driverPay.trim() === '' ? null : Number(driverPay)
-        const res = await sendDriverDispatchNotification(r.id, {
-          unitId: unitId || null,
-          chauffeurName: chauffeur,
-          chauffeurId: chauffeurId || null,
-          driverPay: Number.isFinite(parsedPay) && parsedPay !== null ? parsedPay : null,
-        })
+        const res = await assignReservation(
+          r.id,
+          unitId || null,
+          chauffeur,
+          chauffeurId || null,
+          Number.isFinite(parsedPay) && parsedPay !== null ? parsedPay : null,
+          true,
+        )
         if (res.ok) {
           toast.success('Dispatch email sent to driver')
           router.refresh()
         } else {
           toast.error(res.error)
         }
-      } catch {
-        toast.error('Could not reach the dispatch service. Please try again.')
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : 'Could not send dispatch email. Please try again.')
       }
     })
   }

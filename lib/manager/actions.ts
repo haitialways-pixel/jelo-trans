@@ -231,6 +231,7 @@ export async function assignReservation(
   chauffeurName: string,
   chauffeurId: string | null = null,
   driverPay: number | null = null,
+  sendDispatch = false,
 ): Promise<ActionResult> {
   try {
     await assertStaff()
@@ -243,6 +244,42 @@ export async function assignReservation(
       p_driver_pay: driverPay,
     })
     if (error) return { ok: false, error: error.message }
+
+    if (sendDispatch) {
+      const admin = await staffDb()
+      const { data: res, error: loadError } = await admin
+        .from('reservations')
+        .select('*, fleet:vehicle_id (name), assigned_unit:assigned_unit_id (label)')
+        .eq('id', id)
+        .maybeSingle()
+      if (loadError || !res) return { ok: false, error: 'Assignment saved, but reservation could not be reloaded for email' }
+
+      let chauffeur: Chauffeur | null = null
+      if (res.chauffeur_id) {
+        const { data: c } = await admin.from('chauffeurs').select('*').eq('id', res.chauffeur_id).maybeSingle()
+        chauffeur = c as Chauffeur | null
+      } else if (res.chauffeur_name) {
+        const { data: c } = await admin.from('chauffeurs').select('*').eq('name', res.chauffeur_name).maybeSingle()
+        chauffeur = c as Chauffeur | null
+      }
+
+      if (!chauffeur?.email?.trim()) {
+        return {
+          ok: false,
+          error:
+            'Assignment saved, but no chauffeur email is on file. Select a driver from the list and add their email under Fleet → Manage Chauffeurs.',
+        }
+      }
+
+      const dispatchResult = await notifyDriverDispatch({
+        reservation: res as unknown as ManagerReservation,
+        chauffeur,
+        vehicleName: (res as { fleet?: { name?: string } }).fleet?.name ?? null,
+        forceEmail: true,
+      })
+      const deliveryError = dispatchDeliveryError(dispatchResult)
+      if (deliveryError) return { ok: false, error: `Assignment saved, but ${deliveryError}` }
+    }
 
     revalidatePath('/manager')
     revalidatePath(`/manager/reservations/${id}`)
