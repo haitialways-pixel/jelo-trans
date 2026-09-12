@@ -57,6 +57,11 @@ export async function notifyDriverDispatch(input: DispatchInput): Promise<Dispat
     `\nPassengers: ${r.passengers}` +
     (r.luggage ? `\nLuggage: ${r.luggage}` : '') +
     (r.special_requests ? `\nNotes: ${r.special_requests}` : '') +
+    `\nThe run pays: ${
+      r.driver_pay != null && Number.isFinite(Number(r.driver_pay))
+        ? `$${Number(r.driver_pay).toFixed(2)}`
+        : 'Pay not entered'
+    }` +
     `\nReply to: ${BRAND_CONCIERGE_EMAIL}`
 
   const result: DispatchResult = {
@@ -88,6 +93,7 @@ export async function notifyDriverDispatch(input: DispatchInput): Promise<Dispat
         distanceMiles: r.distance_miles,
         specialRequests: r.special_requests,
         status: r.status,
+        driverPay: r.driver_pay,
       })
       result.email = {
         attempted: true,

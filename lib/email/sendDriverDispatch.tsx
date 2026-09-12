@@ -1,12 +1,14 @@
 import { DISPATCH_FROM_NAME, getDispatchReplyToAddress, sendMail } from './mailer'
-import { fmtDate, fmtTime, EMAIL_RE } from './format'
+import { fmtDate, fmtTime, EMAIL_RE, fmtMoney } from './format'
 import { BRAND_NAME, BRAND_PHONE, BRAND_WEBSITE } from '@/lib/site'
 
 /**
  * Driver assignment email — hard rule:
- * Include only driver name + driver phone, plus existing trip details.
+ * Include driver name + driver phone, trip logistics, and what the job pays
+ * (`driver_pay` / The run pays) at the bottom.
  * Never include SSN/EIN/last4, Driver ID/license/expiration, home or tax address,
- * driver email (except as the To: recipient), or customer SSN / chauffeur PII.
+ * driver email (except as the To: recipient), or customer charges
+ * (total_price, fare, deposit, balance, gratuity).
  */
 export type DriverDispatchInput = {
   to: string
@@ -27,6 +29,8 @@ export type DriverDispatchInput = {
   distanceMiles?: number | null
   specialRequests?: string | null
   status?: string | null
+  /** Driver payout only — never customer booking fees. */
+  driverPay?: number | null
 }
 
 export type EmailResult = { sent: boolean; reason?: string }
@@ -82,6 +86,10 @@ function buildDriverDispatchContent(i: DriverDispatchInput): { html: string; tex
   if (i.distanceMiles != null) rows.push(['Distance', `${i.distanceMiles} miles`])
   if (i.specialRequests) rows.push(['Special requests', i.specialRequests])
 
+  const payEntered = i.driverPay != null && Number.isFinite(Number(i.driverPay))
+  const jobPaysLabel = payEntered ? fmtMoney(Number(i.driverPay)) : 'Pay not entered'
+  const jobPaysText = `The run pays: ${jobPaysLabel}`
+
   const textRows = rows.map(([label, value]) => `${label}: ${value}`).join('\n')
   const replyLine =
     `Please reply to this email for any questions or confirmations. ` +
@@ -93,6 +101,7 @@ function buildDriverDispatchContent(i: DriverDispatchInput): { html: string; tex
     `${textRows}\n\n` +
     `${replyLine}\n\n` +
     `Please confirm you are available and proceed to the pickup location on time.\n\n` +
+    `${jobPaysText}\n\n` +
     `— ${BRAND_NAME}\n${BRAND_PHONE} · ${BRAND_WEBSITE}`
 
   const htmlRows = rows
@@ -123,6 +132,14 @@ function buildDriverDispatchContent(i: DriverDispatchInput): { html: string; tex
                   Replies go directly to <a href="mailto:${escapeHtml(replyTo)}" style="color:#2563eb;">${escapeHtml(replyTo)}</a>.
                 </p>
                 <p style="margin:0 0 20px;color:#374151;line-height:1.5;">Please confirm you are available and proceed to the pickup location on time.</p>
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 20px;background:#111827;border-radius:8px;">
+                  <tr>
+                    <td style="padding:16px 20px;">
+                      <p style="margin:0 0 4px;font-size:12px;letter-spacing:0.04em;text-transform:uppercase;color:#9ca3af;">This job pays</p>
+                      <p style="margin:0;font-size:22px;font-weight:700;color:#ffffff;">${escapeHtml(jobPaysLabel)}</p>
+                    </td>
+                  </tr>
+                </table>
                 <p style="margin:0;font-size:12px;color:#9ca3af;line-height:1.5;">${BRAND_NAME} · ${BRAND_PHONE} · ${BRAND_WEBSITE}</p>
               </td>
             </tr>
