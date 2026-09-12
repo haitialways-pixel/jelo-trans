@@ -5,6 +5,9 @@ name = "jelo-trans"
 main = ".open-next/worker.js"
 compatibility_date = "2026-07-02"
 compatibility_flags = ["nodejs_compat"]
+# Preserve dashboard-managed variables across every deployment. Secrets are
+# already retained by Cloudflare, but this also protects non-secret variables.
+keep_vars = true
 
 [assets]
 directory = ".open-next/assets"
