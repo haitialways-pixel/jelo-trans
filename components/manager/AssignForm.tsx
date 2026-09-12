@@ -71,7 +71,9 @@ export function AssignForm({
         const parsedPay = driverPay.trim() === '' ? null : Number(driverPay)
         const response = await fetch('/api/manager/driver-dispatch', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          cache: 'no-store',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
           body: JSON.stringify({
             reservationId: r.id,
             unitId: unitId || null,
@@ -85,7 +87,7 @@ export function AssignForm({
           toast.success('Dispatch email sent to driver')
           router.refresh()
         } else {
-          toast.error(res?.error ?? `Dispatch failed (${response.status})`)
+          toast.error(res?.error ?? `Dispatch failed (${response.status} ${response.statusText})`)
         }
       } catch {
         toast.error('Could not reach the dispatch service. Please try again.')

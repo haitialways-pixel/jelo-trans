@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server'
-import { sendDriverDispatchNotification } from '@/lib/manager/actions'
+import { sendDriverDispatchNotification } from '@/lib/manager/dispatch'
+
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
 type DispatchBody = {
   reservationId?: unknown
@@ -17,6 +20,13 @@ function nullableString(value: unknown): string | null {
  * Explicit POST endpoint for the dispatch button.
  * This avoids relying on Server Action request handling in the Worker runtime.
  */
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: { Allow: 'POST, OPTIONS' },
+  })
+}
+
 export async function POST(request: Request) {
   let body: DispatchBody
   try {

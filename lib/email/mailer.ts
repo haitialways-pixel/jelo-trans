@@ -1,5 +1,4 @@
-// SERVER-ONLY mailer via Resend + @react-email/render.
-import { Resend } from 'resend'
+// SERVER-ONLY mailer via Resend HTTP API + @react-email/render.
 import { render } from '@react-email/render'
 import type { ReactElement } from 'react'
 import {
@@ -13,15 +12,14 @@ import {
   rewriteLegacyEmailAddress,
 } from '@/lib/site'
 
-let _resend: Resend | null = null
-
 const RENDER_TIMEOUT_MS = 30_000
 const SEND_TIMEOUT_MS = 15_000
 const SANDBOX_FROM = 'onboarding@resend.dev'
-// Do not inherit RESEND_BASE_URL from the worker environment. A value such as
-// `https://api.resend.com/emails` makes the SDK POST to `/emails/emails` and
-// Resend responds with 405 Method Not Allowed.
+// Always POST to this origin. Do not inherit RESEND_BASE_URL — a value such as
+// `https://api.resend.com/emails` makes clients hit `/emails/emails` and Resend
+// responds with 405 Method Not Allowed.
 const RESEND_API_ORIGIN = 'https://api.resend.com'
+const RESEND_SEND_URL = `${RESEND_API_ORIGIN}/emails`
 
 /** Default display names per email category */
 export const CUSTOMER_FROM_NAME = `${BRAND_NAME} Booking`
@@ -46,14 +44,86 @@ export type FromOverrides = {
   fromAddress?: string
 }
 
-function getResend(): Resend | null {
-  const key = process.env.RESEND_API_KEY
+function getResendApiKey(): string | null {
+  const key = process.env.RESEND_API_KEY?.trim()
   if (!key) {
     console.warn('[email] RESEND_API_KEY is not set')
     return null
   }
-  if (!_resend) _resend = new Resend(key, { baseUrl: RESEND_API_ORIGIN })
-  return _resend
+  return key
+}
+
+type ResendSendPayload = {
+  from: string
+  to: string
+  subject: string
+  html: string
+  text?: string
+  reply_to?: string
+}
+
+type ResendApiErrorBody = {
+  message?: string
+  name?: string
+  statusCode?: number
+  error?: { message?: string }
+  id?: string
+}
+
+/**
+ * POST https://api.resend.com/emails directly.
+ * The Resend Node SDK reads RESEND_BASE_URL and, on Cloudflare Workers, that
+ * often includes `/emails`, which produces HTTP 405 Method Not Allowed.
+ */
+async function postResendEmail(payload: ResendSendPayload): Promise<MailResult> {
+  const key = getResendApiKey()
+  if (!key) return { sent: false, reason: 'Resend not configured (RESEND_API_KEY missing)' }
+
+  const misconfiguredBase = process.env.RESEND_BASE_URL?.trim()
+  if (misconfiguredBase && /\/emails\/?$/i.test(misconfiguredBase)) {
+    console.warn('[email] ignoring RESEND_BASE_URL that includes /emails', {
+      RESEND_BASE_URL: misconfiguredBase,
+      using: RESEND_SEND_URL,
+    })
+  }
+
+  try {
+    const response = await withTimeout(
+      fetch(RESEND_SEND_URL, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${key}`,
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify(payload),
+      }),
+      'resend send',
+    )
+
+    const raw = await response.text()
+    let parsed: ResendApiErrorBody | null = null
+    if (raw) {
+      try {
+        parsed = JSON.parse(raw) as ResendApiErrorBody
+      } catch {
+        parsed = null
+      }
+    }
+
+    if (!response.ok) {
+      const message =
+        parsed?.error?.message ||
+        parsed?.message ||
+        (raw && !raw.trimStart().startsWith('<') ? raw.slice(0, 280) : null) ||
+        `HTTP status code ${response.status} - ${response.statusText}`
+      return { sent: false, reason: message }
+    }
+
+    return { sent: true, id: parsed?.id }
+  } catch (e) {
+    return { sent: false, reason: e instanceof Error ? e.message : 'send failed' }
+  }
 }
 
 function useSandboxFrom(): boolean {
@@ -272,8 +342,9 @@ type SendOptions = FromOverrides & {
 export async function sendTemplatedMail(
   input: SendOptions & { react: ReactElement },
 ): Promise<MailResult> {
-  const r = getResend()
-  if (!r) return { sent: false, reason: 'Resend not configured (RESEND_API_KEY missing)' }
+  if (!getResendApiKey()) {
+    return { sent: false, reason: 'Resend not configured (RESEND_API_KEY missing)' }
+  }
 
   const from = resolveFromHeader(input)
   try {
@@ -286,26 +357,23 @@ export async function sendTemplatedMail(
       ? rewriteLegacyEmailAddress(input.replyTo, DISPATCH_REPLY_TO_DEFAULT)
       : undefined
 
-    const result = await withTimeout(
-      r.emails.send({
-        from,
-        to: input.to,
-        subject,
-        html,
-        text,
-        ...(replyTo ? { replyTo } : {}),
-      }),
-      'resend send',
-    )
+    const result = await postResendEmail({
+      from,
+      to: input.to,
+      subject,
+      html,
+      text,
+      ...(replyTo ? { reply_to: replyTo } : {}),
+    })
 
-    if (result.error) {
-      const reason = friendlyResendError(result.error.message, from, input.to)
+    if (!result.sent) {
+      const reason = friendlyResendError(result.reason ?? 'send failed', from, input.to)
       console.error('[email] Resend API error:', reason, { to: input.to, from })
       return { sent: false, reason }
     }
 
-    console.info('[email] sent', { to: input.to, subject, from, id: result.data?.id })
-    return { sent: true, id: result.data?.id }
+    console.info('[email] sent', { to: input.to, subject, from, id: result.id })
+    return result
   } catch (e) {
     const reason = friendlyResendError(e instanceof Error ? e.message : 'send failed', from, input.to)
     console.error('[email] send failed:', reason, { to: input.to, from })
@@ -316,8 +384,7 @@ export async function sendTemplatedMail(
 export async function sendMail(
   input: SendOptions & { html: string; text?: string },
 ): Promise<MailResult> {
-  const r = getResend()
-  if (!r) return { sent: false, reason: 'Resend not configured' }
+  if (!getResendApiKey()) return { sent: false, reason: 'Resend not configured' }
 
   const from = resolveFromHeader(input)
   // Final safety net: never deliver retired Phalo domains in any plain-HTML email.
@@ -328,24 +395,21 @@ export async function sendMail(
     ? rewriteLegacyEmailAddress(input.replyTo, DISPATCH_REPLY_TO_DEFAULT)
     : undefined
   try {
-    const result = await withTimeout(
-      r.emails.send({
-        from,
-        to: input.to,
-        subject,
-        html,
-        ...(text ? { text } : {}),
-        ...(replyTo ? { replyTo } : {}),
-      }),
-      'resend send',
-    )
-    if (result.error) {
-      const reason = friendlyResendError(result.error.message, from, input.to)
+    const result = await postResendEmail({
+      from,
+      to: input.to,
+      subject,
+      html,
+      ...(text ? { text } : {}),
+      ...(replyTo ? { reply_to: replyTo } : {}),
+    })
+    if (!result.sent) {
+      const reason = friendlyResendError(result.reason ?? 'send failed', from, input.to)
       console.error('[email] Resend API error:', reason, { to: input.to, from })
       return { sent: false, reason }
     }
-    console.info('[email] sent', { to: input.to, subject, from, id: result.data?.id })
-    return { sent: true, id: result.data?.id }
+    console.info('[email] sent', { to: input.to, subject, from, id: result.id })
+    return result
   } catch (e) {
     const reason = friendlyResendError(e instanceof Error ? e.message : 'send failed', from, input.to)
     console.error('[email] send failed:', reason, { to: input.to, from })

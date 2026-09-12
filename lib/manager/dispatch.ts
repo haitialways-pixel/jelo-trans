@@ -1,6 +1,10 @@
+import { revalidatePath } from 'next/cache'
 import { sendDriverDispatch } from '@/lib/email/sendDriverDispatch'
 import { sendSms } from '@/lib/sms/notify'
-import type { ManagerReservation } from '@/lib/manager/data'
+import { assertStaff } from '@/lib/manager/auth'
+import { staffDb } from '@/lib/manager/db'
+import { createClient } from '@/lib/supabase/server'
+import type { Chauffeur, ManagerReservation } from '@/lib/manager/data'
 import { BRAND_CONCIERGE_EMAIL, BRAND_NAME } from '@/lib/site'
 
 export type ChauffeurContact = {
@@ -142,4 +146,74 @@ export function dispatchDeliveryError(result: DispatchResult): string | null {
   }
 
   return 'No dispatch channel available for this chauffeur. Add an email or phone number.'
+}
+
+export type DispatchActionResult = { ok: true } | { ok: false; error: string }
+
+/** Dispatch driver notifications without advancing lifecycle (re-send). */
+export async function sendDriverDispatchNotification(
+  id: string,
+  assignment?: {
+    unitId?: string | null
+    chauffeurName?: string
+    chauffeurId?: string | null
+    driverPay?: number | null
+  },
+): Promise<DispatchActionResult> {
+  try {
+    await assertStaff()
+    const supabase = await createClient()
+    const admin = await staffDb()
+
+    if (assignment) {
+      const { error: assignError } = await supabase.rpc('staff_assign_reservation', {
+        p_reservation_id: id,
+        p_unit_id: assignment.unitId ?? null,
+        p_chauffeur_name: assignment.chauffeurName ?? '',
+        p_chauffeur_id: assignment.chauffeurId ?? null,
+        p_driver_pay: assignment.driverPay ?? null,
+      })
+      if (assignError) return { ok: false, error: assignError.message }
+    }
+
+    const { data: res, error } = await admin
+      .from('reservations')
+      .select(
+        '*, fleet:vehicle_id (name), assigned_unit:assigned_unit_id (label)',
+      )
+      .eq('id', id)
+      .maybeSingle()
+    if (error || !res) return { ok: false, error: 'Reservation not found' }
+
+    let chauffeur: Chauffeur | null = null
+    if (res.chauffeur_id) {
+      const { data: c } = await admin.from('chauffeurs').select('*').eq('id', res.chauffeur_id).maybeSingle()
+      chauffeur = c as Chauffeur | null
+    } else if (res.chauffeur_name) {
+      const { data: c } = await admin.from('chauffeurs').select('*').eq('name', res.chauffeur_name).maybeSingle()
+      chauffeur = c as Chauffeur | null
+    }
+
+    if (!chauffeur) {
+      return {
+        ok: false,
+        error: 'Select a chauffeur from the driver list (with an email on file) before dispatching.',
+      }
+    }
+
+    const dispatchResult = await notifyDriverDispatch({
+      reservation: res as unknown as ManagerReservation,
+      chauffeur,
+      vehicleName: (res as { fleet?: { name?: string } }).fleet?.name ?? null,
+    })
+
+    const deliveryError = dispatchDeliveryError(dispatchResult)
+    if (deliveryError) return { ok: false, error: deliveryError }
+
+    revalidatePath('/manager')
+    revalidatePath(`/manager/reservations/${id}`)
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Dispatch failed' }
+  }
 }

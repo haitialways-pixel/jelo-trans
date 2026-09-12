@@ -7,7 +7,7 @@ import { sealTaxId, type TaxIdType } from '@/lib/manager/taxId'
 import { staffDb } from '@/lib/manager/db'
 import { sendBookingReceived } from '@/lib/email/sendBookingReceived'
 import { sendLifecycleEmails } from '@/lib/manager/lifecycleEmails'
-import { notifyDriverDispatch, dispatchDeliveryError } from '@/lib/manager/dispatch'
+import { sendDriverDispatchNotification as dispatchDriver } from '@/lib/manager/dispatch'
 import type { Chauffeur, ManagerReservation } from '@/lib/manager/data'
 import { isStripeConfigured } from '@/lib/stripe/server'
 import { chargeBalance } from '@/lib/stripe/payments'
@@ -521,62 +521,7 @@ export async function sendDriverDispatchNotification(
     driverPay?: number | null
   },
 ): Promise<ActionResult> {
-  try {
-    await assertStaff()
-    const supabase = await createClient()
-    const admin = await staffDb()
-
-    if (assignment) {
-      const { error: assignError } = await supabase.rpc('staff_assign_reservation', {
-        p_reservation_id: id,
-        p_unit_id: assignment.unitId ?? null,
-        p_chauffeur_name: assignment.chauffeurName ?? '',
-        p_chauffeur_id: assignment.chauffeurId ?? null,
-        p_driver_pay: assignment.driverPay ?? null,
-      })
-      if (assignError) return { ok: false, error: assignError.message }
-    }
-
-    const { data: res, error } = await admin
-      .from('reservations')
-      .select(
-        '*, fleet:vehicle_id (name), assigned_unit:assigned_unit_id (label)',
-      )
-      .eq('id', id)
-      .maybeSingle()
-    if (error || !res) return { ok: false, error: 'Reservation not found' }
-
-    let chauffeur: Chauffeur | null = null
-    if (res.chauffeur_id) {
-      const { data: c } = await admin.from('chauffeurs').select('*').eq('id', res.chauffeur_id).maybeSingle()
-      chauffeur = c as Chauffeur | null
-    } else if (res.chauffeur_name) {
-      const { data: c } = await admin.from('chauffeurs').select('*').eq('name', res.chauffeur_name).maybeSingle()
-      chauffeur = c as Chauffeur | null
-    }
-
-    if (!chauffeur) {
-      return {
-        ok: false,
-        error: 'Select a chauffeur from the driver list (with an email on file) before dispatching.',
-      }
-    }
-
-    const dispatchResult = await notifyDriverDispatch({
-      reservation: res as unknown as ManagerReservation,
-      chauffeur,
-      vehicleName: (res as { fleet?: { name?: string } }).fleet?.name ?? null,
-    })
-
-    const deliveryError = dispatchDeliveryError(dispatchResult)
-    if (deliveryError) return { ok: false, error: deliveryError }
-
-    revalidatePath('/manager')
-    revalidatePath(`/manager/reservations/${id}`)
-    return { ok: true }
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : 'Dispatch failed' }
-  }
+  return dispatchDriver(id, assignment)
 }
 
 export type ChauffeurUpsertInput = {

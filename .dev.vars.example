@@ -11,6 +11,7 @@ GOOGLE_MAPS_API_KEY=your_google_server_api_key_here
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key_here
 STRIPE_SECRET_KEY=sk_test_your_stripe_secret_here
 RESEND_API_KEY=your_resend_api_key_here
+# Do NOT set RESEND_BASE_URL (a URL ending in /emails causes HTTP 405).
 STRIPE_WEBHOOK_SECRET=whsec_your_webhook_signing_secret
 BOOKING_FROM_NAME=Imperial Odyssey Booking
 BOOKING_FROM_ADDRESS=bookings@vipodyssey.com
