@@ -1,4 +1,4 @@
-import { getDispatchReplyToAddress, sendMail } from './mailer'
+import { DISPATCH_FROM_NAME, getDispatchReplyToAddress, sendMail } from './mailer'
 import { fmtDate, fmtTime, EMAIL_RE } from './format'
 import { BRAND_NAME, BRAND_PHONE, BRAND_WEBSITE } from '@/lib/site'
 
@@ -146,15 +146,35 @@ export async function sendDriverDispatch(i: DriverDispatchInput): Promise<EmailR
 
   const { html, text } = buildDriverDispatchContent(i)
   const replyTo = getDispatchReplyToAddress()
+  const subject = `Trip assignment — Booking #${i.bookingNumber}`
 
-  const result = await sendMail({
+  // Same sendMail path as booking confirmation. Prefer the dispatch From address;
+  // if Resend rejects it, retry with the bookings@ sender that already works.
+  let result = await sendMail({
     to,
     fromKind: 'dispatch',
     replyTo,
-    subject: `Trip assignment — Booking #${i.bookingNumber}`,
+    subject,
     html,
     text,
   })
+
+  if (!result.sent) {
+    console.warn('[email] sendDriverDispatch: dispatch sender failed, retrying with booking sender', {
+      reason: result.reason,
+      bookingNumber: i.bookingNumber,
+      to,
+    })
+    result = await sendMail({
+      to,
+      fromKind: 'customer',
+      fromName: DISPATCH_FROM_NAME,
+      replyTo,
+      subject,
+      html,
+      text,
+    })
+  }
 
   if (!result.sent) {
     console.warn('[email] sendDriverDispatch failed:', result.reason, {

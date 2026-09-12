@@ -20,6 +20,8 @@ type DispatchInput = {
   reservation: ManagerReservation
   chauffeur: ChauffeurContact
   vehicleName?: string | null
+  /** Explicit "Send dispatch" always emails when an address is on file. */
+  forceEmail?: boolean
 }
 
 export type DispatchChannelResult = {
@@ -62,7 +64,7 @@ export async function notifyDriverDispatch(input: DispatchInput): Promise<Dispat
     sms: channelIdle('SMS not configured'),
   }
 
-  if (c.notify_email) {
+  if (c.notify_email || input.forceEmail) {
     const email = c.email?.trim() ?? ''
     if (!email) {
       result.email = { attempted: false, sent: false, reason: 'no email on file for chauffeur' }
@@ -205,6 +207,7 @@ export async function sendDriverDispatchNotification(
       reservation: res as unknown as ManagerReservation,
       chauffeur,
       vehicleName: (res as { fleet?: { name?: string } }).fleet?.name ?? null,
+      forceEmail: true,
     })
 
     const deliveryError = dispatchDeliveryError(dispatchResult)
