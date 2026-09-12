@@ -18,6 +18,10 @@ let _resend: Resend | null = null
 const RENDER_TIMEOUT_MS = 30_000
 const SEND_TIMEOUT_MS = 15_000
 const SANDBOX_FROM = 'onboarding@resend.dev'
+// Do not inherit RESEND_BASE_URL from the worker environment. A value such as
+// `https://api.resend.com/emails` makes the SDK POST to `/emails/emails` and
+// Resend responds with 405 Method Not Allowed.
+const RESEND_API_ORIGIN = 'https://api.resend.com'
 
 /** Default display names per email category */
 export const CUSTOMER_FROM_NAME = `${BRAND_NAME} Booking`
@@ -48,7 +52,7 @@ function getResend(): Resend | null {
     console.warn('[email] RESEND_API_KEY is not set')
     return null
   }
-  if (!_resend) _resend = new Resend(key)
+  if (!_resend) _resend = new Resend(key, { baseUrl: RESEND_API_ORIGIN })
   return _resend
 }
 
