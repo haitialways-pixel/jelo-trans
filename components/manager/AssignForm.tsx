@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Loader2, UserCog, Send } from 'lucide-react'
-import { assignReservation } from '@/lib/manager/actions'
+import { assignReservation, sendDriverDispatchNotification } from '@/lib/manager/actions'
 import type { ManagerReservation, VehicleUnit, Chauffeur } from '@/lib/manager/data'
 
 export function AssignForm({
@@ -69,25 +69,17 @@ export function AssignForm({
     start(async () => {
       try {
         const parsedPay = driverPay.trim() === '' ? null : Number(driverPay)
-        const response = await fetch('/api/manager/driver-dispatch', {
-          method: 'POST',
-          credentials: 'same-origin',
-          cache: 'no-store',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify({
-            reservationId: r.id,
-            unitId: unitId || null,
-            chauffeurName: chauffeur,
-            chauffeurId: chauffeurId || null,
-            driverPay: Number.isFinite(parsedPay) && parsedPay !== null ? parsedPay : null,
-          }),
+        const res = await sendDriverDispatchNotification(r.id, {
+          unitId: unitId || null,
+          chauffeurName: chauffeur,
+          chauffeurId: chauffeurId || null,
+          driverPay: Number.isFinite(parsedPay) && parsedPay !== null ? parsedPay : null,
         })
-        const res = (await response.json().catch(() => null)) as { ok?: boolean; error?: string } | null
-        if (response.ok && res?.ok) {
+        if (res.ok) {
           toast.success('Dispatch email sent to driver')
           router.refresh()
         } else {
-          toast.error(res?.error ?? `Dispatch failed (${response.status} ${response.statusText})`)
+          toast.error(res.error)
         }
       } catch {
         toast.error('Could not reach the dispatch service. Please try again.')
