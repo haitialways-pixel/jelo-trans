@@ -11,11 +11,9 @@ import {
   type ReportPreset,
   type ReportStatus,
 } from '@/lib/manager/reports'
-import { DRIVER_PAY_PERCENT } from '@/lib/manager/driverPay'
 import { StatusBadge } from '@/components/manager/StatusBadge'
 import { formatDateTime, formatMoneyExact, PAYMENT_LABELS } from '@/lib/manager/format'
 import { ExportCsvButton } from '@/components/manager/ExportCsvButton'
-import { maskTaxId } from '@/lib/manager/taxId'
 
 export const dynamic = 'force-dynamic'
 
@@ -50,17 +48,23 @@ export default async function ReportsPage({
   const range = resolveReportRange({ preset, from: sp.from, to: sp.to })
   const year = Number(sp.year) || new Date().getFullYear()
 
-  const [rows, chauffeurs] = await Promise.all([
+  const [rows, companyRevenueRows, chauffeurs] = await Promise.all([
     getReportReservations({
       fromIso: range.fromIso,
       toIso: range.toIso,
       status,
       chauffeurId: chauffeurId || null,
     }),
-    getChauffeurs({ includeTaxLast4: admin }),
+    getReportReservations({
+      fromIso: range.fromIso,
+      toIso: range.toIso,
+      status: 'completed',
+    }),
+    getChauffeurs(),
   ])
 
   const kpis = reportKpis(rows)
+  const companyRevenue = reportKpis(companyRevenueRows).revenue
   const attention = needsAttention(rows)
   const completed = rows.filter((r) => r.status === 'completed')
   const chauffeur1099 = new Map(chauffeurs.map((c) => [c.id, c.is_1099_contractor]))
@@ -97,16 +101,15 @@ export default async function ReportsPage({
     ]),
   )
   const payCsv = toCsv(
-    ['Pickup', 'Booking', 'Chauffeur', '1099', 'Hours', 'Total', 'Gratuity', 'Driver pay'],
+    ['Pickup', 'Booking', 'Chauffeur', '1099', 'Hours', 'The run pays', 'Status'],
     payRows.map((r) => [
       r.pickup_time,
       r.booking_number,
       r.chauffeur_name,
       r.is_1099 ? 'Yes' : 'No',
       r.duration_hours,
-      r.total_price.toFixed(2),
-      r.gratuity_amount.toFixed(2),
       r.driver_pay.toFixed(2),
+      r.pay_not_entered ? 'Pay not entered' : 'Entered',
     ]),
   )
 
@@ -194,7 +197,7 @@ export default async function ReportsPage({
           { label: 'Rides', value: String(kpis.rides) },
           { label: 'Completed', value: String(kpis.completed) },
           { label: 'Cancelled', value: String(kpis.cancelled) },
-          { label: 'Revenue', value: formatMoneyExact(kpis.revenue) },
+          { label: 'Company revenue', value: formatMoneyExact(companyRevenue) },
           { label: 'Unpaid', value: formatMoneyExact(kpis.unpaid) },
         ].map((c) => (
           <div key={c.label} className="glass-dark gold-hairline rounded-2xl p-5">
@@ -293,7 +296,7 @@ export default async function ReportsPage({
           <div>
             <h2 className="text-sm tracking-widest text-on-surface-variant uppercase">Driver pay</h2>
             <p className="text-xs text-on-surface-variant mt-1">
-              v1: driver pay = gratuity (or $0). Fare split ({DRIVER_PAY_PERCENT}%) is reserved for later.
+              The run pays is entered on each driver assignment. Older jobs without an amount count as $0.
             </p>
           </div>
           <ExportCsvButton filename="driver-pay.csv" csv={payCsv} />
@@ -312,9 +315,8 @@ export default async function ReportsPage({
                   <th className="text-left px-4 py-2 font-medium">Chauffeur</th>
                   <th className="text-left px-4 py-2 font-medium">1099</th>
                   <th className="text-right px-4 py-2 font-medium">Hours</th>
-                  <th className="text-right px-4 py-2 font-medium">Total</th>
-                  <th className="text-right px-4 py-2 font-medium">Gratuity</th>
-                  <th className="text-right px-4 py-2 font-medium">Driver pay</th>
+                  <th className="text-right px-4 py-2 font-medium">The run pays</th>
+                  <th className="text-left px-4 py-2 font-medium">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/15">
@@ -329,23 +331,24 @@ export default async function ReportsPage({
                     <td className="px-4 py-3">{r.chauffeur_name}</td>
                     <td className="px-4 py-3">{r.is_1099 ? 'Yes' : 'No'}</td>
                     <td className="px-4 py-3 text-right">{r.duration_hours}</td>
-                    <td className="px-4 py-3 text-right">{formatMoneyExact(r.total_price)}</td>
-                    <td className="px-4 py-3 text-right">{formatMoneyExact(r.gratuity_amount)}</td>
                     <td className="px-4 py-3 text-right">{formatMoneyExact(r.driver_pay)}</td>
+                    <td className="px-4 py-3 text-xs text-amber-800">
+                      {r.pay_not_entered ? 'Pay not entered' : '—'}
+                    </td>
                   </tr>
                 ))}
               </tbody>
               <tfoot>
                 {[...payByDriver.values()].map((d) => (
                   <tr key={d.name} className="border-t border-outline-variant/30 text-xs">
-                    <td className="px-4 py-2" colSpan={7}>
+                    <td className="px-4 py-2" colSpan={6}>
                       {d.name} · {d.jobs} job(s)
                     </td>
                     <td className="px-4 py-2 text-right font-medium">{formatMoneyExact(d.pay)}</td>
                   </tr>
                 ))}
                 <tr className="border-t border-outline-variant/40 font-semibold">
-                  <td className="px-4 py-3" colSpan={7}>
+                  <td className="px-4 py-3" colSpan={6}>
                     Grand total
                   </td>
                   <td className="px-4 py-3 text-right">{formatMoneyExact(grandPay)}</td>
@@ -393,7 +396,6 @@ export default async function ReportsPage({
                 <thead className="text-xs text-on-surface-variant uppercase">
                   <tr>
                     <th className="text-left px-4 py-2 font-medium">Legal name</th>
-                    <th className="text-left px-4 py-2 font-medium">Tax ID</th>
                     <th className="text-right px-4 py-2 font-medium">Jobs</th>
                     <th className="text-right px-4 py-2 font-medium">Box 1</th>
                     <th className="text-left px-4 py-2 font-medium">Flags</th>
@@ -404,9 +406,6 @@ export default async function ReportsPage({
                   {necRows.map(({ c, jobs, box1, missingAddress, missingTax }) => (
                     <tr key={c.id}>
                       <td className="px-4 py-3">{c.legal_name || c.name}</td>
-                      <td className="px-4 py-3 font-mono text-xs">
-                        {c.hasTaxId ? maskTaxId(c.tax_id_last4, c.tax_id_type) : '—'}
-                      </td>
                       <td className="px-4 py-3 text-right">{jobs}</td>
                       <td className="px-4 py-3 text-right">{formatMoneyExact(box1)}</td>
                       <td className="px-4 py-3 text-xs text-amber-800">

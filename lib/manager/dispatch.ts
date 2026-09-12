@@ -81,8 +81,6 @@ export async function notifyDriverDispatch(input: DispatchInput): Promise<Dispat
         durationHours: r.duration_hours,
         distanceMiles: r.distance_miles,
         specialRequests: r.special_requests,
-        totalPrice: Number(r.total_price),
-        paymentStatus: r.payment_status,
         status: r.status,
       })
       result.email = {

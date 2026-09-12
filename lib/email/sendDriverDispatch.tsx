@@ -26,8 +26,6 @@ export type DriverDispatchInput = {
   durationHours?: number | null
   distanceMiles?: number | null
   specialRequests?: string | null
-  totalPrice?: number | null
-  paymentStatus?: string | null
   status?: string | null
 }
 
@@ -83,8 +81,6 @@ function buildDriverDispatchContent(i: DriverDispatchInput): { html: string; tex
   if (i.durationHours != null) rows.push(['Duration', `${i.durationHours} hour(s)`])
   if (i.distanceMiles != null) rows.push(['Distance', `${i.distanceMiles} miles`])
   if (i.specialRequests) rows.push(['Special requests', i.specialRequests])
-  if (i.totalPrice != null) rows.push(['Total fare', `$${i.totalPrice}`])
-  if (i.paymentStatus) rows.push(['Payment status', i.paymentStatus])
 
   const textRows = rows.map(([label, value]) => `${label}: ${value}`).join('\n')
   const replyLine =

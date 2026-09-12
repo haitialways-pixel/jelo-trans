@@ -230,6 +230,7 @@ export async function assignReservation(
   unitId: string | null,
   chauffeurName: string,
   chauffeurId: string | null = null,
+  driverPay: number | null = null,
 ): Promise<ActionResult> {
   try {
     await assertStaff()
@@ -239,6 +240,7 @@ export async function assignReservation(
       p_unit_id: unitId,
       p_chauffeur_name: chauffeurName,
       p_chauffeur_id: chauffeurId,
+      p_driver_pay: driverPay,
     })
     if (error) return { ok: false, error: error.message }
 
@@ -516,6 +518,7 @@ export async function sendDriverDispatchNotification(
     unitId?: string | null
     chauffeurName?: string
     chauffeurId?: string | null
+    driverPay?: number | null
   },
 ): Promise<ActionResult> {
   try {
@@ -529,6 +532,7 @@ export async function sendDriverDispatchNotification(
         p_unit_id: assignment.unitId ?? null,
         p_chauffeur_name: assignment.chauffeurName ?? '',
         p_chauffeur_id: assignment.chauffeurId ?? null,
+        p_driver_pay: assignment.driverPay ?? null,
       })
       if (assignError) return { ok: false, error: assignError.message }
     }
@@ -594,6 +598,24 @@ export type ChauffeurUpsertInput = {
   city?: string
   state?: string
   zip?: string
+}
+
+/** Admin-only masked SSN lookup for the edit form; never used in chauffeur lists. */
+export async function getChauffeurTaxLast4(id: string): Promise<{ ok: boolean; last4?: string }> {
+  try {
+    const staff = await assertStaff()
+    if (!isAdminRole(staff.role)) return { ok: false }
+    const { data, error } = await (await staffDb())
+      .from('chauffeurs')
+      .select('tax_id_last4')
+      .eq('id', id)
+      .maybeSingle()
+    if (error || !data) return { ok: false }
+    const last4 = typeof data.tax_id_last4 === 'string' ? data.tax_id_last4 : ''
+    return last4 ? { ok: true, last4 } : { ok: false }
+  } catch {
+    return { ok: false }
+  }
 }
 
 /** Add or update a chauffeur. Tax ID is admin-only and never written to audit_log. */
@@ -689,5 +711,3 @@ export async function deleteChauffeur(id: string): Promise<ActionResult> {
     return { ok: false, error: e instanceof Error ? e.message : 'Action failed' }
   }
 }
-
-

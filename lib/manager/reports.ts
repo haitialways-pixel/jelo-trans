@@ -1,5 +1,4 @@
 import { staffDb } from '@/lib/manager/db'
-import { driverPayForJob } from '@/lib/manager/driverPay'
 
 export type ReportPreset = 'today' | 'week' | 'month' | 'year' | 'custom'
 export type ReportStatus = 'all' | 'active' | 'completed' | 'cancelled'
@@ -14,7 +13,7 @@ export type ReportReservation = {
   status: string
   payment_status: string
   total_price: number
-  gratuity_amount: number | null
+  driver_pay: number | null
   duration_hours: number
   chauffeur_id: string | null
   chauffeur_name: string | null
@@ -24,7 +23,7 @@ export type ReportReservation = {
 }
 
 const REPORT_COLUMNS =
-  'id, booking_number, customer_name, pickup_time, pickup_address, dropoff_address, status, payment_status, total_price, gratuity_amount, duration_hours, chauffeur_id, chauffeur_name, assigned_unit_id, archived, fleet:vehicle_id (name)'
+  'id, booking_number, customer_name, pickup_time, pickup_address, dropoff_address, status, payment_status, total_price, driver_pay, duration_hours, chauffeur_id, chauffeur_name, assigned_unit_id, archived, fleet:vehicle_id (name)'
 
 const ACTIVE_STATUSES = ['pending', 'confirmed', 'in_progress']
 
@@ -128,7 +127,7 @@ export async function getReportReservations(opts: {
     let q2 = supabase
       .from('reservations')
       .select(
-        'id, booking_number, customer_name, pickup_time, pickup_address, dropoff_address, status, payment_status, total_price, gratuity_amount, duration_hours, chauffeur_id, chauffeur_name, assigned_unit_id, fleet:vehicle_id (name)',
+        'id, booking_number, customer_name, pickup_time, pickup_address, dropoff_address, status, payment_status, total_price, driver_pay, duration_hours, chauffeur_id, chauffeur_name, assigned_unit_id, fleet:vehicle_id (name)',
       )
       .gte('pickup_time', opts.fromIso)
       .lte('pickup_time', opts.toIso)
@@ -186,9 +185,8 @@ export type DriverPayRow = {
   chauffeur_name: string
   is_1099: boolean
   duration_hours: number
-  total_price: number
-  gratuity_amount: number
   driver_pay: number
+  pay_not_entered: boolean
 }
 
 export function driverPayRows(
@@ -197,7 +195,7 @@ export function driverPayRows(
 ): DriverPayRow[] {
   const jobs = rows.filter((r) => r.status === 'completed' && (r.chauffeur_id || r.chauffeur_name))
   const mapped: DriverPayRow[] = jobs.map((r) => {
-    const gratuity = Number(r.gratuity_amount || 0)
+    const payNotEntered = r.driver_pay == null
     return {
       id: r.id,
       pickup_time: r.pickup_time,
@@ -206,9 +204,8 @@ export function driverPayRows(
       chauffeur_name: r.chauffeur_name || 'Unnamed',
       is_1099: r.chauffeur_id ? Boolean(chauffeur1099.get(r.chauffeur_id)) : false,
       duration_hours: Number(r.duration_hours || 0),
-      total_price: Number(r.total_price || 0),
-      gratuity_amount: gratuity,
-      driver_pay: driverPayForJob(gratuity),
+      driver_pay: payNotEntered ? 0 : Number(r.driver_pay),
+      pay_not_entered: payNotEntered,
     }
   })
   mapped.sort((a, b) => {

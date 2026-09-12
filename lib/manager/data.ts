@@ -18,6 +18,7 @@ export type ManagerReservation = {
   deposit_paid_at: string | null
   balance_paid_at: string | null
   total_price: number
+  driver_pay: number | null
   fare_subtotal: number | null
   gratuity_percent: number | null
   gratuity_amount: number | null
@@ -44,7 +45,7 @@ export type ManagerReservation = {
 }
 
 const RES_COLUMNS =
-  'id, booking_number, customer_name, customer_email, customer_phone, pickup_address, dropoff_address, pickup_time, status, payment_status, deposit_amount, balance_amount, deposit_paid_at, balance_paid_at, total_price, fare_subtotal, gratuity_percent, gratuity_amount, passengers, luggage, duration_hours, chauffeur_name, chauffeur_id, source, vehicle_id, assigned_unit_id, dispatched_at, arrived_pickup_at, onboard_at, arrived_dropoff_at, completed_at, special_requests, created_at, distance_miles, deposit_intent_id, balance_intent_id, fleet:vehicle_id (name, type), assigned_unit:assigned_unit_id (label, year)'
+  'id, booking_number, customer_name, customer_email, customer_phone, pickup_address, dropoff_address, pickup_time, status, payment_status, deposit_amount, balance_amount, deposit_paid_at, balance_paid_at, total_price, driver_pay, fare_subtotal, gratuity_percent, gratuity_amount, passengers, luggage, duration_hours, chauffeur_name, chauffeur_id, source, vehicle_id, assigned_unit_id, dispatched_at, arrived_pickup_at, onboard_at, arrived_dropoff_at, completed_at, special_requests, created_at, distance_miles, deposit_intent_id, balance_intent_id, fleet:vehicle_id (name, type), assigned_unit:assigned_unit_id (label, year)'
 
 function escapeIlike(term: string): string {
   return term.replace(/[%_\\]/g, '')

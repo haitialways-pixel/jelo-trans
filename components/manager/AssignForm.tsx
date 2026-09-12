@@ -19,6 +19,7 @@ export function AssignForm({
   const [unitId, setUnitId] = useState(r.assigned_unit_id ?? '')
   const [chauffeurId, setChauffeurId] = useState(r.chauffeur_id ?? '')
   const [chauffeur, setChauffeur] = useState(r.chauffeur_name ?? '')
+  const [driverPay, setDriverPay] = useState(r.driver_pay == null ? '' : Number(r.driver_pay).toFixed(2))
 
   const isPredefined = chauffeurs.some((c) => c.id === (r.chauffeur_id ?? '') || c.name === (r.chauffeur_name ?? ''))
   const [selectMode, setSelectMode] = useState<'select' | 'manual'>(
@@ -44,8 +45,13 @@ export function AssignForm({
   }
 
   function save() {
+    const parsedPay = driverPay.trim() === '' ? null : Number(driverPay)
+    if (parsedPay !== null && (!Number.isFinite(parsedPay) || parsedPay < 0)) {
+      toast.error('The run pays must be a valid amount')
+      return
+    }
     start(async () => {
-      const res = await assignReservation(r.id, unitId || null, chauffeur, chauffeurId || null)
+      const res = await assignReservation(r.id, unitId || null, chauffeur, chauffeurId || null, parsedPay)
       if (res.ok) {
         toast.success('Assignment saved')
         router.refresh()
@@ -61,10 +67,12 @@ export function AssignForm({
       return
     }
     start(async () => {
+      const parsedPay = driverPay.trim() === '' ? null : Number(driverPay)
       const res = await sendDriverDispatchNotification(r.id, {
         unitId: unitId || null,
         chauffeurName: chauffeur,
         chauffeurId: chauffeurId || null,
+        driverPay: Number.isFinite(parsedPay) && parsedPay !== null ? parsedPay : null,
       })
       if (res.ok) {
         toast.success('Dispatch email sent to driver')
@@ -118,6 +126,25 @@ export function AssignForm({
           )}
         </select>
         <p className="text-[11px] text-on-surface-variant mt-1">Assign a specific vehicle from the fleet.</p>
+      </div>
+
+      <div>
+        <label className="block text-xs text-on-surface-variant mb-1.5">The run pays</label>
+        <input
+          type="number"
+          inputMode="decimal"
+          min="0"
+          step="0.01"
+          value={driverPay}
+          onChange={(e) => setDriverPay(e.target.value)}
+          onBlur={() => {
+            const value = Number(driverPay)
+            if (driverPay.trim() && Number.isFinite(value) && value >= 0) setDriverPay(value.toFixed(2))
+          }}
+          disabled={disabled}
+          placeholder="0.00"
+          className="w-full rounded-lg px-3 py-2.5 text-sm disabled:opacity-50 text-on-surface"
+        />
       </div>
 
       <div>

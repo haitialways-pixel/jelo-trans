@@ -9,7 +9,7 @@ export default async function FleetPage() {
   const [models, units, chauffeurs] = await Promise.all([
     getFleetModels(),
     getVehicleUnits(),
-    getChauffeurs({ includeTaxLast4: isAdminRole(staff.role) }),
+    getChauffeurs(),
   ])
 
   const availableCount = units.filter((u) => u.status === 'available').length

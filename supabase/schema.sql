@@ -158,6 +158,7 @@ CREATE TABLE public.reservations (
   gratuity_percent numeric(5,2),
   gratuity_amount numeric(10,2),
   total_price numeric(10,2) NOT NULL,
+  driver_pay numeric(10,2) CHECK (driver_pay IS NULL OR driver_pay >= 0),
   status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'in_progress', 'completed', 'cancelled')),
   payment_status text NOT NULL DEFAULT 'unpaid' CHECK (payment_status IN ('unpaid', 'paid', 'refunded', 'partial')),
   special_requests text,

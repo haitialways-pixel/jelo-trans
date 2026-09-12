@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Plus, Trash2, Save, X, Loader2, Users, Pencil } from 'lucide-react'
-import { upsertChauffeur, deleteChauffeur } from '@/lib/manager/actions'
+import { upsertChauffeur, deleteChauffeur, getChauffeurTaxLast4 } from '@/lib/manager/actions'
 import { maskTaxId } from '@/lib/manager/taxId'
 import type { Chauffeur, TaxIdType } from '@/lib/manager/data'
 
@@ -63,6 +63,7 @@ export function ChauffeurManager({ chauffeurs, isAdmin }: Props) {
   const [pending, start] = useTransition()
   const [form, setForm] = useState<FormState>(emptyForm())
   const [editing, setEditing] = useState(false)
+  const [taxIdLast4, setTaxIdLast4] = useState('')
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -70,6 +71,10 @@ export function ChauffeurManager({ chauffeurs, isAdmin }: Props) {
 
   function startEdit(c: Chauffeur) {
     setEditing(true)
+    setTaxIdLast4('')
+    if (isAdmin) {
+      void getChauffeurTaxLast4(c.id).then((result) => setTaxIdLast4(result.last4 ?? ''))
+    }
     setForm({
       id: c.id,
       name: c.name,
@@ -91,6 +96,7 @@ export function ChauffeurManager({ chauffeurs, isAdmin }: Props) {
 
   function cancel() {
     setEditing(false)
+    setTaxIdLast4('')
     setForm(emptyForm())
   }
 
@@ -113,7 +119,7 @@ export function ChauffeurManager({ chauffeurs, isAdmin }: Props) {
         driverLicenseExpiresOn: form.driverLicenseExpiresOn,
         is1099Contractor: form.is1099Contractor,
         legalName: form.legalName,
-        taxIdType: isAdmin ? form.taxIdType : '',
+        taxIdType: isAdmin ? 'ssn' : '',
         taxId: isAdmin ? form.taxId : '',
         addressLine1: form.addressLine1,
         addressLine2: form.addressLine2,
@@ -213,18 +219,7 @@ export function ChauffeurManager({ chauffeurs, isAdmin }: Props) {
           </Field>
           {isAdmin && (
             <>
-              <Field label="Tax ID type">
-                <select
-                  value={form.taxIdType}
-                  onChange={(e) => set('taxIdType', e.target.value as TaxIdType)}
-                  className="w-full rounded-lg px-3 py-2 text-xs text-on-surface"
-                  disabled={pending}
-                >
-                  <option value="ssn">SSN</option>
-                  <option value="ein">EIN</option>
-                </select>
-              </Field>
-              <Field label="Tax ID" className="sm:col-span-2">
+              <Field label="S.S.N." className="sm:col-span-2">
                 <input
                   type="password"
                   autoComplete="off"
@@ -233,18 +228,15 @@ export function ChauffeurManager({ chauffeurs, isAdmin }: Props) {
                   placeholder={
                     form.id && chauffeurs.find((c) => c.id === form.id)?.hasTaxId
                       ? 'Leave blank to keep existing'
-                      : 'SSN or EIN — stored encrypted'
+                      : 'Stored encrypted'
                   }
                   className="w-full rounded-lg px-3 py-2 text-xs text-on-surface"
                   disabled={pending}
                 />
-                {form.id && chauffeurs.find((c) => c.id === form.id)?.tax_id_last4 ? (
+                {form.id && taxIdLast4 ? (
                   <p className="text-[11px] text-on-surface-variant mt-1">
                     On file:{' '}
-                    {maskTaxId(
-                      chauffeurs.find((c) => c.id === form.id)?.tax_id_last4,
-                      chauffeurs.find((c) => c.id === form.id)?.tax_id_type,
-                    )}
+                    {maskTaxId(taxIdLast4, 'ssn')}
                   </p>
                 ) : null}
               </Field>
@@ -357,11 +349,6 @@ export function ChauffeurManager({ chauffeurs, isAdmin }: Props) {
                         {flag === 'soon' && (
                           <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-800">
                             License expires soon
-                          </span>
-                        )}
-                        {isAdmin && c.tax_id_last4 && (
-                          <span className="text-[10px] text-on-surface-variant">
-                            {maskTaxId(c.tax_id_last4, c.tax_id_type)}
                           </span>
                         )}
                       </div>
