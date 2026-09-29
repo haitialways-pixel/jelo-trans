@@ -20,6 +20,8 @@ DISPATCH_FROM_ADDRESS=no-reply@vipodyssey.com
 DISPATCH_REPLY_TO_EMAIL=concierge@vipodyssey.com
 MANAGEMENT_EMAIL=info.phalotrans@gmail.com
 SITE_URL=https://vipodyssey.com
+# Same value as the Supabase webhook header x-webhook-secret. Not a real secret.
+AUTH_USER_CREATED_WEBHOOK_SECRET=generate_a_long_random_string
 
 # Public ones (if your preview build needs them at runtime):
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co

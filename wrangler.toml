@@ -43,6 +43,9 @@ NEXT_PUBLIC_SITE_URL = "https://jelo-trans.info-phalotrans.workers.dev"
 #   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (or NEXT_PUBLIC_SUPABASE_ANON_KEY)
 # SUPABASE_SERVICE_ROLE_KEY — required for Stripe webhooks.
 # RESEND_API_KEY + BOOKING_FROM_ADDRESS — required for transactional email.
+# AUTH_USER_CREATED_WEBHOOK_SECRET - required for POST /api/auth/user-created.
+#   Supabase Database Webhook on auth.users INSERT sends header x-webhook-secret.
+#   npx wrangler secret put AUTH_USER_CREATED_WEBHOOK_SECRET
 # Do not set RESEND_BASE_URL. A value ending in /emails makes send return 405.
 # MANAGEMENT_EMAIL — ops alerts (new bookings, deposit paid); default info.phalotrans@gmail.com
 # Quote BOOKING_FROM_EMAIL in the dashboard if it contains spaces:

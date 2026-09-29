@@ -73,6 +73,7 @@ npm run dev
 | `STRIPE_WEBHOOK_SECRET` | Webhook (production) | Stripe Dashboard → Developers → Webhooks → Add endpoint → `<your-domain>/api/stripe/webhook` (whsec_...) |
 | `GOOGLE_MAPS_API_KEY` | Distance & autocomplete | Google Cloud Console — enable Distance Matrix API + Places API |
 | `RESEND_API_KEY` | Email | Resend Dashboard → API Keys |
+| `AUTH_USER_CREATED_WEBHOOK_SECRET` | New-user email | Long random string. Cloudflare secret, and the same value in the Supabase Database Webhook header `x-webhook-secret` for `POST /api/auth/user-created`. |
 | `BOOKING_FROM_EMAIL` | Email | The verified sender address for Resend |
 | `SITE_URL` | Email links | Your public URL (e.g. `https://vipodyssey.com`) |
 | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | Optional | @BotFather on Telegram, then `/getUpdates` to find chat id |
