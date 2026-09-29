@@ -1,8 +1,6 @@
 @import "tailwindcss";
 
-/* ─── Editorial Luxury — bright, airy, magazine aesthetic ─── */
-/* Alabaster #FDFBF7 · Silk Cream #F5EFEB · Espresso #2B2625 */
-/* Champagne Gold #D4AF37 (sparingly) · Sage #A3B19B */
+/* Near-black · royal blue · gold — from the Imperial Odyssey mark */
 
 iframe[title*="Stripe developer tools" i],
 iframe[name*="StripeDevTools" i] {
@@ -10,22 +8,28 @@ iframe[name*="StripeDevTools" i] {
 }
 
 :root {
-  --background: #fdfbf7;
-  --foreground: #2b2625;
-  --card: #f5efeb;
-  --card-elevated: #ffffff;
-  --muted: #6b6563;
-  --gold: #d4af37;
-  --gold-soft: #e8d9a8;
-  --sage: #a3b19b;
-  --sage-soft: #c5cfc0;
+  --background: #07080c;
+  --foreground: #f4efe6;
+  --card: #12151e;
+  --card-elevated: #1a1f2c;
+  --muted: #b7b1a6;
+  --gold: #c9a84c;
+  --gold-soft: #e0c878;
+  --royal: #1e4fc7;
+  --royal-bright: #3b6fe8;
+  --royal-deep: #163a96;
+}
+
+html,
+body {
+  overflow-x: hidden;
 }
 
 body {
   font-family: var(--font-inter), system-ui, sans-serif;
   font-size: 1rem;
   line-height: 1.6;
-  color-scheme: light;
+  color-scheme: dark;
   color: var(--foreground);
   background: var(--background);
   -webkit-font-smoothing: antialiased;
@@ -44,26 +48,25 @@ p, li, label, input, textarea, select, button {
   line-height: 1.6;
 }
 
-/* Champagne gold — CTAs only */
 .btn-gold,
 .btn-cta {
-  background: #d4af37;
-  color: #2b2625;
+  background: var(--royal);
+  color: #f7f4ee;
   font-weight: 600;
   letter-spacing: 0.06em;
   transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-  box-shadow: 0 12px 40px -12px rgba(212, 175, 55, 0.45);
+  box-shadow: 0 12px 40px -12px rgba(30, 79, 199, 0.55);
 }
 
 .btn-gold:hover,
 .btn-cta:hover {
-  background: #c9a227;
+  background: var(--royal-bright);
   transform: translateY(-1px);
-  box-shadow: 0 18px 48px -10px rgba(212, 175, 55, 0.5);
+  box-shadow: 0 18px 48px -10px rgba(59, 111, 232, 0.55);
 }
 
 .btn-outline-gold {
-  border: 1px solid rgba(43, 38, 37, 0.12);
+  border: 1px solid rgba(201, 168, 76, 0.45);
   color: var(--foreground);
   background: transparent;
   font-weight: 500;
@@ -72,73 +75,72 @@ p, li, label, input, textarea, select, button {
 }
 
 .btn-outline-gold:hover {
-  border-color: rgba(163, 177, 155, 0.6);
-  background: rgba(245, 239, 235, 0.8);
+  border-color: var(--gold);
+  background: rgba(201, 168, 76, 0.08);
 }
 
-/* Floating cream cards — no harsh borders */
 .card,
 .float-card {
   background: var(--card);
-  border: none;
+  border: 1px solid rgba(201, 168, 76, 0.12);
   border-radius: 1.25rem;
   box-shadow:
-    0 4px 6px -2px rgba(43, 38, 37, 0.03),
-    0 24px 48px -12px rgba(43, 38, 37, 0.08);
-  transition: transform 0.35s ease, box-shadow 0.35s ease;
+    0 4px 6px -2px rgba(0, 0, 0, 0.25),
+    0 24px 48px -12px rgba(0, 0, 0, 0.45);
+  transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
 }
 
 .card:hover,
 .float-card:hover {
   transform: translateY(-4px);
+  border-color: rgba(30, 79, 199, 0.35);
   box-shadow:
-    0 8px 12px -4px rgba(43, 38, 37, 0.04),
-    0 32px 64px -16px rgba(43, 38, 37, 0.1);
+    0 8px 12px -4px rgba(0, 0, 0, 0.3),
+    0 32px 64px -16px rgba(30, 79, 199, 0.18);
 }
 
 .luxe-card {
   background: var(--card);
-  border: none;
-  box-shadow: 0 20px 50px -20px rgba(43, 38, 37, 0.1);
+  border: 1px solid rgba(201, 168, 76, 0.12);
+  box-shadow: 0 20px 50px -20px rgba(0, 0, 0, 0.5);
 }
 
 .glass-dark {
-  background: var(--card);
-  border: none;
-  box-shadow: 0 20px 50px -20px rgba(43, 38, 37, 0.09);
+  background: rgba(18, 21, 30, 0.88);
+  border: 1px solid rgba(201, 168, 76, 0.14);
+  box-shadow: 0 20px 50px -20px rgba(0, 0, 0, 0.5);
 }
 
 .gold-hairline {
-  border: none;
+  border-color: rgba(201, 168, 76, 0.28);
 }
 
-/* Legacy helpers — toned down gold usage */
 .gold { color: var(--gold); }
-.text-gold-soft { color: var(--gold); }
+.text-gold-soft { color: var(--gold-soft); }
 
 .text-gold-gradient {
-  color: var(--foreground);
+  color: var(--gold);
   background: none;
   -webkit-text-fill-color: unset;
 }
 
 .gold-shimmer {
-  background: #d4af37;
-  color: #2b2625;
+  background: var(--royal);
+  color: #f7f4ee;
   font-weight: 600;
   letter-spacing: 0.08em;
-  box-shadow: 0 12px 40px -12px rgba(212, 175, 55, 0.45);
+  box-shadow: 0 12px 40px -12px rgba(30, 79, 199, 0.55);
   animation: none;
 }
 
 .gold-shimmer:hover {
-  background: #c9a227;
+  background: var(--royal-bright);
 }
 
 .accent-line {
   height: 1px;
   width: 3rem;
-  background: #d4af37;
+  background: var(--gold);
   border-radius: 9999px;
 }
 
@@ -150,50 +152,50 @@ p, li, label, input, textarea, select, button {
 .hero-luxe-overlay {
   background: linear-gradient(
     to top,
-    rgba(253, 251, 247, 0.97) 0%,
-    rgba(253, 251, 247, 0.82) 35%,
-    rgba(253, 251, 247, 0.45) 65%,
-    rgba(253, 251, 247, 0.15) 100%
+    rgba(7, 8, 12, 0.96) 0%,
+    rgba(7, 8, 12, 0.55) 40%,
+    rgba(7, 8, 12, 0.2) 70%,
+    rgba(7, 8, 12, 0.35) 100%
   );
 }
 
 .luxe-divider {
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(163, 177, 155, 0.35), transparent);
+  background: linear-gradient(90deg, transparent, rgba(201, 168, 76, 0.4), transparent);
 }
 
 .pearl-accent-bar,
 .editorial-accent {
   height: 2px;
   width: 2.5rem;
-  background: #d4af37;
+  background: var(--gold);
   border-radius: 9999px;
 }
 
 .spotlight-glow {
   background: radial-gradient(
     circle at center,
-    rgba(245, 239, 235, 0.9) 0%,
-    rgba(253, 251, 247, 0.4) 70%
+    rgba(30, 79, 199, 0.16) 0%,
+    rgba(18, 21, 30, 0.4) 70%
   );
 }
 
 input, textarea, select {
   background: var(--card-elevated);
-  border: 1px solid rgba(43, 38, 37, 0.08);
+  border: 1px solid rgba(244, 239, 230, 0.1);
   color: var(--foreground);
   border-radius: 0.75rem;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 input:focus, textarea:focus, select:focus {
-  border-color: rgba(163, 177, 155, 0.55);
+  border-color: rgba(30, 79, 199, 0.7);
   outline: none;
-  box-shadow: 0 0 0 4px rgba(163, 177, 155, 0.15);
+  box-shadow: 0 0 0 4px rgba(30, 79, 199, 0.2);
 }
 
 input::placeholder, textarea::placeholder {
-  color: #9a9492;
+  color: #8a857c;
 }
 
 .step-indicator {
@@ -206,14 +208,14 @@ input::placeholder, textarea::placeholder {
   font-size: 0.75rem;
   font-weight: 600;
   background: var(--card-elevated);
-  border: 1px solid rgba(43, 38, 37, 0.08);
+  border: 1px solid rgba(244, 239, 230, 0.12);
   color: var(--muted);
 }
 
 .step-indicator.active {
-  background: var(--card);
-  color: var(--foreground);
-  border-color: rgba(212, 175, 55, 0.4);
+  background: var(--royal);
+  color: #f7f4ee;
+  border-color: var(--royal);
 }
 
 .badge {
@@ -223,36 +225,36 @@ input::placeholder, textarea::placeholder {
   font-weight: 500;
 }
 
-.badge-pending { background: rgba(245, 239, 235, 1); color: #6b6563; }
-.badge-confirmed { background: rgba(212, 175, 55, 0.15); color: #7a6530; }
-.badge-completed { background: rgba(163, 177, 155, 0.25); color: #4a5a44; }
-.badge-cancelled { background: rgba(220, 100, 100, 0.1); color: #a03030; }
+.badge-pending { background: rgba(201, 168, 76, 0.16); color: #e0c878; }
+.badge-confirmed { background: rgba(30, 79, 199, 0.22); color: #9bb6ff; }
+.badge-completed { background: rgba(46, 160, 110, 0.2); color: #8fe0b8; }
+.badge-cancelled { background: rgba(220, 100, 100, 0.16); color: #f0a0a0; }
 
 @theme {
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-playfair), Georgia, "Times New Roman", serif;
 
-  --color-primary: #a3b19b;
-  --color-primary-dim: #c5cfc0;
-  --color-primary-dark: #7d8f75;
+  --color-primary: #1e4fc7;
+  --color-primary-dim: #3b6fe8;
+  --color-primary-dark: #163a96;
 
-  --color-secondary: #f5efeb;
-  --color-secondary-dim: #faf6f3;
-  --color-secondary-dark: #e8e0da;
+  --color-secondary: #12151e;
+  --color-secondary-dim: #1a1f2c;
+  --color-secondary-dark: #0c0e14;
 
-  --color-gold: #d4af37;
-  --color-gold-dim: #e8d9a8;
-  --color-gold-dark: #b8942d;
+  --color-gold: #c9a84c;
+  --color-gold-dim: #e0c878;
+  --color-gold-dark: #a88832;
 
-  --color-background: #fdfbf7;
-  --color-card: #f5efeb;
-  --color-on-surface: #2b2625;
-  --color-on-surface-variant: #6b6563;
-  --color-surface-container-lowest: #ffffff;
-  --color-surface-container-low: #f5efeb;
-  --color-surface-container: #f0eae6;
-  --color-surface-container-high: #e8e2de;
-  --color-outline-variant: rgba(43, 38, 37, 0.1);
+  --color-background: #07080c;
+  --color-card: #12151e;
+  --color-on-surface: #f4efe6;
+  --color-on-surface-variant: #b7b1a6;
+  --color-surface-container-lowest: #1a1f2c;
+  --color-surface-container-low: #10131a;
+  --color-surface-container: #161a24;
+  --color-surface-container-high: #1e2433;
+  --color-outline-variant: rgba(201, 168, 76, 0.18);
 }
 
 .hide-scrollbar::-webkit-scrollbar { display: none; }

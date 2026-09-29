@@ -1,4 +1,5 @@
 import { cache } from 'react'
+import { decorateBookable, decorateVehicle, filterPublicFleet } from '@/lib/catalog'
 import { getSupabasePublicKey, getSupabaseUrl } from '@/lib/supabase/env'
 
 // Single source of truth for fleet data. Every page (home, fleet, services, booking)
@@ -23,12 +24,14 @@ export type Vehicle = {
 export type BookableVehicle = Pick<
   Vehicle,
   'id' | 'name' | 'capacity' | 'base_price' | 'price_per_mile' | 'hourly_rate' | 'image_url'
->
+> & {
+  type?: string | null
+}
 
 const FLEET_COLUMNS =
   'id,name,type,capacity,luggage_capacity,base_price,price_per_mile,hourly_rate,image_url,description,featured,display_order,tier'
 
-const BOOKING_COLUMNS = 'id,name,capacity,base_price,price_per_mile,hourly_rate,image_url'
+const BOOKING_COLUMNS = 'id,name,type,capacity,base_price,price_per_mile,hourly_rate,image_url'
 
 /** Revalidate fleet catalog every 5 minutes — prices/status change infrequently. */
 const FLEET_REVALIDATE_SECONDS = 300
@@ -105,9 +108,10 @@ async function fetchFleetRows(
 
 /** All bookable vehicles, in the business-defined display order (then by price). */
 export const getFleet = cache(async (): Promise<Vehicle[]> => {
-  return fetchFleetRows(FLEET_COLUMNS, {
+  const rows = await fetchFleetRows(FLEET_COLUMNS, {
     order: 'display_order.asc,base_price.asc',
   })
+  return filterPublicFleet(rows).map(decorateVehicle)
 })
 
 /** A curated subset for teasers (home). Falls back to the first N if none flagged. */
@@ -118,12 +122,14 @@ export const getFeaturedFleet = cache(async (limit = 4): Promise<Vehicle[]> => {
     limit: String(limit),
   })
 
-  if (featured.length > 0) return featured
+  const source = featured.length > 0
+    ? featured
+    : await fetchFleetRows(FLEET_COLUMNS, {
+        order: 'display_order.asc,base_price.asc',
+        limit: String(limit),
+      })
 
-  return fetchFleetRows(FLEET_COLUMNS, {
-    order: 'display_order.asc,base_price.asc',
-    limit: String(limit),
-  })
+  return filterPublicFleet(source).map(decorateVehicle).slice(0, limit)
 })
 
 /** Slim fleet payload for the booking wizard (cached — marketing pages). */
@@ -131,15 +137,18 @@ export const getBookableFleet = cache(async (): Promise<BookableVehicle[]> => {
   const rows = await fetchFleetRows(BOOKING_COLUMNS, {
     order: 'base_price.asc',
   })
-  return rows.map(({ id, name, capacity, base_price, price_per_mile, hourly_rate, image_url }) => ({
-    id,
-    name,
-    capacity,
-    base_price,
-    price_per_mile,
-    hourly_rate,
-    image_url,
-  }))
+  return filterPublicFleet(rows).map((row) =>
+    decorateBookable({
+      id: row.id,
+      name: row.name,
+      type: row.type,
+      capacity: row.capacity,
+      base_price: row.base_price,
+      price_per_mile: row.price_per_mile,
+      hourly_rate: row.hourly_rate,
+      image_url: row.image_url,
+    }),
+  )
 })
 
 /** Always-fresh fleet for /book — avoids stale vehicle IDs after DB reseeds or manager edits. */
@@ -149,13 +158,16 @@ export async function getBookableFleetForBooking(): Promise<BookableVehicle[]> {
     { order: 'base_price.asc' },
     { fresh: true },
   )
-  return rows.map(({ id, name, capacity, base_price, price_per_mile, hourly_rate, image_url }) => ({
-    id,
-    name,
-    capacity,
-    base_price,
-    price_per_mile,
-    hourly_rate,
-    image_url,
-  }))
+  return filterPublicFleet(rows).map((row) =>
+    decorateBookable({
+      id: row.id,
+      name: row.name,
+      type: row.type,
+      capacity: row.capacity,
+      base_price: row.base_price,
+      price_per_mile: row.price_per_mile,
+      hourly_rate: row.hourly_rate,
+      image_url: row.image_url,
+    }),
+  )
 }

@@ -95,7 +95,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
       'show me your fleet',
       'what cars are available',
       'do you have a limo',
-      'do you have an SUV or sprinter',
+      'do you have an SUV or sedan',
       'list your vehicles',
     ],
     action: 'list_fleet',
@@ -127,7 +127,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
       'how is the fare calculated',
     ],
     answer:
-      'Pricing is per trip: a base rate by vehicle (sedans from $95, SUVs from $125, Sprinter from $185) plus mileage from $3 to $4.50 per mile. Gratuity for your chauffeur is arranged at payment — it is not added automatically. No surge, no surprises. Want an estimate for a specific vehicle and distance?',
+      'Point-to-point transfers use our mileage calculator unless the trip is between Orlando International (MCO) and a named destination (theme parks, Port Canaveral, and others) — then you see the published flat rate for sedan or SUV, same in either direction. Hourly charters are separate: SUV $110/hour, sedan $100/hour, 3-hour minimum. Gratuity is chosen at booking. Want a quote for a specific trip?',
   },
 
   // ---------------------------------------------------------------- Availability & lookup (RPC)
@@ -190,7 +190,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
       'celebration transportation',
     ],
     answer:
-      'Absolutely — weddings, proms, and celebrations are a signature service (our Executive Stretch is a favorite). For tailored event quotes I can connect you with our concierge team.',
+      'Absolutely — weddings, proms, and celebrations are a signature service. Full-size SUVs and luxury sedans with professional chauffeurs. For tailored event quotes I can connect you with our concierge team.',
   },
   {
     id: 'corporate',
@@ -258,7 +258,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
       'is payment online',
     ],
     answer:
-      'Payment is arranged with our team — we’ll confirm the details after your reservation. If you’d like, I can have someone reach out to finalize payment.',
+      "Submitting a reservation doesn't charge you anything. A staff member reviews every request and confirms it with you. Once your reservation is confirmed, we process a deposit of 25% of the fare. The deposit is fully refundable if you cancel at least 24 hours before your scheduled pickup time; cancellations within 24 hours are non-refundable.",
   },
 
   // ---------------------------------------------------------------- Escalation (sensitive / out of scope)

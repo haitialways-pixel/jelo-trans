@@ -24,7 +24,7 @@ export type PaymentSummary = {
   charterHours: number | null
   charterHourlyRate: number | null
   distanceMiles: number | null
-  /** A deposit amount was stored (Stripe 10% intent), whether or not it was paid. */
+  /** A deposit amount was stored (Stripe 25% intent), whether or not it was paid. */
   depositScheduled: boolean
   /** Customer actually paid a deposit. */
   depositCollected: boolean

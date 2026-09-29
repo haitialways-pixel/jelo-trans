@@ -6,14 +6,12 @@ type OptimizedImageProps = Omit<ImageProps, 'src'> & {
 
 /** next/image wrapper that supports local and remote fleet assets. */
 export function OptimizedImage({ src, alt, className, ...rest }: OptimizedImageProps) {
-  const isRemote = src.startsWith('http://') || src.startsWith('https://')
-
   return (
     <Image
       src={src}
       alt={alt}
       className={className}
-      unoptimized={isRemote && !src.includes('supabase')}
+      unoptimized
       {...rest}
     />
   )

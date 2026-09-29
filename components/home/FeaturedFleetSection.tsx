@@ -1,10 +1,11 @@
 import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
 import { getFeaturedFleet } from '@/lib/fleet'
+import { withPublicCatalog } from '@/lib/catalog'
 import { OptimizedImage } from '@/components/shared/OptimizedImage'
 
 export async function FeaturedFleetSection() {
-  const featured = await getFeaturedFleet(6)
+  const featured = withPublicCatalog(await getFeaturedFleet(6)).slice(0, 6)
 
   return (
     <section className="section-pad bg-surface-container-low">
@@ -31,7 +32,7 @@ export async function FeaturedFleetSection() {
             >
               <div className="relative aspect-[16/10] mb-8 rounded-xl overflow-hidden bg-surface-container-lowest spotlight-glow flex items-center justify-center p-4">
                 <OptimizedImage
-                  src={v.image_url ?? '/images/fleet-overview.webp'}
+                  src={v.image_url ?? '/images/fleet-suv.webp'}
                   alt={v.name}
                   fill
                   sizes="(max-width: 640px) 85vw, 340px"
@@ -42,7 +43,7 @@ export async function FeaturedFleetSection() {
                 <div>
                   <h3 className="font-display text-xl">{v.name}</h3>
                   <p className="text-sm text-on-surface-variant mt-2 leading-relaxed">
-                    Up to {v.capacity} passengers · from ${Math.round(Number(v.base_price))} base
+                    Up to {v.capacity} passengers · ${Math.round(Number(v.hourly_rate) || Number(v.base_price))}/hr
                   </p>
                 </div>
                 <ChevronRight className="w-4 h-4 text-gold shrink-0 mt-1" strokeWidth={1.5} />

@@ -47,9 +47,7 @@ const TYPE_OPTIONS = [
   { value: 'luxury_sedan', label: 'Luxury Sedan' },
   { value: 'executive_suburban', label: 'Executive SUV / Suburban' },
   { value: 'luxury_suv', label: 'Luxury SUV' },
-  { value: 'sprinter_van', label: 'Sprinter Limo Van' },
-  { value: 'stretch_limo', label: 'Stretch Limo' },
-  { value: 'party_bus', label: 'Party Bus' },
+  { value: 'tesla', label: 'Tesla Model Y' },
 ]
 
 export function FleetManager({ models, units, chauffeurs, isAdmin = false }: Props) {

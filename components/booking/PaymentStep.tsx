@@ -78,7 +78,7 @@ function CheckoutForm({ depositAmount, balanceAmount, bookingNumber, onPaid }: P
       {/* Disclosure — shown BEFORE the customer pays (the consent point). */}
       <div className="rounded-2xl border border-primary/30 bg-primary/5 p-5">
         <div className="flex justify-between text-sm">
-          <span className="text-on-surface-variant">Deposit due now (10%)</span>
+          <span className="text-on-surface-variant">Deposit (25%)</span>
           <span className="text-on-surface font-semibold">${depositAmount.toFixed(2)}</span>
         </div>
         <div className="flex justify-between text-sm mt-2">

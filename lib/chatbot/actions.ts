@@ -20,6 +20,9 @@ const VEHICLE_ALIASES: Record<string, string> = {
   gmc: '2023 GMC Yukon XL',
   expedition: '2024 Ford Expedition',
   ford: '2024 Ford Expedition',
+  tesla: '2023 Tesla Model Y',
+  modely: '2023 Tesla Model Y',
+  sedan: 'Luxury Sedan',
 }
 
 function matchVehicle(text: string, fleet: Vehicle[]): Vehicle | undefined {
@@ -57,7 +60,7 @@ export async function runChatAction(
       if (!fleet.length) {
         return { text: 'Our fleet is being updated — please check the Reserve page.', link: { href: '/book', label: 'Reserve' } }
       }
-      const lines = fleet.map((v) => `• ${v.name} — seats ${v.capacity}, from $${Math.round(Number(v.base_price))} base + $${Number(v.price_per_mile)}/mile`)
+      const lines = fleet.map((v) => `• ${v.name} — seats ${v.capacity}, $${Math.round(Number(v.hourly_rate) || Number(v.base_price))}/hr charter (3h min); transfers by mileage or MCO flat rate`)
       return {
         text: `Here’s our fleet:\n${lines.join('\n')}\n\nWant an estimate, or shall I help you reserve one?`,
         link: { href: '/book', label: 'Reserve a vehicle' },
@@ -78,13 +81,13 @@ export async function runChatAction(
 
       if (vehicle) {
         return {
-          text: `The ${vehicle.name} is $${Math.round(Number(vehicle.base_price))} base plus $${Number(vehicle.price_per_mile)}/mile (gratuity arranged at payment). To get an exact quote, please use our booking estimator where you can enter your pickup and dropoff addresses.`,
+          text: `The ${vehicle.name} is quoted on the Reserve page: mileage for most transfers, a published flat rate when the trip is between MCO and a named destination, or $${Math.round(Number(vehicle.hourly_rate) || Number(vehicle.base_price))}/hour for charters (3-hour minimum). Enter your addresses there for the exact fare.`,
           link: { href: '/book', label: 'Get an exact quote' },
           context: ctx,
         }
       }
 
-      const lines = fleet.slice(0, 6).map((v) => `• ${v.name}: $${Math.round(Number(v.base_price))} base + $${Number(v.price_per_mile)}/mile`)
+      const lines = fleet.slice(0, 6).map((v) => `• ${v.name}: $${Math.round(Number(v.hourly_rate) || Number(v.base_price))}/hr charter`)
       return {
         text: `Here are the rates for our vehicles:\n${lines.join('\n')}\n\nTo get an exact price, please enter your pickup and dropoff addresses on our Reserve page.`,
         link: { href: '/book', label: 'Reserve page' },

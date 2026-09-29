@@ -3,11 +3,10 @@ import { Users, Briefcase } from 'lucide-react'
 import type { Vehicle } from '@/lib/fleet'
 import { OptimizedImage } from '@/components/shared/OptimizedImage'
 
-const FALLBACK_IMAGE = '/images/fleet-overview.webp'
+const FALLBACK_IMAGE = '/images/fleet-suv.webp'
 
 export function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
   const basePrice = Math.round(Number(vehicle.base_price))
-  const mileRate = Number(vehicle.price_per_mile)
   const img = vehicle.image_url ?? FALLBACK_IMAGE
   const isNew = /\b(2024|2025|2026)\b/.test(vehicle.name)
 
@@ -44,7 +43,7 @@ export function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
           </span>
         </div>
         <p className="text-sm text-on-surface-variant mt-4">
-          ${basePrice} base + ${mileRate}/mi
+          ${Math.round(Number(vehicle.hourly_rate) || basePrice)}/hour charter (3-hour min). Transfers: mileage, or a published flat rate for named MCO trips.
         </p>
 
         <Link href="/book" className="btn-cta inline-block text-center text-xs mt-10 py-3.5 px-8 rounded-full tracking-widest">

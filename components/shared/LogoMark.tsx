@@ -14,7 +14,7 @@ export function LogoMark({ size = 'nav' }: LogoMarkProps) {
 
   return (
     <Image
-      src="/images/logo.webp"
+      src="/images/logo-mark.webp"
       alt="Imperial Odyssey"
       width={px}
       height={px}

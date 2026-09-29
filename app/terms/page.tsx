@@ -2,21 +2,29 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Navbar } from '@/components/shared/Navbar'
 import { Footer } from '@/components/shared/Footer'
+import {
+  BRAND_EMAIL,
+  BRAND_PHONE_DISPLAY,
+  LEGAL_ENTITY,
+  PAYMENT_POLICY,
+} from '@/lib/site'
+import { pageMetadata } from '@/lib/seo'
 
 export const revalidate = 86400
 
-export const metadata: Metadata = {
-  title: 'Terms of Service | Imperial Odyssey',
+export const metadata: Metadata = pageMetadata({
+  title: 'Terms of Service',
   description:
-    'Terms and Conditions governing the use of Imperial Odyssey services in Orlando, Florida. Read our policies on bookings, payments, cancellations, and liability.',
-}
+    'Terms governing Imperial Odyssey chauffeur services in Orlando, Florida — bookings, payments, cancellations, and liability.',
+  path: '/terms',
+})
 
-const EFFECTIVE_DATE = 'June 10, 2025'
+const EFFECTIVE_DATE = 'September 29, 2026'
 const COMPANY = 'Imperial Odyssey'
 const STATE = 'Florida'
 const CITY = 'Orlando'
-const PHONE = '(678) 478-3506'
-const EMAIL = 'info@vipodyssey.com'
+const PHONE = BRAND_PHONE_DISPLAY
+const EMAIL = BRAND_EMAIL
 
 const sections = [
   {
@@ -24,7 +32,7 @@ const sections = [
     title: '1. Acceptance of Terms',
     content: `By accessing our website or booking any service offered by ${COMPANY} ("Company," "we," "us," or "our"), you ("Customer," "you," or "your") agree to be legally bound by these Terms of Service ("Terms"). If you do not agree with any part of these Terms, you must not use our services.
 
-These Terms constitute a legally binding agreement between you and ${COMPANY}, a limited liability company registered in the State of ${STATE}. These Terms are governed by the laws of the State of ${STATE} and applicable federal laws of the United States of America.`,
+These Terms constitute a legally binding agreement between you and ${LEGAL_ENTITY}. These Terms are governed by the laws of the State of ${STATE} and applicable federal laws of the United States of America.`,
   },
   {
     id: 'services',
@@ -37,12 +45,12 @@ These Terms constitute a legally binding agreement between you and ${COMPANY}, a
 • Hourly charter and as-directed service
 • Point-to-point luxury transfers
 
-All services are provided by licensed, professional chauffeurs operating fully insured, inspected, and registered vehicles in compliance with Florida Statute § 343.97 (Transportation Network Companies and For-Hire Transportation) and applicable Orange County ordinances.`,
+All services are provided by licensed, professional chauffeurs operating fully insured, inspected, and registered vehicles. We carry insurance meeting Florida requirements for for-hire passenger vehicles, and we operate in accordance with applicable Orange County ordinances.`,
   },
   {
     id: 'reservations',
     title: '3. Reservations & Booking',
-    content: `3.1 — Booking Confirmation. A reservation is considered confirmed only upon receipt of written or electronic confirmation from ${COMPANY} and payment of the required deposit.
+    content: `3.1 — Booking Confirmation. Submitting a reservation request does not charge you and does not confirm the trip. A reservation is confirmed only when a staff member reviews the request and sends written or electronic confirmation.
 
 3.2 — Accuracy of Information. You agree to provide accurate, current, and complete information when making a reservation. ${COMPANY} is not responsible for service failures resulting from incorrect information provided by the Customer (e.g., wrong flight number, address, or pickup time).
 
@@ -50,30 +58,29 @@ All services are provided by licensed, professional chauffeurs operating fully i
 
 3.4 — Reservation Changes. Changes to reservations are subject to availability and must be requested at least 24 hours before the scheduled pickup. We will make commercially reasonable efforts to accommodate changes but cannot guarantee availability.
 
-3.5 — Late Delay Notification. ⚠️ If you anticipate being delayed and are unable to be present at the scheduled pickup location at the confirmed time, you must notify ${COMPANY} as soon as possible by calling ${PHONE} or via your booking confirmation contact. Delay notifications received before the chauffeur departs for the pickup location will be taken into consideration and, at ${COMPANY}'s sole discretion, the pickup time may be adjusted subject to schedule availability. Notifications received after the chauffeur has already arrived or is en route to the pickup location are not guaranteed to be accommodated and may be subject to applicable wait-time charges or cancellation fees as described in Section 5. Failure to provide timely notice of a delay constitutes a no-show.`,
+3.5 — Delay Notification. If you anticipate being delayed and are unable to be present at the scheduled pickup location at the confirmed time, you must notify ${COMPANY} as soon as possible by calling ${PHONE} or via your booking confirmation contact. Delay notifications received before the chauffeur departs for the pickup location will be taken into consideration and, at ${COMPANY}'s sole discretion, the pickup time may be adjusted subject to schedule availability. Notifications received after the chauffeur has already arrived or is en route to the pickup location are not guaranteed to be accommodated and may be subject to applicable wait-time charges or cancellation fees as described in Section 5. Failure to provide timely notice of a delay constitutes a no-show.`,
   },
   {
     id: 'payment',
     title: '4. Payment Terms & Deposit',
-    content: `4.1 — Deposit. A non-refundable deposit equal to 10% of the total fare is required at the time of booking to secure your reservation. The deposit will be charged to the payment method provided via our secure payment processor (Stripe, Inc.).
+    content: `4.1 — No charge at booking. ${PAYMENT_POLICY}
 
-4.2 — Balance Due. The remaining balance is due after the completion of your ride and will be charged to the payment method on file.
+4.2 — Balance Due. The remaining balance is due after the completion of your ride and will be charged to the payment method on file, unless other arrangements (such as corporate invoicing) have been agreed in writing.
 
-4.3 — Payment Security. All payments are processed through Stripe, Inc., which is PCI-DSS Level 1 compliant. ${COMPANY} does not store or have access to your full card details. Payment processing is subject to Stripe's own Terms of Service and Privacy Policy.
+4.3 — Payment Security. All card payments are processed through Stripe, Inc., which is PCI-DSS Level 1 compliant. ${COMPANY} does not store or have access to your full card details. Payment processing is subject to Stripe's own Terms of Service and Privacy Policy.
 
-4.4 — Pricing. All prices are quoted in US Dollars (USD) and are subject to applicable taxes and gratuity. ${COMPANY} reserves the right to adjust pricing to account for extraordinary circumstances (e.g., toll increases, fuel surcharges), with advance notice to the Customer.
+4.4 — Pricing. All prices are quoted in US Dollars (USD). Point-to-point transfers are priced with our mileage calculator unless the trip is between Orlando International Airport (MCO) and a named destination on our published flat-rate table, in either direction, in which case the matching flat rate applies. Hourly charters are billed separately at the published hourly rate with a 3-hour minimum. Quoted fares do not automatically include tolls, parking, or taxes unless the confirmation says they do. Gratuity is selected at booking and paid to your chauffeur.
 
 4.5 — Wait Time & Overtime. Waiting time beyond the complimentary grace period (15 minutes for standard trips, 30 minutes for airport arrivals) will be billed at the applicable hourly rate, prorated per 15-minute increment.`,
   },
   {
     id: 'cancellation',
     title: '5. Cancellation & Refund Policy',
-    content: `5.1 — Customer-Initiated Cancellations. The following cancellation policy applies:
+    content: `5.1 — Customer-Initiated Cancellations.
 
-• Cancellation 48+ hours before pickup: Full refund of amounts paid, excluding the 10% deposit which is non-refundable.
-• Cancellation 24–47 hours before pickup: 50% refund of the total fare (excluding the deposit).
-• Cancellation less than 24 hours before pickup: No refund. The full fare is due.
-• No-shows (Customer not present at pickup location): Full fare is charged with no refund.
+• Cancellation at least 24 hours before the scheduled pickup: the 25% deposit is fully refundable.
+• Cancellation within 24 hours of the scheduled pickup: the deposit is non-refundable.
+• No-shows (Customer not present at the pickup location): the full fare is due.
 
 5.2 — Company-Initiated Cancellations. In the unlikely event that ${COMPANY} cancels a confirmed reservation for reasons within our control, you will receive a full refund of all amounts paid, including the deposit. Our liability shall be limited to this refund and shall not extend to indirect or consequential damages.
 
@@ -84,9 +91,9 @@ All services are provided by licensed, professional chauffeurs operating fully i
   {
     id: 'conduct',
     title: '6. Passenger Conduct & Responsibilities',
-    content: `6.1 — Safe Conduct. All passengers must comply with the lawful instructions of the chauffeur and observe all applicable traffic and safety laws of the State of Florida, including Florida Statute § 316 (State Uniform Traffic Control).
+    content: `6.1 — Safe Conduct. All passengers must comply with the lawful instructions of the chauffeur and observe all applicable traffic and safety laws of the State of Florida, including Chapter 316 (State Uniform Traffic Control).
 
-6.2 — Seatbelts. All passengers are required to wear seatbelts at all times while the vehicle is in motion, pursuant to Florida Statute § 316.614.
+6.2 — Seatbelts. All passengers are required to wear seatbelts at all times while the vehicle is in motion, as required by Florida law.
 
 6.3 — Prohibited Conduct. The following conduct is strictly prohibited in any ${COMPANY} vehicle:
 
@@ -98,7 +105,7 @@ All services are provided by licensed, professional chauffeurs operating fully i
 
 6.4 — Soiling & Damage. You are liable for any damage to the vehicle caused by you or your guests, including but not limited to stains, vomiting, or intentional damage. A minimum cleaning fee of $250 applies for interior soiling. Structural damage will be billed at cost of repair.
 
-6.5 — Alcohol. The consumption of alcohol is permitted for passengers of legal drinking age (21+) in accordance with Florida Statute § 316.1936, provided the vehicle is equipped for such service and the chauffeur has confirmed this is permitted. Chauffeurs are strictly prohibited from consuming alcohol.
+6.5 — Alcohol. The consumption of alcohol is permitted for passengers of legal drinking age (21+) where allowed by Florida law, provided the vehicle is equipped for such service and the chauffeur has confirmed this is permitted. Chauffeurs are strictly prohibited from consuming alcohol.
 
 6.6 — Passenger Limit. Occupancy of any vehicle is limited to its rated passenger capacity. Exceeding this limit is prohibited under Florida law and may result in immediate termination of service without refund.`,
   },
@@ -118,9 +125,9 @@ All services are provided by licensed, professional chauffeurs operating fully i
   {
     id: 'insurance',
     title: '8. Insurance & Licensing',
-    content: `${COMPANY} maintains commercial automobile liability insurance as required by the State of Florida and applicable local regulations for for-hire transportation companies, with coverage limits meeting or exceeding the minimum requirements of Florida Statute § 627.7415.
+    content: `${COMPANY} maintains commercial automobile liability insurance meeting Florida requirements for for-hire passenger vehicles.
 
-All chauffeurs employed or contracted by ${COMPANY} hold valid Florida driver's licenses with appropriate endorsements and have passed criminal background checks in compliance with Florida Statute § 343.97 and applicable local ordinances.`,
+All chauffeurs employed or contracted by ${COMPANY} hold valid Florida driver's licenses with appropriate endorsements and have passed criminal background checks in compliance with applicable Florida and local requirements.`,
   },
   {
     id: 'privacy',
@@ -179,12 +186,12 @@ These Terms, together with any reservation confirmation and our Privacy Policy, 
     title: '15. Contact Information',
     content: `For questions, concerns, or complaints regarding these Terms or our services, please contact us:
 
-${COMPANY}
+${LEGAL_ENTITY}
 ${CITY}, ${STATE}
 Phone: ${PHONE}
 Email: ${EMAIL}
 
-For legal notices, please send written correspondence to the address above, marked "Attn: Legal."`,
+For legal notices, send written notice by email to ${EMAIL}.`,
   },
 ]
 
@@ -193,23 +200,21 @@ export default function TermsPage() {
     <div className="bg-background text-on-surface min-h-screen">
       <Navbar />
 
-      {/* HERO */}
       <section className="pt-28 pb-12 px-6 text-center border-b border-outline-variant/20">
-        <span className="text-[11px] tracking-[0.3em] text-primary block mb-4">LEGAL</span>
+        <span className="text-[11px] tracking-[0.3em] text-gold block mb-4">LEGAL</span>
         <h1 className="display text-4xl md:text-5xl font-semibold mb-4">Terms of Service</h1>
         <p className="text-on-surface-variant max-w-xl mx-auto text-sm">
-          Please read these Terms carefully before using our services.
-          By making a reservation, you agree to be bound by these Terms.
+          Please read these Terms carefully before using our services. By making a reservation, you agree to
+          be bound by these Terms.
         </p>
-        <p className="text-on-surface-variant/60 text-xs mt-4">
+        <p className="text-on-surface-variant/80 text-xs mt-4">
           Effective Date: {EFFECTIVE_DATE} · Governed by Florida & U.S. Federal Law
         </p>
       </section>
 
-      {/* TABLE OF CONTENTS */}
       <section className="py-10 px-6 max-w-4xl mx-auto">
         <div className="glass-dark gold-hairline rounded-2xl p-6">
-          <h2 className="text-xs tracking-[0.25em] text-primary font-semibold mb-4">TABLE OF CONTENTS</h2>
+          <h2 className="text-xs tracking-[0.25em] text-gold font-semibold mb-4">TABLE OF CONTENTS</h2>
           <div className="grid sm:grid-cols-2 gap-1">
             {sections.map((s) => (
               <a
@@ -224,35 +229,35 @@ export default function TermsPage() {
         </div>
       </section>
 
-      {/* SECTIONS */}
       <article className="px-6 max-w-4xl mx-auto pb-24 space-y-12">
         {sections.map((s) => (
           <section key={s.id} id={s.id} className="scroll-mt-24">
             <h2 className="display text-xl font-semibold text-on-surface mb-4 pb-3 border-b border-outline-variant/20">
               {s.title}
             </h2>
-            <div className="text-on-surface-variant text-sm leading-relaxed whitespace-pre-line">
-              {s.content}
-            </div>
+            <div className="text-on-surface-variant text-sm leading-relaxed whitespace-pre-line">{s.content}</div>
           </section>
         ))}
 
-        {/* LEGAL BADGES */}
         <div className="grid sm:grid-cols-3 gap-4 pt-8 border-t border-outline-variant/20">
           {[
-            { law: 'Florida Statute § 627.7415', desc: 'Commercial auto insurance requirements' },
+            { law: 'Florida for-hire insurance', desc: 'Coverage meeting state requirements for passenger vehicles' },
             { law: 'ADA — 42 U.S.C. § 12101', desc: 'Accessibility & non-discrimination' },
-            { law: 'Florida Statute § 316.614', desc: 'Seatbelt safety law' },
+            { law: 'Chapter 316, Florida Statutes', desc: 'State uniform traffic control' },
           ].map((b) => (
             <div key={b.law} className="glass-dark gold-hairline rounded-xl p-4 text-center">
-              <div className="text-primary text-[10px] tracking-widest font-semibold mb-1">{b.law}</div>
+              <div className="text-gold text-[10px] tracking-widest font-semibold mb-1">{b.law}</div>
               <div className="text-on-surface-variant text-xs">{b.desc}</div>
             </div>
           ))}
         </div>
 
-        <p className="text-on-surface-variant/50 text-xs text-center pt-4">
-          © {new Date().getFullYear()} {COMPANY} · All rights reserved ·{' '}
+        <p className="text-on-surface-variant/70 text-xs text-center pt-4">
+          © {new Date().getFullYear()} {LEGAL_ENTITY} · All rights reserved ·{' '}
+          <Link href="/privacy" className="text-primary hover:underline">
+            Privacy Policy
+          </Link>
+          {' · '}
           <Link href="/contact" className="text-primary hover:underline">
             Contact us
           </Link>

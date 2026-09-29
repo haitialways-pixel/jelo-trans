@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Suspense } from 'react'
@@ -5,9 +6,17 @@ import { Navbar } from '@/components/shared/Navbar'
 import { Footer } from '@/components/shared/Footer'
 import { FeaturedFleetSection } from '@/components/home/FeaturedFleetSection'
 import { FeaturedFleetSkeleton } from '@/components/home/FeaturedFleetSkeleton'
+import { pageMetadata } from '@/lib/seo'
 import { PlaneTakeoff, Briefcase, PartyPopper, BadgeCheck, EyeOff, Gem } from 'lucide-react'
 
 export const revalidate = 300
+
+export const metadata: Metadata = pageMetadata({
+  title: 'Imperial Odyssey | Orlando Chauffeur Service',
+  description:
+    'White-glove chauffeur service in Orlando. MCO airport transfers, theme parks, the convention center, Port Canaveral, and hourly executive charters.',
+  path: '/',
+})
 
 const SERVICES = [
   {
@@ -38,25 +47,35 @@ export default function Home() {
     <div className="bg-background text-on-surface min-h-screen">
       <Navbar />
 
-      {/* HERO */}
-      <section className="relative min-h-[92vh] flex items-end">
+      <section className="pt-20 md:pt-24 bg-black">
+        <div className="max-w-5xl mx-auto px-5 sm:px-8">
+          <Image
+            src="/images/logo-banner.webp"
+            alt="Imperial Odyssey — luxury executive airport chauffeur service, driven by a higher standard"
+            width={1402}
+            height={1122}
+            priority
+            className="w-full h-auto object-contain"
+          />
+        </div>
+      </section>
+
+      <section className="relative min-h-[78vh] flex items-end">
         <div className="absolute inset-0">
           <Image
-            src="/images/stitch-suv-studio.webp"
-            alt="Imperial Odyssey luxury chauffeur service in Orlando"
+            src="/images/hero-lineup.webp"
+            alt="Imperial Odyssey black luxury sedans and SUVs in Orlando"
             fill
             priority
             sizes="100vw"
-            className="object-cover object-center brightness-[1.03]"
+            className="object-cover object-center"
           />
           <div className="absolute inset-0 hero-luxe-overlay" />
         </div>
 
-        <div className="relative z-10 w-full max-w-6xl mx-auto px-8 md:px-12 pb-24 md:pb-32 pt-40">
+        <div className="relative z-10 w-full max-w-6xl mx-auto px-5 sm:px-8 md:px-12 pb-20 md:pb-28 pt-32">
           <div className="accent-line mb-10" />
-          <p className="text-xs tracking-[0.35em] uppercase text-on-surface-variant mb-8">
-            Orlando, Florida
-          </p>
+          <p className="text-xs tracking-[0.35em] uppercase text-gold mb-8">Orlando, Florida</p>
           <h1 className="font-display text-5xl md:text-7xl lg:text-[5.5rem] font-medium leading-[1.05] max-w-4xl">
             The art of arriving well.
           </h1>
@@ -69,7 +88,7 @@ export default function Home() {
             </Link>
             <Link
               href="/fleet"
-              className="inline-flex items-center text-sm text-on-surface-variant hover:text-on-surface transition px-6 py-4"
+              className="inline-flex items-center text-sm text-on-surface-variant hover:text-gold transition px-6 py-4"
             >
               Explore the fleet →
             </Link>
@@ -77,11 +96,10 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FEATURES — cream floating cards */}
       <section className="section-pad bg-background">
-        <div className="max-w-6xl mx-auto px-8 md:px-12">
+        <div className="max-w-6xl mx-auto px-5 sm:px-8 md:px-12">
           <div className="max-w-2xl mb-20">
-            <p className="text-xs tracking-[0.3em] uppercase text-on-surface-variant mb-6">What we offer</p>
+            <p className="text-xs tracking-[0.3em] uppercase text-gold mb-6">What we offer</p>
             <h2 className="font-display text-4xl md:text-5xl font-medium leading-tight">
               Tailored to every occasion
             </h2>
@@ -103,9 +121,8 @@ export default function Home() {
         <FeaturedFleetSection />
       </Suspense>
 
-      {/* VALUES */}
       <section className="section-pad bg-surface-container-low">
-        <div className="max-w-6xl mx-auto px-8 md:px-12">
+        <div className="max-w-6xl mx-auto px-5 sm:px-8 md:px-12">
           <div className="text-center max-w-2xl mx-auto mb-20">
             <div className="accent-line mx-auto mb-8" />
             <h2 className="font-display text-4xl md:text-5xl font-medium">The Imperial Odyssey standard</h2>
@@ -113,9 +130,9 @@ export default function Home() {
 
           <div className="grid md:grid-cols-3 gap-8 md:gap-10">
             {VALUES.map((v) => (
-              <article key={v.title} className="float-card p-10 text-center bg-card">
+              <article key={v.title} className="float-card p-10 text-center">
                 <v.icon className="w-5 h-5 text-primary mx-auto mb-8" strokeWidth={1.5} />
-                <h3 className="text-xs tracking-[0.25em] uppercase mb-4">{v.title}</h3>
+                <h3 className="text-xs tracking-[0.25em] uppercase mb-4 text-gold">{v.title}</h3>
                 <p className="text-on-surface-variant text-sm leading-relaxed">{v.desc}</p>
               </article>
             ))}
@@ -123,9 +140,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FINAL CTA */}
       <section className="section-pad text-center">
-        <div className="max-w-2xl mx-auto px-8 md:px-12">
+        <div className="max-w-2xl mx-auto px-5 sm:px-8 md:px-12">
           <div className="accent-line mx-auto mb-10" />
           <h2 className="font-display text-4xl md:text-5xl font-medium mb-8">Ready when you are.</h2>
           <p className="text-on-surface-variant leading-relaxed mb-12">

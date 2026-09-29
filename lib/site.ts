@@ -1,5 +1,5 @@
 /** Canonical public domain for booking/reservation links. */
-export const SITE_DOMAIN = 'www.vipodyssey.com'
+export const SITE_DOMAIN = 'vipodyssey.com'
 
 /** Bare brand website shown in invoices, receipts, and email footers. */
 export const BRAND_WEBSITE = 'vipodyssey.com'
@@ -10,20 +10,51 @@ export const BRAND_URL = `https://${BRAND_WEBSITE}`
 /** Public brand name used in subjects / footers. */
 export const BRAND_NAME = 'Imperial Odyssey'
 
+/** Legal entity — Route 7 Limo LLC doing business as Imperial Odyssey. */
+export const LEGAL_NAME = 'Route 7 Limo LLC'
+export const LEGAL_ENTITY = 'Route 7 Limo LLC, d/b/a Imperial Odyssey'
+export const LEGAL_ENTITY_SHORT = 'Route 7 Limo LLC d/b/a Imperial Odyssey'
+
 /** Legal payer name on 1099 contractor statements. */
-export const PAYER_LEGAL_NAME = 'Imperial Odyssey, LLC'
+export const PAYER_LEGAL_NAME = 'Route 7 Limo LLC'
 
 /** Payer mailing address lines for 1099 print. */
 export const PAYER_ADDRESS_LINES = ['Orlando, Florida'] as const
 
 /** Default public contact phone (display form, no parens). */
-export const BRAND_PHONE = '678-478-3506'
+export const BRAND_PHONE = '689-699-5849'
 
 /** Phone with US parentheses for UI/chat copy. */
-export const BRAND_PHONE_DISPLAY = '(678) 478-3506'
+export const BRAND_PHONE_DISPLAY = '(689) 699-5849'
+
+/** Click-to-call href. */
+export const BRAND_PHONE_TEL = 'tel:+16896995849'
 
 /** Default public contact email for company blocks on invoices/receipts. */
 export const BRAND_EMAIL = 'info@vipodyssey.com'
+
+/** SAM.gov / government contracting identifiers. */
+export const SAM_UEI = 'XDCDBABZYA84'
+export const SAM_CAGE = '24RN4'
+export const SAM_NAICS = '485320'
+export const SAM_NAICS_LABEL = 'Limousine Service'
+export const SAM_LINE = `SAM.gov registered · UEI ${SAM_UEI} · CAGE ${SAM_CAGE}`
+
+/** Published hourly charter rates (3-hour minimum). */
+export const HOURLY_SUV = 110
+export const HOURLY_SEDAN = 100
+
+/** Deposit taken after staff confirmation — not at booking. */
+export const DEPOSIT_PERCENT = 25
+export const CANCEL_REFUND_HOURS = 24
+
+export const PAYMENT_POLICY =
+  "Submitting a reservation doesn't charge you anything. A staff member reviews every request and confirms it with you. Once your reservation is confirmed, we process a deposit of 25% of the fare. The deposit is fully refundable if you cancel at least 24 hours before your scheduled pickup time; cancellations within 24 hours are non-refundable."
+
+export const FLEET_SUMMARY =
+  '12 full-size SUVs (2021–2024 Chevrolet Suburban, GMC Yukon XL SLT, and 2024 Ford Expedition MAX Limited) plus a 2023 Tesla Model Y. Luxury sedans are available through contracted chauffeur partners.'
+
+export const OG_IMAGE = '/images/hero-lineup.webp'
 
 /** Customer-facing concierge / reply-to. */
 export const BRAND_CONCIERGE_EMAIL = 'concierge@vipodyssey.com'

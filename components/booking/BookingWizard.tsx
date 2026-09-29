@@ -21,6 +21,9 @@ import {
   type GratuityPercent,
   type TripType,
 } from '@/lib/pricing'
+import { matchFlatRate } from '@/lib/flatRates'
+import { groupPublicFleet, rateClassFor } from '@/lib/catalog'
+import { PAYMENT_POLICY } from '@/lib/site'
 import {
   isPickupTimeValid,
   minPickupDatetimeLocalValue,
@@ -39,6 +42,7 @@ export type Vehicle = {
   /** Charter $/hr from fleet.hourly_rate */
   hourly_rate: number
   image_url: string | null
+  type?: string | null
 }
 
 function SummaryRow({ label, value }: { label: string; value: string }) {
@@ -91,6 +95,8 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
       gratuityPercent: percent,
       tripType,
       charterHours: Number(charterHours),
+      pickupAddress: formData.resolvedPickup || formData.pickupAddress,
+      dropoffAddress: formData.resolvedDropoff || formData.dropoffAddress,
     })
     if (!result.error) setPrice(result)
     return result
@@ -184,6 +190,8 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
           distanceMiles: data.distanceMiles,
           durationText: data.durationText,
           distanceText: data.distanceText,
+          resolvedPickup: data.originAddress || prev.pickupAddress,
+          resolvedDropoff: data.destinationAddress || prev.dropoffAddress,
         }))
 
         // Reset vehicle selection if they changed the route
@@ -260,36 +268,45 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
     setCurrentStep(Math.max(0, currentStep - 1))
   }
 
-  const getVehiclePriceQuote = (
-    basePrice: number,
-    pricePerMile: number,
-    hourlyRate: number,
-    minimumPrice = 0,
-  ) => {
+  const getVehiclePriceQuote = (v: Vehicle) => {
+    const trip = (formData.tripType || 'one_way') as TripType
+    const flat =
+      trip === 'charter'
+        ? null
+        : matchFlatRate(
+            formData.resolvedPickup || formData.pickupAddress || '',
+            formData.resolvedDropoff || formData.dropoffAddress || '',
+            rateClassFor(v.name, v.type),
+          )
     const priced = computeTripPrice({
-      basePrice,
-      pricePerMile,
-      hourlyRate,
+      basePrice: v.base_price,
+      pricePerMile: v.price_per_mile,
+      hourlyRate: Number(v.hourly_rate) > 0 ? Number(v.hourly_rate) : Number(v.base_price),
       distanceMiles: Number(formData.distanceMiles || 0),
-      minimumPrice,
-      gratuityPercent: 0, // show fare only on vehicle cards (gratuity chosen on review)
-      tripType: formData.tripType || 'one_way',
+      minimumPrice: 0,
+      gratuityPercent: 0,
+      tripType: trip,
       charterHours: Number(formData.charterHours || CHARTER_MIN_HOURS),
+      flatRate: flat?.rate ?? null,
+      flatLabel: flat?.label ?? null,
     })
-    return priced.fareSubtotal.toFixed(2)
+    return {
+      fare: priced.fareSubtotal.toFixed(2),
+      mode: priced.pricingMode,
+      flatLabel: priced.flatLabel,
+    }
   }
 
   const tripType: TripType = formData.tripType || 'one_way'
   const isCharter = tripType === 'charter'
 
-  // Deposit payment step (Stripe on): reservation created, awaiting the 10% deposit.
+  // Legacy deposit step — current policy does not charge at booking.
   if (bookingNumber && clientSecret && !paid) {
     return (
       <div className="card p-8 md:p-10 max-w-lg mx-auto">
         <h2 className="text-3xl tracking-tight mb-1">Secure your reservation</h2>
         <p className="text-on-surface-variant text-sm mb-6">
-          Booking <span className="font-mono text-primary">{bookingNumber}</span> — a 10% deposit
-          confirms it.
+          Booking <span className="font-mono text-primary">{bookingNumber}</span> — {PAYMENT_POLICY}
           {emailSent && (
             <span className="block mt-2 text-emerald-700">
               A booking received email was sent to {formData.customerEmail}.
@@ -321,7 +338,7 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
           <div className="text-6xl mb-6 text-primary">✓</div>
           <h2 className="text-4xl tracking-tight mb-2">Booking Received!</h2>
           <p className="text-on-surface-variant text-sm mb-4">
-            Your reservation request is registered. A manager will review it and send a confirmation shortly.
+            {PAYMENT_POLICY}
           </p>
           <p className="text-primary text-3xl font-mono mb-8">{bookingNumber}</p>
         </div>
@@ -360,18 +377,9 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
           {price?.total != null && (
             <SummaryRow label="Estimated Total" value={`$${Number(price.total).toFixed(2)}`} />
           )}
-          {paid && depositAmount > 0 && (
-            <SummaryRow label="Deposit paid (10%)" value={`$${depositAmount.toFixed(2)}`} />
-          )}
-          {paid && balanceAmount > 0 && (
-            <SummaryRow label="Balance after ride" value={`$${balanceAmount.toFixed(2)}`} />
-          )}
         </div>
 
         <p className="text-on-surface-variant text-sm mt-6 border-t border-outline-variant/30 pt-6">
-          {paid
-            ? `Your 10% deposit is paid — the balance is charged automatically after your ride. `
-            : ''}
           {emailSent
             ? `A booking received email is on its way to ${formData.customerEmail}. You will receive a separate confirmation once our team approves your reservation. `
             : ''}
@@ -415,7 +423,7 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
 
       <div className="float-card p-8 md:p-14 relative overflow-hidden">
         {loading && (
-          <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
             <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
             <p className="text-primary font-semibold text-lg tracking-wider">
               {currentStep === 0 ? 'CALCULATING ROUTE...' : 'PROCESSING...'}
@@ -601,58 +609,60 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
             {vehicles.length === 0 ? (
               <p className="text-on-surface-variant">No vehicles are currently available online. Please contact us directly to arrange your trip.</p>
             ) : (
-              <div className="grid md:grid-cols-3 gap-6">
-                {vehicles.map((v) => {
-                  const isSelected = formData.vehicleId === v.id
-                  const hourly = Number(v.hourly_rate) > 0 ? Number(v.hourly_rate) : Number(v.base_price)
-                  const calculatedTotal = getVehiclePriceQuote(
-                    v.base_price,
-                    v.price_per_mile,
-                    hourly,
-                  )
+              <div className="space-y-10">
+                {groupPublicFleet(vehicles).map((group) => (
+                  <div key={group.cls}>
+                    <h3 className="font-display text-xl mb-4">{group.label}</h3>
+                    <div className="grid md:grid-cols-3 gap-6">
+                      {group.items.map((v) => {
+                        const isSelected = formData.vehicleId === v.id
+                        const hourly = Number(v.hourly_rate) > 0 ? Number(v.hourly_rate) : Number(v.base_price)
+                        const quote = getVehiclePriceQuote(v)
+                        const fareLabel = isCharter
+                          ? `Hourly · ${formData.charterHours}h`
+                          : quote.mode === 'flat'
+                            ? `Flat rate${tripType === 'round_trip' ? ' · round trip' : ''}`
+                            : `Mileage${tripType === 'round_trip' ? ' · round trip' : ''}`
 
-                  return (
-                    <div
-                      key={v.id}
-                      onClick={() => updateForm('vehicleId', v.id)}
-                      className={`card p-4 cursor-pointer hover:ring-2 hover:ring-primary transition flex flex-col justify-between ${
-                        isSelected ? 'ring-2 ring-primary bg-primary/10' : 'border border-outline-variant/20'
-                      }`}
-                    >
-                      <div>
-                        <div className="relative rounded-xl overflow-hidden mb-4 aspect-video">
-                          <OptimizedImage
-                            src={v.image_url ?? '/images/fleet-overview.webp'}
-                            alt={v.name}
-                            fill
-                            sizes="(max-width: 768px) 100vw, 280px"
-                            className="object-cover"
-                          />
-                        </div>
-                        <div className="font-semibold text-lg text-on-surface">{v.name}</div>
-                        <div className="text-xs text-on-surface-variant mt-1">
-                          Up to {v.capacity} passengers
-                          {isCharter
-                            ? ` · $${hourly}/hr`
-                            : ` · $${v.base_price} base + $${v.price_per_mile}/mi`}
-                        </div>
-                      </div>
+                        return (
+                          <div
+                            key={v.id}
+                            onClick={() => updateForm('vehicleId', v.id)}
+                            className={`card p-4 cursor-pointer hover:ring-2 hover:ring-primary transition flex flex-col justify-between ${
+                              isSelected ? 'ring-2 ring-primary bg-primary/10' : 'border border-outline-variant/20'
+                            }`}
+                          >
+                            <div>
+                              <div className="relative rounded-xl overflow-hidden mb-4 aspect-video">
+                                <OptimizedImage
+                                  src={v.image_url ?? '/images/fleet-suv.webp'}
+                                  alt={v.name}
+                                  fill
+                                  sizes="(max-width: 768px) 100vw, 280px"
+                                  className="object-cover"
+                                />
+                              </div>
+                              <div className="font-semibold text-lg text-on-surface">{v.name}</div>
+                              <div className="text-xs text-on-surface-variant mt-1">
+                                Up to {v.capacity} passengers
+                                {isCharter ? ` · $${hourly}/hr` : ''}
+                              </div>
+                            </div>
 
-                      <div className="mt-6 pt-4 border-t border-outline-variant/20 flex justify-between items-end">
-                        <span className="text-xs text-on-surface-variant font-medium mb-0.5">
-                          {isCharter
-                            ? `Est. fare · ${formData.charterHours}h`
-                            : tripType === 'round_trip'
-                              ? 'Est. fare · round trip'
-                              : 'Est. fare · one-way'}
-                        </span>
-                        <div className="text-right">
-                          <span className="text-xl font-bold text-gold-dark">${calculatedTotal}</span>
-                        </div>
-                      </div>
+                            <div className="mt-6 pt-4 border-t border-outline-variant/20 flex justify-between items-end">
+                              <span className="text-xs text-on-surface-variant font-medium mb-0.5">
+                                {fareLabel}
+                              </span>
+                              <div className="text-right">
+                                <span className="text-xl font-bold text-gold">${quote.fare}</span>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
-                  )
-                })}
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -710,11 +720,20 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
               </div>
 
               <div className="space-y-4">
-                <div className="bg-white p-6 rounded-2xl border border-outline-variant/25 shadow-sm space-y-3">
+                <div className="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/25 shadow-sm space-y-3">
                   <h3 className="text-xs text-primary uppercase tracking-wider font-semibold border-b border-outline-variant/20 pb-2">
                     Price Summary
                   </h3>
-                  <SummaryRow label="Trip fare" value={`$${price.basePrice.toFixed(2)}`} />
+                  <SummaryRow
+                    label={
+                      isCharter
+                        ? 'Hourly charter'
+                        : price.pricingMode === 'flat'
+                          ? `Flat rate${price.flatLabel ? ` · ${price.flatLabel}` : ''}`
+                          : 'Mileage'
+                    }
+                    value={`$${price.basePrice.toFixed(2)}`}
+                  />
                   {isCharter && price.hourlyRate != null && (
                     <p className="text-[11px] text-on-surface-variant -mt-1">
                       {formData.charterHours}h × ${Number(price.hourlyRate).toFixed(2)}/hr
@@ -757,10 +776,13 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
                   />
                   <div className="flex justify-between items-center pt-3 border-t border-primary/15 text-xl font-bold">
                     <span className="text-on-surface">Estimated Total</span>
-                    <span className="text-gold-dark">${price.total.toFixed(2)}</span>
+                    <span className="text-gold">${price.total.toFixed(2)}</span>
                   </div>
                   <p className="text-[10px] text-on-surface-variant text-right">
-                    Fare includes tolls and taxes · gratuity goes to your chauffeur
+                    One price for this trip · gratuity goes to your chauffeur
+                  </p>
+                  <p className="text-[11px] text-on-surface-variant leading-relaxed pt-2">
+                    {PAYMENT_POLICY}
                   </p>
                 </div>
               </div>
@@ -797,7 +819,7 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
         )}
 
         {error && (
-          <p className="text-red-700 mt-6 text-center font-medium bg-red-50 p-4 rounded-2xl border border-red-200">
+          <p className="text-red-200 mt-6 text-center font-medium bg-red-950/50 p-4 rounded-2xl border border-red-800/60">
             {error}
           </p>
         )}

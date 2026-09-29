@@ -280,7 +280,7 @@ function PaymentPanel({ r }: { r: ManagerReservation }) {
         />
       ) : p.depositScheduled ? (
         <PayRow
-          label="Deposit (10%)"
+          label="Deposit (25%)"
           value={formatMoneyExact(p.depositAmount)}
           note="not collected"
         />

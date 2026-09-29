@@ -60,6 +60,8 @@ export function resolveHourlyRate(input: {
  * - round_trip:  base + (miles × 2) × per-mile (floor at minimum)
  * - charter:     hours × hourly_rate (fleet.hourly_rate); min hours apply
  */
+export type PricingMode = 'mileage' | 'flat' | 'hourly'
+
 export function computeTripPrice(input: {
   basePrice: number
   pricePerMile: number
@@ -70,6 +72,9 @@ export function computeTripPrice(input: {
   gratuityPercent: number
   tripType?: TripType
   charterHours?: number
+  /** When set on a transfer, replaces base + mileage with this fare (one-way). Round trip doubles it. */
+  flatRate?: number | null
+  flatLabel?: string | null
 }) {
   const tripType = normalizeTripType(input.tripType)
   const charterHours =
@@ -83,14 +88,24 @@ export function computeTripPrice(input: {
   const billableMiles =
     tripType === 'round_trip' ? oneWayMiles * 2 : tripType === 'one_way' ? oneWayMiles : 0
 
+  const flatRate = Number(input.flatRate)
+  const useFlat = tripType !== 'charter' && Number.isFinite(flatRate) && flatRate > 0
+
   let fareSubtotal: number
+  let pricingMode: PricingMode
   if (tripType === 'charter') {
     fareSubtotal = Math.round((charterHours! * hourlyRate) * 100) / 100
+    pricingMode = 'hourly'
+  } else if (useFlat) {
+    const oneWayFlat = Math.round(flatRate * 100) / 100
+    fareSubtotal = tripType === 'round_trip' ? Math.round(oneWayFlat * 2 * 100) / 100 : oneWayFlat
+    pricingMode = 'flat'
   } else {
     fareSubtotal = Math.max(
       Math.round((input.basePrice + billableMiles * input.pricePerMile) * 100) / 100,
       Number(input.minimumPrice ?? 0),
     )
+    pricingMode = 'mileage'
   }
 
   const gratuityAmount =
@@ -107,5 +122,7 @@ export function computeTripPrice(input: {
     billableMiles,
     oneWayMiles,
     hourlyRate: tripType === 'charter' ? hourlyRate : null,
+    pricingMode,
+    flatLabel: useFlat ? input.flatLabel || 'Flat rate' : null,
   }
 }

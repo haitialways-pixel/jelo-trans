@@ -3,8 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { sendBookingReceived } from '@/lib/email/sendBookingReceived'
 import { notifyManagement } from '@/lib/chatbot/notify'
-import { isStripeConfigured, getStripe } from '@/lib/stripe/server'
-import { createDepositForBooking } from '@/lib/stripe/payments'
+import { getStripe } from '@/lib/stripe/server'
 import { createAdminClient, isAdminConfigured } from '@/lib/supabase/admin'
 import { checkRateLimit } from '@/lib/security/rateLimit'
 import { recordOpsNotification } from '@/lib/manager/notifyOps'
@@ -21,6 +20,9 @@ import {
   resolveHourlyRate,
   type TripType,
 } from '@/lib/pricing'
+import { matchFlatRate } from '@/lib/flatRates'
+import { rateClassFor } from '@/lib/catalog'
+import { BRAND_PHONE_DISPLAY } from '@/lib/site'
 import {
   isPickupIsoValid,
   pickupLocalToIsoWithOffset,
@@ -78,7 +80,7 @@ function isAvailabilityRpcError(msg: string): boolean {
 }
 
 function availabilityBlockedUserMessage(): string {
-  return 'We could not finish your booking online. Please call (678) 478-3506 and our team will reserve your trip.'
+  return `We could not finish your booking online. Please call ${BRAND_PHONE_DISPLAY} and our team will reserve your trip.`
 }
 
 /** Bypass legacy RPC availability checks — ops confirms fleet offline. */
@@ -108,7 +110,7 @@ async function createReservationDirect(
   const admin = createAdminClient()
   let { data: vehicle, error: fleetError } = await admin
     .from('fleet')
-    .select('id, base_price, price_per_mile, minimum_price, hourly_rate')
+    .select('id, name, type, base_price, price_per_mile, minimum_price, hourly_rate')
     .eq('id', formData.vehicleId)
     .maybeSingle()
 
@@ -116,7 +118,7 @@ async function createReservationDirect(
   if (fleetError && /hourly_rate/i.test(fleetError.message)) {
     const retry = await admin
       .from('fleet')
-      .select('id, base_price, price_per_mile, minimum_price')
+      .select('id, name, type, base_price, price_per_mile, minimum_price')
       .eq('id', formData.vehicleId)
       .maybeSingle()
     vehicle = retry.data as typeof vehicle
@@ -131,6 +133,13 @@ async function createReservationDirect(
   const charterHours =
     tripType === 'charter' ? normalizeCharterHours(formData.charterHours) : undefined
 
+  const vehicleName = String((vehicle as { name?: string }).name ?? '')
+  const vehicleType = String((vehicle as { type?: string }).type ?? '')
+  const flat =
+    tripType === 'charter'
+      ? null
+      : matchFlatRate(formData.pickupAddress, formData.dropoffAddress, rateClassFor(vehicleName, vehicleType))
+
   const priced = computeTripPrice({
     basePrice: Number(vehicle.base_price),
     pricePerMile: Number(vehicle.price_per_mile),
@@ -140,6 +149,8 @@ async function createReservationDirect(
     gratuityPercent,
     tripType,
     charterHours,
+    flatRate: flat?.rate ?? null,
+    flatLabel: flat?.label ?? null,
   })
 
   if (tripType === 'charter' && !(priced.hourlyRate && priced.hourlyRate > 0)) {
@@ -155,6 +166,13 @@ async function createReservationDirect(
 
   // Enrich charter note with rate when caller only sent the type line.
   let special = formData.specialRequests?.trim() || null
+  if (priced.pricingMode === 'flat') {
+    const line = `Pricing: Flat rate${priced.flatLabel ? ` · ${priced.flatLabel}` : ''}`
+    special = special ? `${special}\n${line}` : line
+  } else if (priced.pricingMode === 'mileage') {
+    const line = 'Pricing: Mileage'
+    special = special ? `${special}\n${line}` : line
+  }
   if (tripType === 'charter' && special && !special.includes('/hr')) {
     special = special.replace(
       /Trip type: Charter · [\d.]+h/,
@@ -252,6 +270,8 @@ export async function calculatePrice(data: {
   gratuityPercent?: number
   tripType?: TripType | string
   charterHours?: number
+  pickupAddress?: string
+  dropoffAddress?: string
 }) {
   try {
     const supabase = await createClient()
@@ -268,14 +288,14 @@ export async function calculatePrice(data: {
 
     let { data: vehicle, error } = await supabase
       .from('fleet')
-      .select('id, name, base_price, price_per_mile, minimum_price, hourly_rate')
+      .select('id, name, type, base_price, price_per_mile, minimum_price, hourly_rate')
       .eq('id', data.vehicleId)
       .maybeSingle()
 
     if (error && /hourly_rate/i.test(error.message)) {
       const retry = await supabase
         .from('fleet')
-        .select('id, name, base_price, price_per_mile, minimum_price')
+        .select('id, name, type, base_price, price_per_mile, minimum_price')
         .eq('id', data.vehicleId)
         .maybeSingle()
       vehicle = retry.data as typeof vehicle
@@ -295,6 +315,15 @@ export async function calculatePrice(data: {
       return { error: 'This vehicle does not have a valid rate configured' }
     }
 
+    const flat =
+      tripType === 'charter'
+        ? null
+        : matchFlatRate(
+            String(data.pickupAddress ?? ''),
+            String(data.dropoffAddress ?? ''),
+            rateClassFor(String(vehicle.name ?? ''), String((vehicle as { type?: string }).type ?? '')),
+          )
+
     const priced = computeTripPrice({
       basePrice: Number(vehicle.base_price),
       pricePerMile: Number(vehicle.price_per_mile),
@@ -304,6 +333,8 @@ export async function calculatePrice(data: {
       gratuityPercent,
       tripType,
       charterHours,
+      flatRate: flat?.rate ?? null,
+      flatLabel: flat?.label ?? null,
     })
 
     if (tripType === 'charter' && !(priced.hourlyRate && priced.hourlyRate > 0)) {
@@ -320,6 +351,8 @@ export async function calculatePrice(data: {
       charterHours: priced.charterHours,
       billableMiles: priced.billableMiles,
       hourlyRate: priced.hourlyRate,
+      pricingMode: priced.pricingMode,
+      flatLabel: priced.flatLabel,
     }
   } catch {
     return { error: 'Something went wrong while calculating price. Please try again.' }
@@ -371,8 +404,9 @@ export async function createReservation(formData: any) {
     const charterHours =
       tripType === 'charter' ? normalizeCharterHours(formData.charterHours) : undefined
 
+    const pickupAddress = String(formData.resolvedPickup || formData.pickupAddress || '').trim()
     const dropoffAddress =
-      String(formData.dropoffAddress || '').trim() ||
+      String(formData.resolvedDropoff || formData.dropoffAddress || '').trim() ||
       (tripType === 'charter' ? 'As directed (hourly charter)' : '')
 
     if (!dropoffAddress) {
@@ -432,7 +466,7 @@ export async function createReservation(formData: any) {
       customerName: formData.customerName,
       customerEmail: formData.customerEmail,
       customerPhone: formData.customerPhone,
-      pickupAddress: formData.pickupAddress,
+      pickupAddress,
       dropoffAddress,
       vehicleId: formData.vehicleId,
       passengers: parseInt(formData.passengers) || 2,
@@ -500,8 +534,8 @@ export async function createReservation(formData: any) {
           return {
             success: false,
             error: msg
-              ? `We could not complete your booking. Please try again or call (678) 478-3506.`
-              : 'We could not complete your booking. Please try again or call (678) 478-3506.',
+              ? `We could not complete your booking. Please try again or call ${BRAND_PHONE_DISPLAY}.`
+              : `We could not complete your booking. Please try again or call ${BRAND_PHONE_DISPLAY}.`,
           }
         }
       } else {
@@ -525,21 +559,25 @@ export async function createReservation(formData: any) {
         title: '🚗 New online booking (pending review)',
         message:
           `${formData.customerName} · ${bookingNumber}\n` +
-          `${formData.pickupAddress} → ${dropoffAddress}\n` +
+          `${pickupAddress} → ${dropoffAddress}\n` +
           `Trip: ${tripType === 'charter' ? `Charter ${charterHours}h` : tripType === 'round_trip' ? 'Round trip' : 'One-way'}\n` +
           `Pickup: ${formData.pickupTime}\n` +
           `Vehicle: ${formData.vehicleName ?? '—'}\n` +
           `Phone: ${formData.customerPhone}\n` +
           `Customer email: ${formData.customerEmail}\n` +
           `Gratuity: ${gratuityPercent}%\n` +
-          (isStripeConfigured() ? 'Deposit: not paid yet' : 'Deposit: Stripe not configured'),
+          'Payment: no charge at booking — 25% deposit after confirmation',
         ...link,
       })
     } catch (e) {
       console.error('[createReservation] management notification failed:', e)
     }
 
-    const customerEmail = await sendCustomerBookingReceived(supabase, bookingNumber, formData)
+    const customerEmail = await sendCustomerBookingReceived(supabase, bookingNumber, {
+      ...formData,
+      pickupAddress,
+      dropoffAddress,
+    })
     const emailSent = customerEmail.sent
     if (!emailSent) {
       console.warn('[createReservation] customer booking received email not sent:', customerEmail.reason, {
@@ -548,33 +586,7 @@ export async function createReservation(formData: any) {
       })
     }
 
-    // STRIPE ON: create the 10% deposit intent and hand the client secret to the browser.
-    if (isStripeConfigured()) {
-      try {
-        const dep = await createDepositForBooking(bookingNumber)
-        return {
-          success: true,
-          bookingNumber,
-          requiresPayment: true,
-          clientSecret: dep.clientSecret,
-          depositAmount: dep.depositAmount,
-          balanceAmount: dep.balanceAmount,
-          emailSent,
-          emailError: emailSent ? undefined : customerEmail.reason,
-        }
-      } catch (e) {
-        console.error(`[createReservation] createDepositForBooking failed for ${bookingNumber}:`, e)
-        return {
-          success: true,
-          bookingNumber,
-          requiresPayment: false,
-          emailSent,
-          emailError: emailSent ? undefined : customerEmail.reason,
-          error: 'Could not start the deposit payment. Please try again, or call us to book.',
-        }
-      }
-    }
-
+    // No charge at booking. Staff confirms, then a 25% deposit is processed.
     return { success: true, bookingNumber, requiresPayment: false, emailSent, emailError: emailSent ? undefined : customerEmail.reason }
   } catch {
     return { success: false, error: 'Server error while creating reservation. Please try again.' }

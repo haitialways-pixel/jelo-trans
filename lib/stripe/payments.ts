@@ -1,7 +1,7 @@
 // Stripe payment helpers — SERVER ONLY.
 //
 // Two charges per booking:
-//   1) deposit  — 10% taken on-session at booking; the card is saved (setup_future_usage)
+//   1) deposit  — 25% processed after staff confirmation (not at booking)
 //   2) balance  — the remainder charged off-session when the ride is completed
 //
 // All amounts are computed SERVER-SIDE from the reservation's authoritative total_price.
@@ -11,7 +11,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { recordOpsNotification } from '@/lib/manager/notifyOps'
 import { BRAND_NAME } from '@/lib/site'
 
-export const DEPOSIT_RATE = 0.1
+export const DEPOSIT_RATE = 0.25
 
 function round2(n: number): number {
   return Math.round(n * 100) / 100
@@ -24,7 +24,7 @@ export type DepositResult = {
 }
 
 /**
- * Creates (or reuses) a Stripe Customer and a deposit PaymentIntent for 10% of the
+ * Creates (or reuses) a Stripe Customer and a deposit PaymentIntent for 25% of the
  * reservation total, saving the card for the later balance charge. Returns the
  * client secret for Stripe Elements to confirm on the client.
  */
@@ -44,7 +44,7 @@ export async function createDepositForBooking(bookingNumber: string): Promise<De
   const balanceAmount = round2(total - depositAmount)
 
   if (depositAmount < 0.5) {
-    throw new Error(`Computed deposit (10%) is too small ($${depositAmount.toFixed(2)}) for a ${total.toFixed(2)} booking. Check fleet minimum_price or distance.`)
+    throw new Error(`Computed deposit (25%) is too small ($${depositAmount.toFixed(2)}) for a ${total.toFixed(2)} booking. Check fleet minimum_price or distance.`)
   }
 
   // Reuse an existing customer if this booking already has one.

@@ -52,9 +52,9 @@ export default function ManageBookingPage() {
 
         {!booking ? (
           <form onSubmit={handleSearch} className="mt-10 space-y-4">
-            <input name="booking_number" placeholder="PH2K9M4X7" className="w-full px-7 py-4 rounded-2xl text-lg tracking-widest uppercase" required maxLength={8} />
+            <input name="booking_number" placeholder="PH2K9M4X" className="w-full px-7 py-4 rounded-2xl text-lg tracking-widest uppercase" required maxLength={8} />
             <input name="phone" placeholder="Phone number" className="w-full px-7 py-4 rounded-2xl text-lg" required />
-            {error && <p className="text-red-700 text-sm bg-red-50 border border-red-200 rounded-xl px-4 py-3">{error}</p>}
+            {error && <p className="text-red-200 text-sm bg-red-950/50 border border-red-800/60 rounded-xl px-4 py-3">{error}</p>}
             <button type="submit" disabled={loading} className="btn-gold w-full py-5 rounded-full text-sm tracking-[2px] mt-2">
               {loading ? 'Searching...' : 'Find My Booking'}
             </button>

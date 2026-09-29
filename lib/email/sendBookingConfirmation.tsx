@@ -1,6 +1,6 @@
 import { sendMail } from './mailer'
 import { fmtDate, fmtTime, EMAIL_RE, fmtMoney } from './format'
-import { BRAND_NAME, BRAND_PHONE, BRAND_WEBSITE } from '@/lib/site'
+import { BRAND_NAME, BRAND_PHONE, BRAND_WEBSITE, PAYMENT_POLICY } from '@/lib/site'
 import { paymentRows, summarizePayment } from '@/lib/payments/summary'
 
 export type BookingEmailInput = {
@@ -77,6 +77,7 @@ function buildBookingConfirmationContent(i: BookingEmailInput): { html: string; 
     `Great news — your ${BRAND_NAME} reservation has been confirmed by our team.\n\n` +
     `${textRows}\n\n` +
     `We look forward to providing you with excellent service.\n\n` +
+    `${PAYMENT_POLICY}\n\n` +
     `Questions? Call us at ${BRAND_PHONE}.\n\n` +
     `— ${BRAND_NAME}\n${BRAND_WEBSITE}`
 
@@ -104,6 +105,7 @@ function buildBookingConfirmationContent(i: BookingEmailInput): { html: string; 
                 </p>
                 <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 0 20px;width:100%;border-collapse:collapse;">${htmlRows}</table>
                 <p style="margin:0 0 16px;color:#374151;line-height:1.5;">We look forward to providing you with excellent service.</p>
+                <p style="margin:0 0 16px;color:#374151;line-height:1.5;">${PAYMENT_POLICY}</p>
                 <p style="margin:0 0 20px;color:#374151;line-height:1.5;">Questions? Call us at ${BRAND_PHONE}.</p>
                 <p style="margin:0;font-size:12px;color:#9ca3af;line-height:1.5;">${BRAND_NAME} · ${BRAND_WEBSITE}</p>
               </td>

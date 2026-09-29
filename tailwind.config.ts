@@ -1,6 +1,6 @@
 import type { Config } from 'tailwindcss'
 
-/** Editorial luxury — tokens live in app/globals.css @theme */
+/** Near-black / royal / gold — tokens also live in app/globals.css @theme */
 const config: Config = {
   content: [
     './app/**/*.{js,ts,jsx,tsx,mdx}',
@@ -10,22 +10,22 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: '#FDFBF7',
-        card: '#F5EFEB',
+        background: '#07080C',
+        card: '#12151E',
         primary: {
-          DEFAULT: '#A3B19B',
-          dim: '#C5CFC0',
-          dark: '#7D8F75',
+          DEFAULT: '#1E4FC7',
+          dim: '#3B6FE8',
+          dark: '#163A96',
         },
         gold: {
-          DEFAULT: '#D4AF37',
-          dim: '#E8D9A8',
-          dark: '#B8942D',
+          DEFAULT: '#C9A84C',
+          dim: '#E0C878',
+          dark: '#A88832',
         },
-        'on-surface': '#2B2625',
-        'on-surface-variant': '#6B6563',
-        'surface-container-low': '#F5EFEB',
-        'surface-container-lowest': '#FFFFFF',
+        'on-surface': '#F4EFE6',
+        'on-surface-variant': '#B7B1A6',
+        'surface-container-low': '#10131A',
+        'surface-container-lowest': '#1A1F2C',
       },
       fontFamily: {
         sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
