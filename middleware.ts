@@ -12,6 +12,26 @@ function isServerActionRequest(request: NextRequest): boolean {
   )
 }
 
+
+type StaffGate = 'manager' | 'admin' | 'none' | 'unknown'
+
+async function staffGate(supabase: ReturnType<typeof createServerClient>): Promise<StaffGate> {
+  try {
+    const { data, error } = await supabase.rpc('get_my_staff_profile')
+    if (error) {
+      console.error('[middleware] get_my_staff_profile failed:', error.message)
+      return 'unknown'
+    }
+    const profile = Array.isArray(data) ? data[0] : data
+    const role = profile?.role
+    if (role === 'manager' || role === 'admin') return role
+    return 'none'
+  } catch (error) {
+    console.error('[middleware] staff lookup failed:', error instanceof Error ? error.message : error)
+    return 'unknown'
+  }
+}
+
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request })
   const serverAction = isServerActionRequest(request)
@@ -69,15 +89,32 @@ export async function middleware(request: NextRequest) {
   }
 
   const isLogin = pathname === '/manager/login'
-  const isProtected = pathname.startsWith('/manager') && !isLogin
+  const isApi = pathname.startsWith('/api/manager')
+  const isProtected = (pathname.startsWith('/manager') && !isLogin) || isApi
+
+  let gate: StaffGate = 'none'
+  if (user && (isProtected || isLogin)) {
+    gate = await staffGate(supabase)
+  }
 
   if (isProtected && !user && !serverAction) {
+    if (isApi) return NextResponse.json({ error: 'Not authorized' }, { status: 401 })
     const url = request.nextUrl.clone()
     url.pathname = '/manager/login'
     return NextResponse.redirect(url)
   }
 
-  if (isLogin && user && !request.nextUrl.searchParams.has('error') && !serverAction) {
+  // Role values are manager | admin (staff.role check). A definitive empty
+  // profile is rejected. If the RPC itself errors, do not lock out the owner.
+  if (isProtected && user && gate === 'none' && !serverAction) {
+    if (isApi) return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
+    const url = request.nextUrl.clone()
+    url.pathname = '/manager/login'
+    url.search = '?error=not_staff'
+    return NextResponse.redirect(url)
+  }
+
+  if (isLogin && user && gate !== 'none' && !request.nextUrl.searchParams.has('error') && !serverAction) {
     const url = request.nextUrl.clone()
     url.pathname = '/manager'
     url.search = ''

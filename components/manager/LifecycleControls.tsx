@@ -68,7 +68,9 @@ export function LifecycleControls({ r }: { r: ManagerReservation }) {
     return (
       <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700">
         <CheckCircle2 className="w-4 h-4" /> Ride completed on {formatDateTime(r.completed_at)}.
-        <span className="text-emerald-700/70">Balance charge will trigger here (Stripe — Phase C).</span>
+        <span className="text-emerald-700/70">
+          {r.balance_paid_at ? 'Balance charged on the card on file.' : 'Balance was not recorded as paid.'}
+        </span>
       </div>
     )
   }
@@ -130,7 +132,7 @@ export function LifecycleControls({ r }: { r: ManagerReservation }) {
               {!done && (
                 <button
                   onClick={() =>
-                    run(step.stage, isComplete ? 'Mark this ride as completed?' : undefined)
+                    run(step.stage, isComplete ? 'Mark this ride complete and charge the balance on the saved card?' : undefined)
                   }
                   disabled={pending || r.status === 'pending'}
                   title={r.status === 'pending' ? 'Confirm the reservation first' : undefined}

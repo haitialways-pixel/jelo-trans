@@ -313,7 +313,7 @@ export function FleetManager({ models, units, chauffeurs, isAdmin = false }: Pro
                   <label className="block text-[11px] text-on-surface-variant uppercase font-medium">Class Name</label>
                   <input
                     type="text"
-                    placeholder="e.g. Stretch Limo"
+                    placeholder="e.g. Full-Size SUV"
                     value={className}
                     onChange={(e) => setClassName(e.target.value)}
                     className="w-full rounded-lg px-3 py-2 text-xs text-on-surface"

@@ -23,6 +23,8 @@ type SendInput = {
   res: ManagerReservation
   vehicleName: string | null
   chauffeurContact: Chauffeur | null
+  depositPayUrl?: string | null
+  refundInfo?: string | null
 }
 
 export type LifecycleEmailResult = { sent: boolean; reason?: string }
@@ -37,6 +39,8 @@ export async function sendLifecycleEmails({
   res,
   vehicleName,
   chauffeurContact,
+  depositPayUrl,
+  refundInfo,
 }: SendInput): Promise<LifecycleEmailResult> {
   if (!res.customer_email?.trim()) {
     console.warn('[lifecycleEmails] no customer email', { bookingNumber: res.booking_number, stage })
@@ -75,6 +79,7 @@ export async function sendLifecycleEmails({
         balanceAmount: res.balance_amount,
         depositPaidAt: res.deposit_paid_at,
         balancePaidAt: res.balance_paid_at,
+        depositPayUrl: depositPayUrl,
       })
     case 'dispatch': {
       const enRoute = await sendChauffeurEnRoute({
@@ -121,6 +126,7 @@ export async function sendLifecycleEmails({
         customerName: common.customerName,
         bookingNumber: common.bookingNumber,
         cancellationReason: `Cancelled by ${BRAND_NAME}`,
+        refundInfo,
       })
     default:
       return { sent: false, reason: `unknown stage: ${stage}` }

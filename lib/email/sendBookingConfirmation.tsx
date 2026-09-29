@@ -24,6 +24,7 @@ export type BookingEmailInput = {
   balanceAmount?: number | null
   depositPaidAt?: string | null
   balancePaidAt?: string | null
+  depositPayUrl?: string | null
 }
 export type EmailResult = { sent: boolean; reason?: string }
 
@@ -77,6 +78,7 @@ function buildBookingConfirmationContent(i: BookingEmailInput): { html: string; 
     `Great news — your ${BRAND_NAME} reservation has been confirmed by our team.\n\n` +
     `${textRows}\n\n` +
     `We look forward to providing you with excellent service.\n\n` +
+    `${i.depositPayUrl ? `Pay the 25% deposit and save your card: ${i.depositPayUrl}\n\n` : ''}` +
     `${PAYMENT_POLICY}\n\n` +
     `Questions? Call us at ${BRAND_PHONE}.\n\n` +
     `— ${BRAND_NAME}\n${BRAND_WEBSITE}`
@@ -105,6 +107,7 @@ function buildBookingConfirmationContent(i: BookingEmailInput): { html: string; 
                 </p>
                 <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 0 20px;width:100%;border-collapse:collapse;">${htmlRows}</table>
                 <p style="margin:0 0 16px;color:#374151;line-height:1.5;">We look forward to providing you with excellent service.</p>
+                ${i.depositPayUrl ? `<p style="margin:0 0 16px;color:#374151;line-height:1.5;">Pay the 25% deposit and save your card:<br><a href="${escapeHtml(i.depositPayUrl)}">${escapeHtml(i.depositPayUrl)}</a></p>` : ''}
                 <p style="margin:0 0 16px;color:#374151;line-height:1.5;">${PAYMENT_POLICY}</p>
                 <p style="margin:0 0 20px;color:#374151;line-height:1.5;">Questions? Call us at ${BRAND_PHONE}.</p>
                 <p style="margin:0;font-size:12px;color:#9ca3af;line-height:1.5;">${BRAND_NAME} · ${BRAND_WEBSITE}</p>

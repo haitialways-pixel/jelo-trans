@@ -1066,30 +1066,25 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN /* already added */ END $$;
 
 -- ============================================================================
--- SEED DATA — mirrors the operator's current Imperial Odyssey catalog.
--- All prices in USD. Minimum charge protects margin on very short rides.
--- Imperial Odyssey staff can edit these in the manager UI (/manager/fleet) at any time.
+-- SEED DATA — bookable classes for a brand-new database only.
+-- DO NOT run this file on a live database. Statements at the top DROP tables.
+-- Live fleet, flat-fare SQL, and the auto-staff stop are in:
+--   supabase/migrations/20260929_fleet_rates_flat_fare_stop_auto_staff.sql
+-- No Sprinter, stretch limo, or Escalade. No invented plates, VINs, or unit numbers.
+-- The 12 company SUVs still need real vehicle_units from the owner.
+-- Mileage base and per-mile match the previous sedan and SUV rows.
 -- ============================================================================
 INSERT INTO public.fleet
   (name, type, capacity, luggage_capacity, base_price, price_per_mile, minimum_price, hourly_rate, image_url, tier, featured, display_order, description)
 VALUES
-  -- hourly_rate starts equal to base_price; set real charter rates in Manager → Fleet.
-  ('Luxury Sedan',        'luxury_sedan',       4,  3,  50.00, 2.60,  80.00,  50.00, '/images/luxury-sedan.png',                'premium',   true, 10,
-   'Indulge in first-class comfort. The ultimate choice for executive travel, airport transfers, and private clients.'),
-  ('Premium Executive',   'executive_suburban', 7,  6,  95.00, 3.75, 130.00,  95.00, '/images/suburban-driver.jpg',             'executive', true, 20,
-   'The dependable workhorse of executive transport. Unmatched space for passengers and cargo.'),
-  ('Luxury SUV',          'luxury_suv',         7,  6,  60.00, 3.10,  95.00,  60.00, '/images/IMG_20250715_144013465_HDR.jpg',  'executive', true, 30,
-   'A perfect blend of luxury, power, and security. Standard-setting space and elite comfort.'),
-  ('Luxury Sprinter Van', 'sprinter_van',      14, 14, 110.00, 4.25, 160.00, 110.00, '/images/sprinter.png',                    'executive', true, 40,
-   'Spacious and luxurious group travel. Ideal for corporate groups, events, and airport transfers.');
+  ('Full-Size SUV', 'luxury_suv', 6, 6, 60.00, 3.10, 95.00, 110.00, '/images/fleet-suv.webp', 'executive', true, 10,
+   'Company fleet: 12 full-size SUVs, model years 2021-2024 (Chevrolet Suburban, GMC Yukon XL SLT, and 2024 Ford Expedition MAX Limited). Charter is $110/hour with a 3-hour minimum.'),
+  ('2023 Tesla Model Y', 'luxury_sedan', 4, 3, 50.00, 2.60, 80.00, 100.00, '/images/fleet-wash.webp', 'premium', true, 20,
+   'Company-owned 2023 Tesla Model Y, booked as its own vehicle. Charter uses the sedan rate of $100/hour with a 3-hour minimum.'),
+  ('Luxury Sedan', 'luxury_sedan', 3, 2, 50.00, 2.60, 80.00, 100.00, '/images/fleet-sedan.webp', 'premium', true, 30,
+   'Contracted partner drivers, not company-owned. Charter is $100/hour with a 3-hour minimum.');
 
-INSERT INTO public.vehicle_units (model_id, label, year)
-SELECT id, 'Mercedes-Benz S-Class',  2023 FROM public.fleet WHERE name = 'Luxury Sedan'
-UNION ALL SELECT id, 'Chevrolet Suburban #1',  2022 FROM public.fleet WHERE name = 'Premium Executive'
-UNION ALL SELECT id, 'Chevrolet Suburban #2',  2023 FROM public.fleet WHERE name = 'Premium Executive'
-UNION ALL SELECT id, 'GMC Yukon XL',           2023 FROM public.fleet WHERE name = 'Luxury SUV'
-UNION ALL SELECT id, 'Cadillac Escalade',      2024 FROM public.fleet WHERE name = 'Luxury SUV'
-UNION ALL SELECT id, 'Mercedes-Benz Sprinter', 2024 FROM public.fleet WHERE name = 'Luxury Sprinter Van';
+-- Physical vehicle_units are not seeded here.
 
 -- ============================================================================
 -- NEW RECOMMENDED FEATURES

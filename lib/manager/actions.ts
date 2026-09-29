@@ -10,10 +10,11 @@ import { sendLifecycleEmails } from '@/lib/manager/lifecycleEmails'
 import { notifyDriverDispatch, dispatchDeliveryError } from '@/lib/manager/dispatch'
 import type { Chauffeur, ManagerReservation } from '@/lib/manager/data'
 import { isStripeConfigured } from '@/lib/stripe/server'
-import { chargeBalance } from '@/lib/stripe/payments'
+import { chargeBalance, createDepositForBooking, refundCollectedDeposit } from '@/lib/stripe/payments'
 import { notifyManagement } from '@/lib/chatbot/notify'
+import { getSiteUrl } from '@/lib/site'
 
-export type ActionResult = { ok: true; warning?: string } | { ok: false; error: string }
+export type ActionResult = { ok: true; warning?: string; depositUrl?: string } | { ok: false; error: string }
 
 
 const VALID_STAGES = [
@@ -64,6 +65,24 @@ export async function advanceReservation(id: string, stage: Stage): Promise<Acti
       }
     }
 
+    // Charge the balance BEFORE the ride is marked complete. A missing card or a
+    // failed Stripe charge must not complete the ride or mark it paid.
+    if (stage === 'complete') {
+      if (!isStripeConfigured()) {
+        return {
+          ok: false,
+          error: 'Ride was not marked complete. Stripe is not configured, so the balance cannot be charged.',
+        }
+      }
+      const charge = await chargeBalance(id)
+      if (!charge.ok) {
+        return {
+          ok: false,
+          error: `Ride was not marked complete. Balance was not charged: ${charge.reason ?? 'the card charge did not succeed'}.`,
+        }
+      }
+    }
+
     // layer 3 — the RPC checks is_staff() again, writes the audit row, and RETURNS the row.
     const { data, error } = await supabase.rpc('staff_advance_reservation', {
       p_reservation_id: id,
@@ -78,28 +97,9 @@ export async function advanceReservation(id: string, stage: Stage): Promise<Acti
     // reservation so the email isn't stale.
     let res = Array.isArray(data) ? data[0] : data
 
-    // Stripe: charge the remaining balance off-session when the ride completes.
-    // Gated + best-effort: a decline never blocks completion — the manager is alerted.
-    if (stage === 'complete' && isStripeConfigured()) {
-      try {
-        const charge = await chargeBalance(id)
-        if (!charge.ok) {
-          await notifyManagement({
-            title: '⚠️ Balance not charged',
-            message: `Reservation ${res?.booking_number ?? id} completed, but the balance charge failed: ${charge.reason}. Please follow up with the customer.`,
-          })
-        } else {
-          // Re-fetch so the receipt email reads the post-charge state.
-          const { data: fresh } = await admin
-            .from('reservations')
-            .select('*')
-            .eq('id', id)
-            .maybeSingle()
-          if (fresh) res = fresh
-        }
-      } catch {
-        // never block completion on a payment error
-      }
+    if (stage === 'complete') {
+      const { data: fresh } = await admin.from('reservations').select('*').eq('id', id).maybeSingle()
+      if (fresh) res = fresh
     }
 
     // Best-effort notifications — one email per lifecycle stage.
@@ -132,6 +132,34 @@ export async function advanceReservation(id: string, stage: Stage): Promise<Acti
     revalidatePath(`/manager/reservations/${id}`)
 
     let warning: string | undefined
+    let depositUrl: string | undefined
+    let refundInfo: string | undefined
+
+    if (stage === 'confirm' && res?.booking_number && !res.deposit_paid_at) {
+      if (!isStripeConfigured()) {
+        warning = 'Stripe is not configured, so the 25% deposit link was not created and no card was saved.'
+      } else {
+        try {
+          await createDepositForBooking(res.booking_number)
+          depositUrl = `${getSiteUrl()}/pay/${res.booking_number}`
+          const { data: fresh } = await admin.from('reservations').select('*').eq('id', id).maybeSingle()
+          if (fresh) res = fresh
+        } catch (e) {
+          warning = `The 25% deposit link was not created: ${e instanceof Error ? e.message : 'Stripe error'}.`
+        }
+      }
+    }
+
+    if (stage === 'cancel' && res?.id) {
+      try {
+        const refund = await refundCollectedDeposit(res.id, { depositPaidAt: res.deposit_paid_at })
+        if (refund.outcome === 'refunded' || refund.outcome === 'kept') refundInfo = refund.message
+        if (refund.outcome === 'error') warning = refund.message
+      } catch (e) {
+        warning = `Reservation cancelled, but the deposit was NOT refunded: ${e instanceof Error ? e.message : 'refund failed'}.`
+      }
+    }
+
     if (res) {
       try {
         const emailResult = await sendLifecycleEmails({
@@ -139,11 +167,14 @@ export async function advanceReservation(id: string, stage: Stage): Promise<Acti
           res: res as ManagerReservation,
           vehicleName,
           chauffeurContact,
+          depositPayUrl: depositUrl,
+          refundInfo,
         })
         if (!emailResult.sent) {
           const detail = emailResult.reason ?? 'unknown error'
           if (stage === 'confirm') {
-            warning = `Reservation confirmed, but customer email failed: ${detail}`
+            const link = depositUrl ? ` Deposit link: ${depositUrl}.` : ''
+            warning = `Reservation confirmed, but email was not sent (${detail}).${link}`
           } else {
             console.warn('[advanceReservation] lifecycle email not sent:', { stage, detail })
           }
@@ -151,12 +182,17 @@ export async function advanceReservation(id: string, stage: Stage): Promise<Acti
       } catch (e) {
         console.error('[advanceReservation] lifecycle email failed:', e)
         if (stage === 'confirm') {
-          warning = 'Reservation confirmed, but confirmation email could not be sent.'
+          const link = depositUrl ? ` Deposit link: ${depositUrl}.` : ''
+          warning = `Reservation confirmed, but email was not sent.${link}`
         }
       }
     }
 
-    return warning ? { ok: true, warning } : { ok: true }
+    if (depositUrl && !(warning && warning.includes(depositUrl))) {
+      warning = warning ? `${warning} Deposit link: ${depositUrl}` : `Deposit link: ${depositUrl}`
+    }
+
+    return warning ? { ok: true, warning, depositUrl } : { ok: true, depositUrl }
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'Action failed' }
   }

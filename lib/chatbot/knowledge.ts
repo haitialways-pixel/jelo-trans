@@ -109,7 +109,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
       'quote',
       'how much does it cost',
       'what are your rates',
-      'price for the escalade',
+      'price for the suv',
       'how much for 3 hours',
       'estimate the price',
       'what’s the hourly rate',
@@ -137,7 +137,7 @@ export const KNOWLEDGE: KnowledgeEntry[] = [
     triggers: [
       'availability',
       'available',
-      'is the escalade available on',
+      'is an suv available on',
       'do you have anything free on saturday',
       'check availability for',
       'is a vehicle available that date',

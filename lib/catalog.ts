@@ -13,12 +13,13 @@ export const PUBLIC_CLASS_LABELS: Record<PublicClass, string> = {
 }
 
 const HIDDEN =
-  /(sprinter|stretch|party\s*bus|limo van|executive stretch)/i
+  /(sprinter|stretch|party\s*bus|limo van|executive stretch|escalade)/i
 
 const BANNED_IMAGE_FRAGMENTS = [
   'luxury-sedan.png',
   'sprinter.png',
   'suburban-driver',
+  'escalade',
 ]
 
 const CLASS_FALLBACK: Record<PublicClass, string> = {
@@ -85,63 +86,9 @@ export function groupPublicFleet<T extends { name: string; type?: string | null 
   })).filter((g) => g.items.length > 0)
 }
 
-export const COMPANY_SUV: Vehicle = {
-  id: 'company-fullsize-suv',
-  name: 'Full-Size SUV',
-  type: 'luxury_suv',
-  capacity: 6,
-  luggage_capacity: 6,
-  base_price: 0,
-  price_per_mile: 0,
-  hourly_rate: HOURLY_SUV,
-  image_url: '/images/fleet-suv.webp',
-  description:
-    'Chevrolet Suburban, GMC Yukon XL SLT, and 2024 Ford Expedition MAX Limited. Twelve company SUVs, model years 2021–2024. $110/hour with a 3-hour minimum.',
-  featured: true,
-  display_order: 10,
-  tier: 'suv',
-}
-
-export const COMPANY_TESLA: Vehicle = {
-  id: 'company-tesla-model-y',
-  name: '2023 Tesla Model Y',
-  type: 'tesla',
-  capacity: 4,
-  luggage_capacity: 3,
-  base_price: 0,
-  price_per_mile: 0,
-  hourly_rate: HOURLY_SEDAN,
-  image_url: '/images/fleet-wash.webp',
-  description: 'Company 2023 Tesla Model Y for executive transfers and hourly charter.',
-  featured: true,
-  display_order: 50,
-  tier: 'tesla',
-}
-
-/** Partner sedan shown when the live catalog has no sedan row. */
-export const PARTNER_SEDAN: Vehicle = {
-  id: 'partner-luxury-sedan',
-  name: 'Luxury Sedan',
-  type: 'luxury_sedan',
-  capacity: 3,
-  luggage_capacity: 2,
-  base_price: 0,
-  price_per_mile: 0,
-  hourly_rate: HOURLY_SEDAN,
-  image_url: '/images/fleet-sedan.webp',
-  description:
-    'Mercedes-Benz S-Class and similar luxury sedans, provided through contracted chauffeur partners. $100/hour with a 3-hour minimum.',
-  featured: true,
-  display_order: 90,
-  tier: 'sedan',
-}
-
+/** Public pages only show rows that exist in the fleet table. No placeholder classes. */
 export function withPublicCatalog(fleet: Vehicle[]): Vehicle[] {
-  const next = [...fleet]
-  if (!next.some((v) => classifyVehicle(v.name, v.type) === 'suv')) next.push(COMPANY_SUV)
-  if (!next.some((v) => classifyVehicle(v.name, v.type) === 'tesla')) next.push(COMPANY_TESLA)
-  if (!next.some((v) => classifyVehicle(v.name, v.type) === 'sedan')) next.push(PARTNER_SEDAN)
-  return next
+  return filterPublicFleet(fleet)
 }
 
 export function decorateVehicle(v: Vehicle): Vehicle {

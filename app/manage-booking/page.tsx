@@ -9,6 +9,7 @@ export default function ManageBookingPage() {
   const [booking, setBooking] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
 
   const handleSearch = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -38,6 +39,7 @@ export default function ManageBookingPage() {
 
     if (result.success) {
       setBooking({ ...booking, status: 'cancelled' })
+      if (result.notice) setNotice(result.notice)
     } else {
       setError(result.error || 'Failed to cancel')
     }
@@ -55,6 +57,7 @@ export default function ManageBookingPage() {
             <input name="booking_number" placeholder="PH2K9M4X" className="w-full px-7 py-4 rounded-2xl text-lg tracking-widest uppercase" required maxLength={8} />
             <input name="phone" placeholder="Phone number" className="w-full px-7 py-4 rounded-2xl text-lg" required />
             {error && <p className="text-red-200 text-sm bg-red-950/50 border border-red-800/60 rounded-xl px-4 py-3">{error}</p>}
+            {notice && <p className="text-amber-900 text-sm bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">{notice}</p>}
             <button type="submit" disabled={loading} className="btn-gold w-full py-5 rounded-full text-sm tracking-[2px] mt-2">
               {loading ? 'Searching...' : 'Find My Booking'}
             </button>

@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { checkRateLimit } from '@/lib/security/rateLimit'
 import { sendCancellation } from '@/lib/email/sendCancellation'
+import { refundCollectedDeposit } from '@/lib/stripe/payments'
 import { normalizeBookingNumber } from '@/lib/bookingNumber'
 
 export async function getBooking(bookingNumber: string, phone: string) {
@@ -45,20 +46,39 @@ export async function cancelBooking(bookingNumber: string, phone: string) {
     return { success: false, error: error.message }
   }
 
+  const row = Array.isArray(data) ? data[0] : data
+  let notice: string | undefined
+  let refundInfo: string | undefined
+  if (row?.id) {
+    try {
+      const refund = await refundCollectedDeposit(row.id, { depositPaidAt: row.deposit_paid_at })
+      if (refund.outcome === 'refunded' || refund.outcome === 'kept') {
+        notice = refund.message
+        refundInfo = refund.message
+      } else if (refund.outcome === 'error') {
+        notice = refund.message
+        refundInfo = refund.message
+      }
+    } catch (e) {
+      notice = `This reservation is cancelled, but the deposit was NOT refunded: ${e instanceof Error ? e.message : 'refund failed'}.`
+      refundInfo = notice
+    }
+  }
+
   // Best-effort cancellation email to the customer.
   try {
-    const row = Array.isArray(data) ? data[0] : data
     if (row?.customer_email && row?.customer_name && row?.booking_number) {
       await sendCancellation({
         to: row.customer_email,
         customerName: row.customer_name,
         bookingNumber: row.booking_number,
         cancellationReason: 'Cancelled at customer request',
+        refundInfo,
       })
     }
   } catch {
     /* never block the cancellation on a failed email */
   }
 
-  return { success: true, data }
+  return { success: true, data, notice }
 }

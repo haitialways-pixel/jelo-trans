@@ -613,3 +613,56 @@ export async function getSentInvoiceById(id: string): Promise<StoredInvoice | nu
   if (!data) return null
   return normalizeInvoiceRow(data as Record<string, unknown>)
 }
+
+/** Trips whose pickup falls on today's calendar date in Orlando. */
+export async function getTodayReservations(now = new Date()): Promise<ManagerReservation[]> {
+  const { start, end } = orlandoDayBounds(now)
+  const supabase = await staffDb()
+  const { data, error } = await supabase
+    .from('reservations')
+    .select(RES_COLUMNS)
+    .gte('pickup_time', start)
+    .lt('pickup_time', end)
+    .neq('status', 'cancelled')
+    .order('pickup_time', { ascending: true })
+  if (error) {
+    console.error('[manager] getTodayReservations:', error.message)
+    return []
+  }
+  return (data ?? []) as unknown as ManagerReservation[]
+}
+
+function orlandoDayBounds(now: Date): { start: string; end: string } {
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
+  const parts = Object.fromEntries(fmt.formatToParts(now).map((p) => [p.type, p.value]))
+  const y = Number(parts.year)
+  const m = Number(parts.month)
+  const d = Number(parts.day)
+  const start = zonedMidnightUtc(y, m, d)
+  const end = zonedMidnightUtc(y, m, d + 1)
+  return { start: start.toISOString(), end: end.toISOString() }
+}
+
+function zonedMidnightUtc(year: number, month: number, day: number): Date {
+  const guess = new Date(Date.UTC(year, month - 1, day, 0, 0, 0))
+  const dtf = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    hour12: false,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  })
+  const p = Object.fromEntries(dtf.formatToParts(guess).map((x) => [x.type, x.value]))
+  const hour = p.hour === '24' ? 0 : Number(p.hour)
+  const asUtc = Date.UTC(Number(p.year), Number(p.month) - 1, Number(p.day), hour, Number(p.minute), Number(p.second))
+  return new Date(guess.getTime() - (asUtc - guess.getTime()))
+}
+

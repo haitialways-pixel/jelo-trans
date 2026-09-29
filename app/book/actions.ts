@@ -450,6 +450,31 @@ export async function createReservation(formData: any) {
       const ppm = Number(charterVehicle?.price_per_mile ?? 0)
       const targetFare = charterHours! * hourly
       rpcDistanceMiles = ppm > 0 ? Math.max((targetFare - base) / ppm, 0) : 0
+    } else {
+      // Legacy create_reservation stores base + miles. Encode the quoted flat fare
+      // into distance when the vehicle minimum will not raise it. Migration
+      // 20260929 prices the flat fare from the addresses and ignores this distance.
+      const { data: fareVehicle } = await supabase
+        .from("fleet")
+        .select("name, type, base_price, price_per_mile, minimum_price")
+        .eq("id", formData.vehicleId)
+        .maybeSingle()
+      if (fareVehicle) {
+        const flat = matchFlatRate(
+          pickupAddress,
+          dropoffAddress,
+          rateClassFor(String(fareVehicle.name ?? ""), String(fareVehicle.type ?? "")),
+        )
+        if (flat) {
+          const target = tripType === "round_trip" ? flat.rate * 2 : flat.rate
+          const base = Number(fareVehicle.base_price ?? 0)
+          const ppm = Number(fareVehicle.price_per_mile ?? 0)
+          const min = Number(fareVehicle.minimum_price ?? 0)
+          if (ppm > 0 && min <= target + 0.001) {
+            rpcDistanceMiles = Math.max((target - base) / ppm, 0)
+          }
+        }
+      }
     }
 
     const tripNote =

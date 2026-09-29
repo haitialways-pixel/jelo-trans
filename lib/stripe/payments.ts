@@ -6,10 +6,10 @@
 //
 // All amounts are computed SERVER-SIDE from the reservation's authoritative total_price.
 // We store only Stripe IDs on the reservation (never card data).
-import { getStripe } from './server'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { getStripe, isStripeConfigured } from './server'
+import { createAdminClient, isAdminConfigured } from '@/lib/supabase/admin'
 import { recordOpsNotification } from '@/lib/manager/notifyOps'
-import { BRAND_NAME } from '@/lib/site'
+import { BRAND_NAME, CANCEL_REFUND_HOURS } from '@/lib/site'
 
 export const DEPOSIT_RATE = 0.25
 
@@ -34,7 +34,7 @@ export async function createDepositForBooking(bookingNumber: string): Promise<De
 
   const { data: r, error } = await admin
     .from('reservations')
-    .select('id, customer_name, customer_email, total_price, stripe_customer_id, deposit_intent_id')
+    .select('id, customer_name, customer_email, total_price, stripe_customer_id, deposit_intent_id, deposit_paid_at')
     .eq('booking_number', bookingNumber)
     .single()
   if (error || !r) throw new Error('Reservation not found')
@@ -45,6 +45,22 @@ export async function createDepositForBooking(bookingNumber: string): Promise<De
 
   if (depositAmount < 0.5) {
     throw new Error(`Computed deposit (25%) is too small ($${depositAmount.toFixed(2)}) for a ${total.toFixed(2)} booking. Check fleet minimum_price or distance.`)
+  }
+
+  if (r.deposit_paid_at) {
+    throw new Error('Deposit already paid')
+  }
+
+  if (r.deposit_intent_id) {
+    const existing = await stripe.paymentIntents.retrieve(r.deposit_intent_id as string)
+    const expectedCents = Math.round(depositAmount * 100)
+    const reusable = ['requires_payment_method', 'requires_confirmation', 'requires_action'].includes(existing.status)
+    if (existing.status === 'succeeded') {
+      throw new Error('Deposit already paid')
+    }
+    if (reusable && existing.amount === expectedCents && existing.client_secret) {
+      return { clientSecret: existing.client_secret, depositAmount, balanceAmount }
+    }
   }
 
   // Reuse an existing customer if this booking already has one.
@@ -102,7 +118,10 @@ export async function chargeBalance(reservationId: string): Promise<BalanceResul
   if (error || !r) return { ok: false, reason: 'reservation not found' }
   if (r.balance_paid_at) return { ok: true } // already charged
   if (!r.stripe_customer_id || !r.stripe_payment_method_id) {
-    return { ok: false, reason: 'no saved card on file' }
+    return {
+      ok: false,
+      reason: 'No card on file. The customer must pay the 25% deposit and save a card before this ride can be completed.',
+    }
   }
 
   const cents = Math.round(Number(r.balance_amount ?? 0) * 100)
@@ -129,6 +148,13 @@ export async function chargeBalance(reservationId: string): Promise<BalanceResul
     }
     await admin.from('reservations').update(patch).eq('id', r.id)
 
+    if (intent.status !== 'succeeded') {
+      return {
+        ok: false,
+        reason: `Balance charge did not succeed (Stripe status: ${intent.status}). The ride was not marked paid.`,
+      }
+    }
+
     // Ring the manager bell.
     if (intent.status === 'succeeded') {
       await recordOpsNotification({
@@ -151,5 +177,84 @@ export async function chargeBalance(reservationId: string): Promise<BalanceResul
     })
     // Off-session charges can fail (card declined, expired, needs authentication).
     return { ok: false, reason }
+  }
+}
+
+
+export type DepositRefundResult =
+  | { outcome: 'not_collected' }
+  | { outcome: 'kept'; message: string }
+  | { outcome: 'refunded'; message: string; amount: number }
+  | { outcome: 'error'; message: string }
+
+/**
+ * Refund a collected 25% deposit when cancellation is at least 24 hours before pickup.
+ * Inside 24 hours the deposit is kept. Does not pretend a refund happened.
+ */
+export async function refundCollectedDeposit(
+  reservationId: string,
+  hint?: { depositPaidAt?: string | null },
+): Promise<DepositRefundResult> {
+  if (!isAdminConfigured()) {
+    if (!hint?.depositPaidAt) return { outcome: 'not_collected' }
+    return {
+      outcome: 'error',
+      message: 'The reservation is cancelled, but the deposit was NOT refunded: the database service role is not configured.',
+    }
+  }
+  const admin = createAdminClient()
+  const { data: r, error } = await admin
+    .from('reservations')
+    .select('id, booking_number, deposit_amount, deposit_intent_id, deposit_paid_at, pickup_time, payment_status')
+    .eq('id', reservationId)
+    .single()
+  if (error || !r) {
+    return { outcome: 'error', message: 'Could not load the reservation to decide the deposit refund.' }
+  }
+  const paid = Boolean(r.deposit_paid_at) && Number(r.deposit_amount ?? 0) > 0
+  if (!paid || r.payment_status === 'refunded') {
+    return { outcome: 'not_collected' }
+  }
+  const pickupMs = new Date(r.pickup_time as string).getTime()
+  const hoursUntil = (pickupMs - Date.now()) / 36e5
+  const amount = round2(Number(r.deposit_amount))
+  if (!Number.isFinite(hoursUntil) || hoursUntil < CANCEL_REFUND_HOURS) {
+    return {
+      outcome: 'kept',
+      message: `The 25% deposit ($${amount.toFixed(2)}) is kept because this cancellation is inside ${CANCEL_REFUND_HOURS} hours of pickup.`,
+    }
+  }
+  if (!isStripeConfigured()) {
+    return {
+      outcome: 'error',
+      message: 'The reservation is cancelled, but the deposit was NOT refunded: Stripe is not configured.',
+    }
+  }
+  if (!r.deposit_intent_id) {
+    return {
+      outcome: 'error',
+      message: 'The reservation is cancelled, but the deposit was NOT refunded: no Stripe payment id is stored.',
+    }
+  }
+  try {
+    const stripe = getStripe()
+    await stripe.refunds.create({
+      payment_intent: r.deposit_intent_id as string,
+      amount: Math.round(amount * 100),
+    })
+  } catch (e) {
+    const reason = e instanceof Error ? e.message : 'Stripe refund failed'
+    if (!/already been refunded/i.test(reason)) {
+      return {
+        outcome: 'error',
+        message: `The reservation is cancelled, but the deposit was NOT refunded: ${reason}`,
+      }
+    }
+  }
+  await admin.from('reservations').update({ payment_status: 'refunded' }).eq('id', r.id)
+  return {
+    outcome: 'refunded',
+    amount,
+    message: `The 25% deposit of $${amount.toFixed(2)} was refunded (cancelled at least ${CANCEL_REFUND_HOURS} hours before pickup).`,
   }
 }

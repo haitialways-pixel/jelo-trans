@@ -17,6 +17,7 @@ import { LifecycleControls } from '@/components/manager/LifecycleControls'
 import { AssignForm } from '@/components/manager/AssignForm'
 import { formatDateTime, formatMoney, formatMoneyExact, PAYMENT_LABELS, SOURCE_LABELS, auditLabel } from '@/lib/manager/format'
 import { summarizePayment } from '@/lib/payments/summary'
+import { getSiteUrl } from '@/lib/site'
 
 export const dynamic = 'force-dynamic'
 
@@ -203,6 +204,10 @@ function Detail({
 }
 
 function PaymentPanel({ r }: { r: ManagerReservation }) {
+  const depositUrl =
+    r.deposit_intent_id && !r.deposit_paid_at && r.status !== 'cancelled' && r.status !== 'completed'
+      ? `${getSiteUrl()}/pay/${r.booking_number}`
+      : null
   const p = summarizePayment({
     totalPrice: r.total_price,
     fareSubtotal: r.fare_subtotal,
@@ -294,6 +299,15 @@ function PaymentPanel({ r }: { r: ManagerReservation }) {
           value={formatMoneyExact(p.balanceAmount)}
           note="due after ride"
         />
+      )}
+
+      {depositUrl && (
+        <p className="text-xs break-all">
+          Customer deposit link:{' '}
+          <a className="text-primary underline" href={depositUrl}>
+            {depositUrl}
+          </a>
+        </p>
       )}
 
       <PayRow label="Collected" value={formatMoneyExact(p.collected)} />

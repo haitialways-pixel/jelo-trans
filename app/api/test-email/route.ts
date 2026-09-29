@@ -10,6 +10,9 @@ import { BRAND_NAME } from '@/lib/site'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
+  if (process.env.NODE_ENV === "production") {
+    return new NextResponse(null, { status: 404 })
+  }
   const { searchParams } = new URL(request.url)
   const testEmail = searchParams.get('to') || 'delivered@resend.dev'
   const kind = searchParams.get('kind') === 'dispatch' ? 'dispatch' : 'customer'
