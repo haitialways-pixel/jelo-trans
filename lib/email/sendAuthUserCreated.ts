@@ -19,7 +19,7 @@ export async function sendAuthUserCreatedEmail(email: string): Promise<MailResul
     '',
     `Sign in at ${loginUrl}`,
     '',
-    'A manager must add you to the staff table before you can get in.',
+    'Your manager access is already set up, so you can sign in at the link above.',
     'This message does not include a password.',
     '',
     BRAND_NAME,
@@ -29,7 +29,7 @@ export async function sendAuthUserCreatedEmail(email: string): Promise<MailResul
   const html = [
     `<p>Your ${BRAND_NAME} manager account is ready.</p>`,
     `<p>Sign in at <a href="${safeUrl}">${safeUrl}</a>.</p>`,
-    '<p>A manager must add you to the staff table before you can get in.</p>',
+    '<p>Your manager access is already set up, so you can sign in at the link above.</p>',
     '<p>This message does not include a password.</p>',
     `<p>${BRAND_NAME}</p>`,
   ].join('\n')

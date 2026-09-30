@@ -21,6 +21,15 @@ function LoginForm() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [handoff, setHandoff] = useState(false)
+
+  useEffect(() => {
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''))
+    const type = hash.get('type') || params.get('type')
+    if (type !== 'invite' && type !== 'recovery') return
+    setHandoff(true)
+    window.location.replace('/manager/set-password' + window.location.search + window.location.hash)
+  }, [params])
 
   useEffect(() => {
     if (notStaff) {
@@ -60,6 +69,17 @@ function LoginForm() {
     }
 
     window.location.href = '/manager'
+  }
+
+  if (handoff) {
+    return (
+      <div className="min-h-screen bg-background text-on-surface flex items-center justify-center px-8">
+        <p className="text-on-surface-variant text-sm flex items-center gap-2">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Opening password setup...
+        </p>
+      </div>
+    )
   }
 
   return (

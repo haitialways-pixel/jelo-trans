@@ -89,8 +89,12 @@ export async function middleware(request: NextRequest) {
   }
 
   const isLogin = pathname === '/manager/login'
+  // Invite and recovery links put the session in the URL hash, which never
+  // reaches the server. This page must stay public so the browser can read
+  // that hash and call setSession before any cookie exists.
+  const isSetPassword = pathname === '/manager/set-password'
   const isApi = pathname.startsWith('/api/manager')
-  const isProtected = (pathname.startsWith('/manager') && !isLogin) || isApi
+  const isProtected = (pathname.startsWith('/manager') && !isLogin && !isSetPassword) || isApi
 
   let gate: StaffGate = 'none'
   if (user && (isProtected || isLogin)) {
