@@ -21,7 +21,10 @@ type LifecycleStage =
 type SendInput = {
   stage: LifecycleStage
   res: ManagerReservation
+  /** Customer-facing: make, model, tag when a unit is assigned; otherwise the class name. */
   vehicleName: string | null
+  /** Booked catalog class — used on chauffeur dispatch, not customer copy. */
+  fleetClassName?: string | null
   chauffeurContact: Chauffeur | null
   depositPayUrl?: string | null
   refundInfo?: string | null
@@ -38,6 +41,7 @@ export async function sendLifecycleEmails({
   stage,
   res,
   vehicleName,
+  fleetClassName,
   chauffeurContact,
   depositPayUrl,
   refundInfo,
@@ -91,7 +95,7 @@ export async function sendLifecycleEmails({
         const dispatchResult = await notifyDriverDispatch({
           reservation: res,
           chauffeur: chauffeurContact,
-          vehicleName,
+          vehicleName: fleetClassName ?? res.fleet?.name ?? null,
         })
         if (!dispatchResult.email.sent && !dispatchResult.sms.sent) {
           console.warn('[lifecycleEmails] driver dispatch not delivered:', dispatchResult)

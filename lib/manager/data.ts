@@ -41,11 +41,31 @@ export type ManagerReservation = {
   deposit_intent_id: string | null
   balance_intent_id: string | null
   fleet: { name: string; type: string } | null
-  assigned_unit: { label: string; year: number | null } | null
+  assigned_unit: {
+    label: string
+    year: number | null
+    make?: string | null
+    model_name?: string | null
+    vin?: string | null
+    license_plate?: string | null
+    registration_expires?: string | null
+  } | null
 }
 
-const RES_COLUMNS =
-  'id, booking_number, customer_name, customer_email, customer_phone, pickup_address, dropoff_address, pickup_time, status, payment_status, deposit_amount, balance_amount, deposit_paid_at, balance_paid_at, total_price, driver_pay, fare_subtotal, gratuity_percent, gratuity_amount, passengers, luggage, duration_hours, chauffeur_name, chauffeur_id, source, vehicle_id, assigned_unit_id, dispatched_at, arrived_pickup_at, onboard_at, arrived_dropoff_at, completed_at, special_requests, created_at, distance_miles, deposit_intent_id, balance_intent_id, fleet:vehicle_id (name, type), assigned_unit:assigned_unit_id (label, year)'
+const UNIT_EMBED =
+  'assigned_unit:assigned_unit_id (label, year, make, model_name, vin, license_plate, registration_expires)'
+const UNIT_EMBED_LEGACY = 'assigned_unit:assigned_unit_id (label, year)'
+
+const RES_COLUMNS_BASE =
+  'id, booking_number, customer_name, customer_email, customer_phone, pickup_address, dropoff_address, pickup_time, status, payment_status, deposit_amount, balance_amount, deposit_paid_at, balance_paid_at, total_price, driver_pay, fare_subtotal, gratuity_percent, gratuity_amount, passengers, luggage, duration_hours, chauffeur_name, chauffeur_id, source, vehicle_id, assigned_unit_id, dispatched_at, arrived_pickup_at, onboard_at, arrived_dropoff_at, completed_at, special_requests, created_at, distance_miles, deposit_intent_id, balance_intent_id, fleet:vehicle_id (name, type)'
+
+const RES_COLUMNS = `${RES_COLUMNS_BASE}, ${UNIT_EMBED}`
+const RES_COLUMNS_LEGACY = `${RES_COLUMNS_BASE}, ${UNIT_EMBED_LEGACY}`
+
+function isMissingUnitColumnError(message: string | undefined): boolean {
+  if (!message) return false
+  return /make|model_name|vin|registration_expires/i.test(message)
+}
 
 function escapeIlike(term: string): string {
   return term.replace(/[%_\\]/g, '')
@@ -94,7 +114,19 @@ export async function searchReservations(
   if (opts?.status) q = q.eq('status', opts.status)
   if (opts?.limit) q = q.limit(opts.limit)
 
-  const { data, error } = await q
+  let { data, error } = await q
+  if (error && isMissingUnitColumnError(error.message)) {
+    let fallback = supabase
+      .from('reservations')
+      .select(RES_COLUMNS_LEGACY)
+      .or(orParts.join(','))
+      .order('pickup_time', { ascending: true })
+    if (opts?.status) fallback = fallback.eq('status', opts.status)
+    if (opts?.limit) fallback = fallback.limit(opts.limit)
+    const retry = await fallback
+    data = retry.data as typeof data
+    error = retry.error
+  }
   if (error) {
     console.error('[manager] searchReservations:', error.message)
     return []
@@ -116,7 +148,18 @@ export async function getReservations(opts?: {
   if (opts?.status) q = q.eq('status', opts.status)
   if (opts?.limit) q = q.limit(opts.limit)
 
-  const { data, error } = await q
+  let { data, error } = await q
+  if (error && isMissingUnitColumnError(error.message)) {
+    let fallback = supabase
+      .from('reservations')
+      .select(RES_COLUMNS_LEGACY)
+      .order('pickup_time', { ascending: true })
+    if (opts?.status) fallback = fallback.eq('status', opts.status)
+    if (opts?.limit) fallback = fallback.limit(opts.limit)
+    const retry = await fallback
+    data = retry.data as typeof data
+    error = retry.error
+  }
   if (error) {
     console.error('[manager] getReservations:', error.message)
     return []
@@ -127,11 +170,20 @@ export async function getReservations(opts?: {
 /** A single reservation by id, or null if not found. */
 export async function getReservation(id: string): Promise<ManagerReservation | null> {
   const supabase = await staffDb()
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from('reservations')
     .select(RES_COLUMNS)
     .eq('id', id)
     .maybeSingle()
+  if (error && isMissingUnitColumnError(error.message)) {
+    const retry = await supabase
+      .from('reservations')
+      .select(RES_COLUMNS_LEGACY)
+      .eq('id', id)
+      .maybeSingle()
+    data = retry.data as typeof data
+    error = retry.error
+  }
   if (error) {
     console.error('[manager] getReservation:', error.message)
     return null
@@ -144,7 +196,11 @@ export type VehicleUnit = {
   id: string
   label: string
   year: number | null
+  make?: string | null
+  model_name?: string | null
+  vin?: string | null
   license_plate: string | null
+  registration_expires?: string | null
   status: string
   model_id: string
   model: {
@@ -159,15 +215,26 @@ export type VehicleUnit = {
   } | null
 }
 
+const UNIT_SELECT =
+  'id, label, year, make, model_name, vin, license_plate, registration_expires, status, model_id, model:model_id (name, tier, base_price, price_per_mile, image_url, capacity, luggage_capacity, display_order)'
+const UNIT_SELECT_LEGACY =
+  'id, label, year, license_plate, status, model_id, model:model_id (name, tier, base_price, price_per_mile, image_url, capacity, luggage_capacity, display_order)'
+
 /** Every physical unit (all statuses), grouped-ready, ordered by model then label. */
 export async function getVehicleUnits(): Promise<VehicleUnit[]> {
   const supabase = await staffDb()
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from('vehicle_units')
-    .select(
-      'id, label, year, license_plate, status, model_id, model:model_id (name, tier, base_price, price_per_mile, image_url, capacity, luggage_capacity, display_order)',
-    )
+    .select(UNIT_SELECT)
     .order('label', { ascending: true })
+  if (error && isMissingUnitColumnError(error.message)) {
+    const retry = await supabase
+      .from('vehicle_units')
+      .select(UNIT_SELECT_LEGACY)
+      .order('label', { ascending: true })
+    data = retry.data as typeof data
+    error = retry.error
+  }
   if (error) {
     console.error('[manager] getVehicleUnits:', error.message)
     return []
@@ -618,13 +685,24 @@ export async function getSentInvoiceById(id: string): Promise<StoredInvoice | nu
 export async function getTodayReservations(now = new Date()): Promise<ManagerReservation[]> {
   const { start, end } = orlandoDayBounds(now)
   const supabase = await staffDb()
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from('reservations')
     .select(RES_COLUMNS)
     .gte('pickup_time', start)
     .lt('pickup_time', end)
     .neq('status', 'cancelled')
     .order('pickup_time', { ascending: true })
+  if (error && isMissingUnitColumnError(error.message)) {
+    const retry = await supabase
+      .from('reservations')
+      .select(RES_COLUMNS_LEGACY)
+      .gte('pickup_time', start)
+      .lt('pickup_time', end)
+      .neq('status', 'cancelled')
+      .order('pickup_time', { ascending: true })
+    data = retry.data as typeof data
+    error = retry.error
+  }
   if (error) {
     console.error('[manager] getTodayReservations:', error.message)
     return []

@@ -3,6 +3,7 @@ import { getTodayReservations } from "@/lib/manager/data"
 import type { ManagerReservation } from "@/lib/manager/data"
 import { StatusBadge } from "@/components/manager/StatusBadge"
 import { formatDateTime, formatMoney } from "@/lib/manager/format"
+import { formatManagerUnitLabel } from "@/lib/fleet/unitDisplay"
 
 export const dynamic = "force-dynamic"
 
@@ -60,7 +61,7 @@ export default async function TodayBoardPage() {
           <ul className="mt-2 space-y-1 text-on-surface-variant">
             {conflictTrips.map((t) => (
               <li key={t.id}>
-                {t.assigned_unit?.label ?? "Assigned vehicle"} · {t.booking_number} · {t.customer_name} ·{" "}
+                {formatManagerUnitLabel(t.assigned_unit) || t.assigned_unit?.label || "Assigned vehicle"} · {t.booking_number} · {t.customer_name} ·{" "}
                 {formatDateTime(t.pickup_time)}
                 {t.duration_hours ? ` · ${t.duration_hours}h` : ""}
               </li>
@@ -92,7 +93,7 @@ export default async function TodayBoardPage() {
                   )}
                 </div>
                 <p className="text-xs text-on-surface-variant truncate mt-0.5">
-                  {t.assigned_unit?.label ?? t.fleet?.name ?? "No vehicle assigned"} · {t.pickup_address}
+                  {formatManagerUnitLabel(t.assigned_unit) || t.assigned_unit?.label || t.fleet?.name || "No vehicle assigned"} · {t.pickup_address}
                 </p>
               </div>
               <div className="text-right shrink-0">

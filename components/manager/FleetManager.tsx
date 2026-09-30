@@ -27,6 +27,7 @@ import {
   deleteFleetModel,
 } from '@/lib/manager/actions'
 import type { ManagerFleetModel, VehicleUnit, Chauffeur } from '@/lib/manager/data'
+import { formatManagerUnitLabel, formatRegistrationExpires } from '@/lib/fleet/unitDisplay'
 import { ChauffeurManager } from './ChauffeurManager'
 
 type Props = {
@@ -77,15 +78,21 @@ export function FleetManager({ models, units, chauffeurs, isAdmin = false }: Pro
 
   // State for adding a unit (physical car)
   const [addingUnitModelId, setAddingUnitModelId] = useState<string | null>(null)
-  const [newLabel, setNewLabel] = useState('')
   const [newYear, setNewYear] = useState('')
+  const [newMake, setNewMake] = useState('')
+  const [newModelName, setNewModelName] = useState('')
   const [newPlate, setNewPlate] = useState('')
+  const [newVin, setNewVin] = useState('')
+  const [newRegExpires, setNewRegExpires] = useState('')
 
   // State for editing a unit (physical car)
   const [editingUnitId, setEditingUnitId] = useState<string | null>(null)
-  const [editLabel, setEditLabel] = useState('')
   const [editYear, setEditYear] = useState('')
+  const [editMake, setEditMake] = useState('')
+  const [editModelName, setEditModelName] = useState('')
   const [editPlate, setEditPlate] = useState('')
+  const [editVin, setEditVin] = useState('')
+  const [editRegExpires, setEditRegExpires] = useState('')
 
 
 
@@ -174,22 +181,37 @@ export function FleetManager({ models, units, chauffeurs, isAdmin = false }: Pro
   }
 
   const handleAddUnit = (modelId: string) => {
-    if (!newLabel.trim()) {
-      toast.error('Vehicle name/label is required')
+    const label = formatManagerUnitLabel({
+      year: parseInt(newYear) || 0,
+      make: newMake,
+      model_name: newModelName,
+      license_plate: newPlate,
+    })
+    if (!label) {
+      toast.error('Enter year, make, model, and tag')
       return
     }
     start(async () => {
       const res = await addVehicleUnit(
         modelId,
-        newLabel.trim(),
+        label,
         parseInt(newYear) || 0,
-        newPlate.trim()
+        newPlate.trim(),
+        {
+          make: newMake.trim(),
+          modelName: newModelName.trim(),
+          vin: newVin.trim(),
+          registrationExpires: newRegExpires.trim(),
+        },
       )
       if (res.ok) {
         toast.success('Vehicle added successfully')
-        setNewLabel('')
         setNewYear('')
+        setNewMake('')
+        setNewModelName('')
         setNewPlate('')
+        setNewVin('')
+        setNewRegExpires('')
         setAddingUnitModelId(null)
         router.refresh()
       } else {
@@ -199,16 +221,28 @@ export function FleetManager({ models, units, chauffeurs, isAdmin = false }: Pro
   }
 
   const handleSaveUnit = (unitId: string) => {
-    if (!editLabel.trim()) {
-      toast.error('Vehicle name/label is required')
+    const label = formatManagerUnitLabel({
+      year: parseInt(editYear) || 0,
+      make: editMake,
+      model_name: editModelName,
+      license_plate: editPlate,
+    })
+    if (!label) {
+      toast.error('Enter year, make, model, and tag')
       return
     }
     start(async () => {
       const res = await updateVehicleUnit(
         unitId,
-        editLabel.trim(),
+        label,
         parseInt(editYear) || 0,
-        editPlate.trim()
+        editPlate.trim(),
+        {
+          make: editMake.trim(),
+          modelName: editModelName.trim(),
+          vin: editVin.trim(),
+          registrationExpires: editRegExpires.trim(),
+        },
       )
       if (res.ok) {
         toast.success('Vehicle details updated')
@@ -257,9 +291,12 @@ export function FleetManager({ models, units, chauffeurs, isAdmin = false }: Pro
 
   const handleStartEditUnit = (unit: VehicleUnit) => {
     setEditingUnitId(unit.id)
-    setEditLabel(unit.label)
     setEditYear(unit.year ? String(unit.year) : '')
+    setEditMake(unit.make ?? '')
+    setEditModelName(unit.model_name ?? '')
     setEditPlate(unit.license_plate ?? '')
+    setEditVin(unit.vin ?? '')
+    setEditRegExpires(unit.registration_expires ? unit.registration_expires.slice(0, 10) : '')
   }
 
   return (
@@ -609,18 +646,7 @@ export function FleetManager({ models, units, chauffeurs, isAdmin = false }: Pro
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                           <div className="space-y-1">
-                            <label className="block text-[10px] text-on-surface-variant uppercase">Vehicle Name (Label)</label>
-                            <input
-                              type="text"
-                              placeholder="e.g. Cadillac XTS Black #1"
-                              value={newLabel}
-                              onChange={(e) => setNewLabel(e.target.value)}
-                              className="w-full rounded-lg px-3 py-2 text-xs text-on-surface"
-                              disabled={pending}
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="block text-[10px] text-on-surface-variant uppercase">Year (Optional)</label>
+                            <label className="block text-[10px] text-on-surface-variant uppercase">Year</label>
                             <input
                               type="number"
                               placeholder="e.g. 2023"
@@ -631,17 +657,78 @@ export function FleetManager({ models, units, chauffeurs, isAdmin = false }: Pro
                             />
                           </div>
                           <div className="space-y-1">
-                            <label className="block text-[10px] text-on-surface-variant uppercase">License Plate (Optional)</label>
+                            <label className="block text-[10px] text-on-surface-variant uppercase">Make</label>
                             <input
                               type="text"
-                              placeholder="e.g. TX-12345"
+                              placeholder="e.g. Chevrolet"
+                              value={newMake}
+                              onChange={(e) => setNewMake(e.target.value)}
+                              className="w-full rounded-lg px-3 py-2 text-xs text-on-surface"
+                              disabled={pending}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="block text-[10px] text-on-surface-variant uppercase">Model</label>
+                            <input
+                              type="text"
+                              placeholder="e.g. Suburban LT"
+                              value={newModelName}
+                              onChange={(e) => setNewModelName(e.target.value)}
+                              className="w-full rounded-lg px-3 py-2 text-xs text-on-surface"
+                              disabled={pending}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="block text-[10px] text-on-surface-variant uppercase">Tag</label>
+                            <input
+                              type="text"
+                              placeholder="e.g. FK12U"
                               value={newPlate}
                               onChange={(e) => setNewPlate(e.target.value)}
                               className="w-full rounded-lg px-3 py-2 text-xs text-on-surface"
                               disabled={pending}
                             />
                           </div>
+                          <div className="space-y-1">
+                            <label className="block text-[10px] text-on-surface-variant uppercase">VIN</label>
+                            <input
+                              type="text"
+                              placeholder="17-character VIN"
+                              value={newVin}
+                              onChange={(e) => setNewVin(e.target.value)}
+                              className="w-full rounded-lg px-3 py-2 text-xs text-on-surface font-mono"
+                              disabled={pending}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="block text-[10px] text-on-surface-variant uppercase">Registration expires</label>
+                            <input
+                              type="date"
+                              value={newRegExpires}
+                              onChange={(e) => setNewRegExpires(e.target.value)}
+                              className="w-full rounded-lg px-3 py-2 text-xs text-on-surface"
+                              disabled={pending}
+                            />
+                          </div>
                         </div>
+                        {formatManagerUnitLabel({
+                          year: parseInt(newYear) || 0,
+                          make: newMake,
+                          model_name: newModelName,
+                          license_plate: newPlate,
+                        }) && (
+                          <p className="text-[11px] text-on-surface-variant">
+                            Assign list label:{' '}
+                            <span className="text-on-surface font-medium">
+                              {formatManagerUnitLabel({
+                                year: parseInt(newYear) || 0,
+                                make: newMake,
+                                model_name: newModelName,
+                                license_plate: newPlate,
+                              })}
+                            </span>
+                          </p>
+                        )}
                         <div className="flex justify-end gap-2 pt-2">
                           <button
                             onClick={() => setAddingUnitModelId(null)}
@@ -682,14 +769,6 @@ export function FleetManager({ models, units, chauffeurs, isAdmin = false }: Pro
                                 {isEditingUnit ? (
                                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 flex-1 min-w-0">
                                     <input
-                                      type="text"
-                                      value={editLabel}
-                                      onChange={(e) => setEditLabel(e.target.value)}
-                                      className="rounded px-2 py-1 text-xs text-on-surface"
-                                      placeholder="Label"
-                                      disabled={pending}
-                                    />
-                                    <input
                                       type="number"
                                       value={editYear}
                                       onChange={(e) => setEditYear(e.target.value)}
@@ -699,26 +778,71 @@ export function FleetManager({ models, units, chauffeurs, isAdmin = false }: Pro
                                     />
                                     <input
                                       type="text"
+                                      value={editMake}
+                                      onChange={(e) => setEditMake(e.target.value)}
+                                      className="rounded px-2 py-1 text-xs text-on-surface"
+                                      placeholder="Make"
+                                      disabled={pending}
+                                    />
+                                    <input
+                                      type="text"
+                                      value={editModelName}
+                                      onChange={(e) => setEditModelName(e.target.value)}
+                                      className="rounded px-2 py-1 text-xs text-on-surface"
+                                      placeholder="Model"
+                                      disabled={pending}
+                                    />
+                                    <input
+                                      type="text"
                                       value={editPlate}
                                       onChange={(e) => setEditPlate(e.target.value)}
                                       className="rounded px-2 py-1 text-xs text-on-surface"
-                                      placeholder="Plate"
+                                      placeholder="Tag"
+                                      disabled={pending}
+                                    />
+                                    <input
+                                      type="text"
+                                      value={editVin}
+                                      onChange={(e) => setEditVin(e.target.value)}
+                                      className="rounded px-2 py-1 text-xs text-on-surface font-mono"
+                                      placeholder="VIN"
+                                      disabled={pending}
+                                    />
+                                    <input
+                                      type="date"
+                                      value={editRegExpires}
+                                      onChange={(e) => setEditRegExpires(e.target.value)}
+                                      className="rounded px-2 py-1 text-xs text-on-surface"
+                                      placeholder="Expires"
                                       disabled={pending}
                                     />
                                   </div>
                                 ) : (
                                   <div className="min-w-0">
-                                    <p className="font-medium text-sm truncate text-on-surface">{unit.label}</p>
-                                    <div className="flex items-center gap-3 text-xs text-on-surface-variant mt-0.5">
+                                    <p className="font-medium text-sm truncate text-on-surface">
+                                      {formatManagerUnitLabel(unit) || unit.label}
+                                    </p>
+                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-on-surface-variant mt-0.5">
                                       {unit.year && (
                                         <span className="flex items-center gap-1">
                                           <Calendar className="w-3 h-3" /> {unit.year}
+                                        </span>
+                                      )}
+                                      {(unit.make || unit.model_name) && (
+                                        <span>
+                                          {[unit.make, unit.model_name].filter(Boolean).join(' ')}
                                         </span>
                                       )}
                                       {unit.license_plate && (
                                         <span className="flex items-center gap-1 font-mono">
                                           <Tag className="w-3 h-3" /> {unit.license_plate}
                                         </span>
+                                      )}
+                                      {unit.vin && (
+                                        <span className="font-mono">VIN {unit.vin}</span>
+                                      )}
+                                      {unit.registration_expires && (
+                                        <span>exp {formatRegistrationExpires(unit.registration_expires)}</span>
                                       )}
                                     </div>
                                   </div>

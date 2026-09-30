@@ -160,7 +160,7 @@ export const ChauffeurEnRouteEmail = (props: BaseProps) => (
     <Text>Your driver is on the way to pick you up.</Text>
 
     {props.driverName && <Text><strong>Driver:</strong> {props.driverName} {props.driverPhone && `(${props.driverPhone})`}</Text>}
-    <Text><strong>Vehicle:</strong> {props.vehicleType}</Text>
+    {props.vehicleType ? <Text><strong>Vehicle:</strong> {props.vehicleType}</Text> : null}
     <Text><strong>Pickup:</strong> {props.pickupLocation} at {props.pickupTime}</Text>
 
     <Text>Please be ready. Safe travels!</Text>
@@ -175,7 +175,7 @@ export const ArrivedAtPickupEmail = (props: BaseProps) => (
     <Text>Your driver has arrived at the pickup location.</Text>
 
     {props.driverName && <Text><strong>Driver:</strong> {props.driverName}</Text>}
-    <Text><strong>Vehicle:</strong> {props.vehicleType}</Text>
+    {props.vehicleType ? <Text><strong>Vehicle:</strong> {props.vehicleType}</Text> : null}
 
     <Text>Look for your driver and have a wonderful trip!</Text>
   </EmailLayout>
@@ -189,7 +189,7 @@ export const PassengerOnBoardEmail = (props: BaseProps) => (
     <Text>Great news! You are now on board and heading to your destination.</Text>
 
     {props.driverName && <Text><strong>Driver:</strong> {props.driverName}</Text>}
-    <Text><strong>Vehicle:</strong> {props.vehicleType}</Text>
+    {props.vehicleType ? <Text><strong>Vehicle:</strong> {props.vehicleType}</Text> : null}
 
     <Text>Sit back, relax, and enjoy the ride.</Text>
   </EmailLayout>
@@ -217,7 +217,7 @@ export const RideCompletedEmail = (props: BaseProps) => (
       <Text><strong>Date:</strong> {props.pickupDate}</Text>
       <Text><strong>From:</strong> {props.pickupLocation}</Text>
       {props.dropoffLocation && <Text><strong>To:</strong> {props.dropoffLocation}</Text>}
-      <Text><strong>Vehicle:</strong> {props.vehicleType}</Text>
+      {props.vehicleType ? <Text><strong>Vehicle:</strong> {props.vehicleType}</Text> : null}
       {props.driverName && <Text><strong>Driver:</strong> {props.driverName}</Text>}
     </Section>
 

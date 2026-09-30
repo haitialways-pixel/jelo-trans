@@ -113,13 +113,23 @@ CREATE TABLE public.vehicle_units (
   model_id uuid NOT NULL REFERENCES public.fleet(id) ON DELETE CASCADE,
   label text NOT NULL,
   year integer,
+  make text,
+  model_name text,
+  vin text,
   license_plate text,
+  registration_expires date,
   status text NOT NULL DEFAULT 'available' CHECK (status IN ('available', 'in_service', 'maintenance', 'unavailable')),
   notes text,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX idx_vehicle_units_model ON public.vehicle_units (model_id, status);
+CREATE UNIQUE INDEX vehicle_units_license_plate_norm_uidx
+  ON public.vehicle_units (upper(btrim(license_plate)))
+  WHERE license_plate IS NOT NULL AND btrim(license_plate) <> '';
+CREATE UNIQUE INDEX vehicle_units_vin_norm_uidx
+  ON public.vehicle_units (upper(btrim(vin)))
+  WHERE vin IS NOT NULL AND btrim(vin) <> '';
 
 -- ============================================================================
 -- CHAUFFEURS — must exist before reservations (FK: chauffeur_id)
@@ -1071,7 +1081,6 @@ EXCEPTION WHEN duplicate_object THEN /* already added */ END $$;
 -- Live fleet, flat-fare SQL, and the auto-staff stop are in:
 --   supabase/migrations/20260929_fleet_rates_flat_fare_stop_auto_staff.sql
 -- No Sprinter, stretch limo, or Escalade. No invented plates, VINs, or unit numbers.
--- The 12 company SUVs still need real vehicle_units from the owner.
 -- Mileage base and per-mile match the previous sedan and SUV rows.
 -- ============================================================================
 INSERT INTO public.fleet
@@ -1084,7 +1093,35 @@ VALUES
   ('Luxury Sedan', 'luxury_sedan', 3, 2, 50.00, 2.60, 80.00, 100.00, '/images/fleet-sedan.webp', 'premium', true, 30,
    'Contracted partner drivers, not company-owned. Charter is $100/hour with a 3-hour minimum.');
 
--- Physical vehicle_units are not seeded here.
+-- Company-owned physical cars. Luxury Sedan stays a partner class with no units.
+INSERT INTO public.vehicle_units (
+  model_id, label, year, make, model_name, vin, license_plate, registration_expires, status
+)
+SELECT
+  f.id,
+  v.year::text || ' ' || v.make || ' ' || v.model_name || ' · ' || v.license_plate,
+  v.year, v.make, v.model_name, v.vin, v.license_plate, v.registration_expires, 'available'
+FROM (
+  VALUES
+    ('Full-Size SUV',      2021, 'Chevrolet', 'Suburban LT',            '1GNSCCKD3MR315885', 'FK12U',  DATE '2026-06-30'),
+    ('Full-Size SUV',      2021, 'GMC',       'Yukon XL SLT',           '1GKS2GKD3MR482514', '11ALJC', DATE '2027-01-06'),
+    ('Full-Size SUV',      2022, 'Chevrolet', 'Suburban LT',            '1GNSCCKDXNR165890', '39EJGV', DATE '2027-09-21'),
+    ('Full-Size SUV',      2022, 'GMC',       'Yukon XL SLT',           '1GKS1GKD0NR156884', 'DI11NC', DATE '2028-01-15'),
+    ('Full-Size SUV',      2023, 'Chevrolet', 'Suburban Premier',       '1GNSCFKD7PR178522', '03EZTL', DATE '2026-06-30'),
+    ('Full-Size SUV',      2023, 'Chevrolet', 'Suburban LS',            '1GNSCBKD3PR164030', '33DFRY', DATE '2027-06-17'),
+    ('Full-Size SUV',      2023, 'GMC',       'Yukon XL SLT',           '1GKS2GKD4PR156225', 'CT81DF', DATE '2027-06-13'),
+    ('2023 Tesla Model Y', 2023, 'Tesla',     'Model Y',                '7SAYGAEE0PF774921', 'BN11SR', DATE '2028-02-11'),
+    ('Full-Size SUV',      2024, 'Chevrolet', 'Suburban LT',            '1GNSCCKTXRR319933', 'RJSC34', DATE '2027-01-06'),
+    ('Full-Size SUV',      2024, 'Chevrolet', 'Suburban LS',            '1GNSCBKD9RR151723', 'LUCJ04', DATE '2027-04-09'),
+    ('Full-Size SUV',      2024, 'Chevrolet', 'Suburban LS',            '1GNSCBKT6RR111994', 'LEKR82', DATE '2028-03-10'),
+    ('Full-Size SUV',      2024, 'Ford',      'Expedition MAX Limited', '1FMJK1K82REA26103', '30VCBK', DATE '2027-09-21'),
+    ('Full-Size SUV',      2024, 'Ford',      'Expedition MAX Limited', '1FMJK1K87REA52082', 'XKG282', DATE '2026-09-21')
+) AS v(class_name, year, make, model_name, vin, license_plate, registration_expires)
+JOIN public.fleet f ON f.name = v.class_name
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.vehicle_units u
+  WHERE upper(btrim(u.license_plate)) = upper(btrim(v.license_plate))
+);
 
 -- ============================================================================
 -- NEW RECOMMENDED FEATURES

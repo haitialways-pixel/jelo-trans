@@ -18,6 +18,7 @@ import {
   type VendorInvoiceEmailProps,
 } from '@/lib/email/sendVendorInvoiceEmail'
 import { sendSms } from '@/lib/sms/notify'
+import { formatCustomerVehicleName } from '@/lib/fleet/unitDisplay'
 import { fmtDate, fmtDateTime, fmtMoney } from '@/lib/email/format'
 import { isMailConfigured, getMailSetupHint } from '@/lib/email/mailer'
 import {
@@ -212,7 +213,7 @@ export async function sendCustomerReceipt(
     const { data: res, error } = await admin
       .from('reservations')
       .select(
-        'id, booking_number, customer_name, customer_email, customer_phone, pickup_address, dropoff_address, pickup_time, status, payment_status, total_price, chauffeur_name, vehicle_id, completed_at, deposit_intent_id, balance_intent_id, fleet:vehicle_id (name)',
+        'id, booking_number, customer_name, customer_email, customer_phone, pickup_address, dropoff_address, pickup_time, status, payment_status, total_price, chauffeur_name, vehicle_id, assigned_unit_id, completed_at, deposit_intent_id, balance_intent_id, fleet:vehicle_id (name), assigned_unit:assigned_unit_id (make, model_name, license_plate, year, label)',
       )
       .eq('id', id)
       .maybeSingle()
@@ -228,9 +229,15 @@ export async function sendCustomerReceipt(
     }
 
     const fleet = res.fleet as { name?: string } | { name?: string }[] | null
-    const vehicleName = Array.isArray(fleet)
+    const className = Array.isArray(fleet)
       ? fleet[0]?.name ?? null
       : fleet?.name ?? null
+    const assignedUnit = res.assigned_unit as
+      | { make?: string | null; model_name?: string | null; license_plate?: string | null }
+      | { make?: string | null; model_name?: string | null; license_plate?: string | null }[]
+      | null
+    const unit = Array.isArray(assignedUnit) ? assignedUnit[0] ?? null : assignedUnit
+    const vehicleName = formatCustomerVehicleName(unit, className) || className
 
     const toEmail = (overrides?.email ?? res.customer_email ?? '').trim()
     const toPhone = (overrides?.phone ?? res.customer_phone ?? '').trim()

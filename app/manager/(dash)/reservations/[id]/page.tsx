@@ -16,6 +16,7 @@ import { StatusBadge } from '@/components/manager/StatusBadge'
 import { LifecycleControls } from '@/components/manager/LifecycleControls'
 import { AssignForm } from '@/components/manager/AssignForm'
 import { formatDateTime, formatMoney, formatMoneyExact, PAYMENT_LABELS, SOURCE_LABELS, auditLabel } from '@/lib/manager/format'
+import { formatManagerUnitLabel, formatRegistrationExpires } from '@/lib/fleet/unitDisplay'
 import { summarizePayment } from '@/lib/payments/summary'
 import { getSiteUrl } from '@/lib/site'
 
@@ -89,10 +90,27 @@ export default async function ReservationDetail({ params }: { params: Promise<{ 
             </div>
 
             {r.assigned_unit ? (
-              <div className="rounded-xl bg-primary/5 border border-primary/20 px-4 py-3 flex items-center gap-2 text-sm">
-                <Car className="w-4 h-4 text-primary" />
-                <span className="text-on-surface-variant text-xs">Assigned car:</span>
-                <span className="font-medium">{r.assigned_unit.label}</span>
+              <div className="rounded-xl bg-primary/5 border border-primary/20 px-4 py-3 flex items-start gap-2 text-sm">
+                <Car className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-on-surface-variant text-xs">Assigned car:</span>
+                    <span className="font-medium">
+                      {formatManagerUnitLabel(r.assigned_unit) || r.assigned_unit.label}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-on-surface-variant mt-1 font-mono">
+                    {[
+                      r.assigned_unit.vin ? `VIN ${r.assigned_unit.vin}` : null,
+                      r.assigned_unit.license_plate ? `tag ${r.assigned_unit.license_plate}` : null,
+                      r.assigned_unit.registration_expires
+                        ? `exp ${formatRegistrationExpires(r.assigned_unit.registration_expires)}`
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </p>
+                </div>
               </div>
             ) : (
               (() => {
@@ -108,7 +126,7 @@ export default async function ReservationDetail({ params }: { params: Promise<{ 
                     <p className="text-[11px] text-on-surface-variant leading-relaxed">
                       No specific car assigned yet. The system will automatically select the first available{' '}
                       <span className="text-on-surface font-medium">{r.fleet?.name}</span> (e.g.,{' '}
-                      <span className="text-primary font-medium">{availableUnit ? availableUnit.label : 'None available!'}</span>) when confirming/dispatching.
+                      <span className="text-primary font-medium">{availableUnit ? (formatManagerUnitLabel(availableUnit) || availableUnit.label) : 'None available!'}</span>) when confirming/dispatching.
                     </p>
                   </div>
                 )

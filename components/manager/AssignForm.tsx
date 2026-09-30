@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Loader2, UserCog, Send } from 'lucide-react'
 import { assignReservation } from '@/lib/manager/actions'
+import { formatManagerAssignOption, formatManagerUnitLabel } from '@/lib/fleet/unitDisplay'
 import type { ManagerReservation, VehicleUnit, Chauffeur } from '@/lib/manager/data'
 
 export function AssignForm({
@@ -38,7 +39,7 @@ export function AssignForm({
     const availableMatching = matchingUnits.find((u) => u.status === 'available')
     if (availableMatching) {
       setUnitId(availableMatching.id)
-      toast.success(`Auto-assigned: ${availableMatching.label}`)
+      toast.success(`Auto-assigned: ${formatManagerUnitLabel(availableMatching) || availableMatching.label}`)
     } else {
       toast.error('No available vehicle found in this category')
     }
@@ -116,7 +117,7 @@ export function AssignForm({
             <optgroup label={`Recommended for ${r.fleet?.name}`}>
               {matchingUnits.map((u) => (
                 <option key={u.id} value={u.id}>
-                  {u.label} {u.status !== 'available' ? `(${u.status})` : '(available)'}
+                  {formatManagerAssignOption(u)} {u.status !== 'available' ? `(${u.status})` : '(available)'}
                 </option>
               ))}
             </optgroup>
@@ -125,7 +126,7 @@ export function AssignForm({
             <optgroup label="Other vehicle classes">
               {otherUnits.map((u) => (
                 <option key={u.id} value={u.id}>
-                  {u.label} — {u.model?.name} {u.status !== 'available' ? `(${u.status})` : ''}
+                  {formatManagerAssignOption(u)} — {u.model?.name} {u.status !== 'available' ? `(${u.status})` : ''}
                 </option>
               ))}
             </optgroup>

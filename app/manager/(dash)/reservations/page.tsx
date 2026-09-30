@@ -5,6 +5,7 @@ import { StatusBadge } from '@/components/manager/StatusBadge'
 import { CreateReservationForm } from '@/components/manager/CreateReservationForm'
 import { ReservationSearch } from '@/components/manager/ReservationSearch'
 import { formatDateTime, formatMoney, STATUS_LABELS } from '@/lib/manager/format'
+import { formatManagerUnitLabel } from '@/lib/fleet/unitDisplay'
 
 export const dynamic = 'force-dynamic'
 
@@ -97,7 +98,11 @@ export default async function ReservationsPage({
                   <span className="font-mono">{r.booking_number}</span>
                   {' · '}{r.customer_phone}
                   {r.source === 'manual' ? ' · Manual' : ''}
-                  {' · '}{r.fleet?.name ?? 'No vehicle'}
+                  {' · '}
+                  {formatManagerUnitLabel(r.assigned_unit) ||
+                    r.assigned_unit?.label ||
+                    r.fleet?.name ||
+                    'No vehicle'}
                   {r.chauffeur_name ? ` · ${r.chauffeur_name}` : ''}
                 </p>
               </div>

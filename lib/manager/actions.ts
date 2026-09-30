@@ -9,6 +9,8 @@ import { sendBookingReceived } from '@/lib/email/sendBookingReceived'
 import { sendLifecycleEmails } from '@/lib/manager/lifecycleEmails'
 import { notifyDriverDispatch, dispatchDeliveryError } from '@/lib/manager/dispatch'
 import type { Chauffeur, ManagerReservation } from '@/lib/manager/data'
+import { loadCustomerVehicleName } from '@/lib/manager/vehicleName'
+import { formatManagerUnitLabel } from '@/lib/fleet/unitDisplay'
 import { isStripeConfigured } from '@/lib/stripe/server'
 import { chargeBalance, createDepositForBooking, refundCollectedDeposit } from '@/lib/stripe/payments'
 import { notifyManagement } from '@/lib/chatbot/notify'
@@ -104,15 +106,10 @@ export async function advanceReservation(id: string, stage: Stage): Promise<Acti
 
     // Best-effort notifications — one email per lifecycle stage.
     // Must NEVER block or fail the action.
-    let vehicleName: string | null = null
-    if (res?.vehicle_id) {
-      const { data: v } = await admin
-        .from('fleet')
-        .select('name')
-        .eq('id', res.vehicle_id)
-        .maybeSingle()
-      vehicleName = v?.name ?? null
-    }
+    const { customerVehicleName, fleetClassName } = res
+      ? await loadCustomerVehicleName(admin, res)
+      : { customerVehicleName: null, fleetClassName: null }
+    const vehicleName = customerVehicleName
 
     let chauffeurContact: Chauffeur | null = null
     if (res?.chauffeur_id) {
@@ -166,6 +163,7 @@ export async function advanceReservation(id: string, stage: Stage): Promise<Acti
           stage,
           res: res as ManagerReservation,
           vehicleName,
+          fleetClassName,
           chauffeurContact,
           depositPayUrl: depositUrl,
           refundInfo,
@@ -206,7 +204,9 @@ export async function resendConfirmationEmail(id: string): Promise<ActionResult>
 
     const { data: res, error } = await admin
       .from('reservations')
-      .select('*, fleet:vehicle_id (name, type), assigned_unit:assigned_unit_id (label, year)')
+      .select(
+        '*, fleet:vehicle_id (name, type), assigned_unit:assigned_unit_id (label, year, make, model_name, vin, license_plate, registration_expires)',
+      )
       .eq('id', id)
       .maybeSingle()
     if (error || !res) return { ok: false, error: 'Reservation not found' }
@@ -221,11 +221,8 @@ export async function resendConfirmationEmail(id: string): Promise<ActionResult>
       return { ok: false, error: 'This ride is completed — confirmation resend is not available.' }
     }
 
-    let vehicleName: string | null = (res as { fleet?: { name?: string } }).fleet?.name ?? null
-    if (!vehicleName && res.vehicle_id) {
-      const { data: v } = await admin.from('fleet').select('name').eq('id', res.vehicle_id).maybeSingle()
-      vehicleName = v?.name ?? null
-    }
+    const { customerVehicleName, fleetClassName } = await loadCustomerVehicleName(admin, res)
+    const vehicleName = customerVehicleName
 
     let chauffeurContact: Chauffeur | null = null
     if (res.chauffeur_id) {
@@ -244,6 +241,7 @@ export async function resendConfirmationEmail(id: string): Promise<ActionResult>
       stage: 'confirm',
       res: res as unknown as ManagerReservation,
       vehicleName,
+      fleetClassName,
       chauffeurContact,
     })
 
@@ -285,7 +283,9 @@ export async function assignReservation(
       const admin = await staffDb()
       const { data: res, error: loadError } = await admin
         .from('reservations')
-        .select('*, fleet:vehicle_id (name), assigned_unit:assigned_unit_id (label)')
+        .select(
+          '*, fleet:vehicle_id (name), assigned_unit:assigned_unit_id (label, year, make, model_name, vin, license_plate)',
+        )
         .eq('id', id)
         .maybeSingle()
       if (loadError || !res) return { ok: false, error: 'Assignment saved, but reservation could not be reloaded for email' }
@@ -376,22 +376,67 @@ export async function updateFleetPricing(
   }
 }
 
+export type VehicleUnitWrite = {
+  year?: number | null
+  make?: string | null
+  modelName?: string | null
+  licensePlate?: string | null
+  vin?: string | null
+  registrationExpires?: string | null
+  label?: string | null
+}
+
+function unitWritePayload(input: VehicleUnitWrite) {
+  const year = input.year && Number.isFinite(input.year) && input.year > 0 ? Math.trunc(input.year) : null
+  const make = input.make?.trim() || null
+  const modelName = input.modelName?.trim() || null
+  const licensePlate = input.licensePlate?.trim() || null
+  const vin = input.vin?.trim() || null
+  const registrationExpires = input.registrationExpires?.trim() || null
+  const label =
+    formatManagerUnitLabel({
+      year,
+      make,
+      model_name: modelName,
+      license_plate: licensePlate,
+      label: input.label,
+    }) ||
+    input.label?.trim() ||
+    ''
+  return { year, make, modelName, licensePlate, vin, registrationExpires, label }
+}
+
 /** Add a new physical vehicle unit to the inventory. */
 export async function addVehicleUnit(
   modelId: string,
   label: string,
   year: number,
   licensePlate: string,
+  extra?: Omit<VehicleUnitWrite, 'label' | 'year' | 'licensePlate'>,
 ): Promise<ActionResult> {
   try {
     const supabase = await staffDb()
+    const payload = unitWritePayload({
+      label,
+      year,
+      licensePlate,
+      make: extra?.make,
+      modelName: extra?.modelName,
+      vin: extra?.vin,
+      registrationExpires: extra?.registrationExpires,
+    })
+    if (!payload.label) return { ok: false, error: 'Vehicle name/label is required' }
     const { error } = await supabase
       .from('vehicle_units')
       .insert({
         model_id: modelId,
-        label: label,
-        year: year || null,
-        license_plate: licensePlate || null,
+        label: payload.label,
+        year: payload.year,
+        make: payload.make,
+        model_name: payload.modelName,
+        vin: payload.vin,
+        license_plate: payload.licensePlate,
+        registration_expires: payload.registrationExpires,
         status: 'available',
       })
 
@@ -404,21 +449,36 @@ export async function addVehicleUnit(
   }
 }
 
-/** Update an existing physical vehicle unit's details (label, year, plate). */
+/** Update an existing physical vehicle unit's details (label, year, plate, VIN, expiration). */
 export async function updateVehicleUnit(
   unitId: string,
   label: string,
   year: number,
   licensePlate: string,
+  extra?: Omit<VehicleUnitWrite, 'label' | 'year' | 'licensePlate'>,
 ): Promise<ActionResult> {
   try {
     const supabase = await staffDb()
+    const payload = unitWritePayload({
+      label,
+      year,
+      licensePlate,
+      make: extra?.make,
+      modelName: extra?.modelName,
+      vin: extra?.vin,
+      registrationExpires: extra?.registrationExpires,
+    })
+    if (!payload.label) return { ok: false, error: 'Vehicle name/label is required' }
     const { error } = await supabase
       .from('vehicle_units')
       .update({
-        label: label,
-        year: year || null,
-        license_plate: licensePlate || null,
+        label: payload.label,
+        year: payload.year,
+        make: payload.make,
+        model_name: payload.modelName,
+        vin: payload.vin,
+        license_plate: payload.licensePlate,
+        registration_expires: payload.registrationExpires,
         updated_at: new Date().toISOString(),
       })
       .eq('id', unitId)
@@ -613,7 +673,7 @@ export async function sendDriverDispatchNotification(
     const { data: res, error } = await admin
       .from('reservations')
       .select(
-        '*, fleet:vehicle_id (name), assigned_unit:assigned_unit_id (label)',
+        '*, fleet:vehicle_id (name), assigned_unit:assigned_unit_id (label, year, make, model_name, vin, license_plate)',
       )
       .eq('id', id)
       .maybeSingle()

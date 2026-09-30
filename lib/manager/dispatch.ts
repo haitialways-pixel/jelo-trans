@@ -187,7 +187,7 @@ export async function sendDriverDispatchNotification(
     const { data: res, error } = await admin
       .from('reservations')
       .select(
-        '*, fleet:vehicle_id (name), assigned_unit:assigned_unit_id (label)',
+        '*, fleet:vehicle_id (name), assigned_unit:assigned_unit_id (label, year, make, model_name, vin, license_plate)',
       )
       .eq('id', id)
       .maybeSingle()
