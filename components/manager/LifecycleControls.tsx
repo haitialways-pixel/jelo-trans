@@ -1,11 +1,17 @@
 'use client'
 
-import { useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { Check, Loader2, ChevronRight, Ban, CheckCircle2, Mail } from 'lucide-react'
-import { advanceReservation, resendConfirmationEmail, type Stage } from '@/lib/manager/actions'
-import { formatDateTime } from '@/lib/manager/format'
+import { Check, Loader2, ChevronRight, Ban, CheckCircle2, Mail, X } from 'lucide-react'
+import {
+  advanceReservation,
+  resendConfirmationEmail,
+  type CompleteSettlement,
+  type Stage,
+} from '@/lib/manager/actions'
+import { formatDateTime, formatMoneyExact } from '@/lib/manager/format'
+import { summarizePayment } from '@/lib/payments/summary'
 import type { ManagerReservation } from '@/lib/manager/data'
 
 const STEPS: { stage: Stage; label: string; field: keyof ManagerReservation }[] = [
@@ -18,17 +24,44 @@ const STEPS: { stage: Stage; label: string; field: keyof ManagerReservation }[] 
 
 export function LifecycleControls({ r }: { r: ManagerReservation }) {
   const [pending, start] = useTransition()
+  const [payOpen, setPayOpen] = useState(false)
   const router = useRouter()
   const terminal = r.status === 'cancelled' || r.status === 'completed'
 
   const canResendConfirmation = r.status === 'confirmed' || r.status === 'in_progress'
+  const pay = summarizePayment({
+    totalPrice: r.total_price,
+    fareSubtotal: r.fare_subtotal,
+    gratuityPercent: r.gratuity_percent,
+    gratuityAmount: r.gratuity_amount,
+    durationHours: r.duration_hours,
+    paymentStatus: r.payment_status,
+    depositAmount: r.deposit_amount,
+    balanceAmount: r.balance_amount,
+    depositPaidAt: r.deposit_paid_at,
+    balancePaidAt: r.balance_paid_at,
+  })
 
-  function run(stage: Stage, confirmMsg?: string) {
+  useEffect(() => {
+    if (!payOpen) return
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape' && !pending) setPayOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [payOpen, pending])
+
+  function run(stage: Stage, confirmMsg?: string, settlement?: CompleteSettlement) {
     if (confirmMsg && !window.confirm(confirmMsg)) return
     start(async () => {
       try {
-        const res = await advanceReservation(r.id, stage)
+        const res = await advanceReservation(
+          r.id,
+          stage,
+          stage === 'complete' ? { settlement } : undefined,
+        )
         if (res.ok) {
+          setPayOpen(false)
           if (res.warning) toast.warning(res.warning)
           else toast.success('Reservation updated')
           router.refresh()
@@ -69,7 +102,7 @@ export function LifecycleControls({ r }: { r: ManagerReservation }) {
       <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700">
         <CheckCircle2 className="w-4 h-4" /> Ride completed on {formatDateTime(r.completed_at)}.
         <span className="text-emerald-700/70">
-          {r.balance_paid_at ? 'Balance charged on the card on file.' : 'Balance was not recorded as paid.'}
+          {r.balance_paid_at ? 'Balance recorded as paid.' : 'Balance was not recorded as paid.'}
         </span>
       </div>
     )
@@ -131,9 +164,7 @@ export function LifecycleControls({ r }: { r: ManagerReservation }) {
 
               {!done && (
                 <button
-                  onClick={() =>
-                    run(step.stage, isComplete ? 'Mark this ride complete and charge the balance on the saved card?' : undefined)
-                  }
+                  onClick={() => (isComplete ? setPayOpen(true) : run(step.stage))}
                   disabled={pending || r.status === 'pending'}
                   title={r.status === 'pending' ? 'Confirm the reservation first' : undefined}
                   className={`flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium transition disabled:opacity-40 ${
@@ -161,6 +192,80 @@ export function LifecycleControls({ r }: { r: ManagerReservation }) {
           <Ban className="w-3.5 h-3.5" /> Cancel reservation
         </button>
       )}
+
+      {payOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="complete-pay-title"
+          onClick={() => !pending && setPayOpen(false)}
+        >
+          <div
+            className="float-card w-full max-w-sm p-6 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 id="complete-pay-title" className="display text-xl font-semibold">
+                  Complete ride
+                </h2>
+                <p className="text-sm text-on-surface-variant mt-1">
+                  Collect the balance, then the ride will be marked complete.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPayOpen(false)}
+                disabled={pending}
+                className="text-on-surface-variant hover:text-on-surface p-1 rounded-lg disabled:opacity-50"
+                aria-label="Cancel"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="rounded-xl border border-outline-variant px-4 py-3 text-center">
+              <p className="text-xs text-on-surface-variant">Balance due</p>
+              <p className="display text-2xl font-semibold mt-1">{formatMoneyExact(pay.amountDue)}</p>
+              {pay.depositCollected ? (
+                <p className="text-[11px] text-on-surface-variant mt-1">
+                  Deposit {formatMoneyExact(pay.depositAmount)} already collected — unchanged.
+                </p>
+              ) : null}
+            </div>
+
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => run('complete', undefined, 'card')}
+                disabled={pending}
+                className="btn-cta w-full flex items-center justify-center gap-2 text-sm font-semibold py-3 rounded-xl disabled:opacity-60"
+              >
+                {pending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                Charge saved card
+              </button>
+              <button
+                type="button"
+                onClick={() => run('complete', undefined, 'cash')}
+                disabled={pending}
+                className="btn-cta w-full flex items-center justify-center gap-2 text-sm font-semibold py-3 rounded-xl disabled:opacity-60"
+              >
+                {pending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                Cash received
+              </button>
+              <button
+                type="button"
+                onClick={() => setPayOpen(false)}
+                disabled={pending}
+                className="w-full text-sm text-on-surface-variant py-2 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

@@ -13,10 +13,18 @@ import { loadCustomerVehicleName } from '@/lib/manager/vehicleName'
 import { formatManagerUnitLabel } from '@/lib/fleet/unitDisplay'
 import { isStripeConfigured } from '@/lib/stripe/server'
 import { chargeBalance, createDepositForBooking, refundCollectedDeposit } from '@/lib/stripe/payments'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { summarizePayment } from '@/lib/payments/summary'
 import { notifyManagement } from '@/lib/chatbot/notify'
 import { getSiteUrl } from '@/lib/site'
 
 export type ActionResult = { ok: true; warning?: string; depositUrl?: string } | { ok: false; error: string }
+export type CompleteSettlement = 'card' | 'cash'
+
+export type AdvanceReservationOpts = {
+  /** Required when stage is `complete`. Card charges Stripe; cash records paid without Stripe. */
+  settlement?: CompleteSettlement
+}
 
 
 const VALID_STAGES = [
@@ -30,8 +38,72 @@ const VALID_STAGES = [
 ] as const
 export type Stage = (typeof VALID_STAGES)[number]
 
+/**
+ * Mark the remaining balance paid in cash. Does not call Stripe and does not
+ * change a deposit that was already collected.
+ */
+async function recordCashBalance(reservationId: string): Promise<ActionResult> {
+  let admin
+  try {
+    admin = createAdminClient()
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Cannot record cash without database admin access.' }
+  }
+
+  const { data: r, error } = await admin
+    .from('reservations')
+    .select(
+      'id, booking_number, payment_status, deposit_amount, deposit_paid_at, balance_amount, balance_paid_at, total_price, fare_subtotal, gratuity_percent, gratuity_amount',
+    )
+    .eq('id', reservationId)
+    .single()
+  if (error || !r) return { ok: false, error: 'Reservation not found' }
+
+  const summary = summarizePayment({
+    totalPrice: r.total_price,
+    fareSubtotal: r.fare_subtotal,
+    gratuityPercent: r.gratuity_percent,
+    gratuityAmount: r.gratuity_amount,
+    paymentStatus: r.payment_status,
+    depositAmount: r.deposit_amount,
+    balanceAmount: r.balance_amount,
+    depositPaidAt: r.deposit_paid_at,
+    balancePaidAt: r.balance_paid_at,
+  })
+
+  if (!r.balance_paid_at || r.payment_status !== 'paid') {
+    const { error: updateError } = await admin
+      .from('reservations')
+      .update({
+        payment_status: 'paid',
+        balance_paid_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', r.id)
+    if (updateError) return { ok: false, error: updateError.message }
+  }
+
+  if (summary.amountDue > 0) {
+    const { error: payError } = await admin.from('payments').insert({
+      reservation_id: r.id,
+      amount: summary.amountDue,
+      payment_method: 'Cash',
+      status: 'succeeded',
+    })
+    if (payError) {
+      console.warn('[recordCashBalance] payments insert skipped:', payError.message)
+    }
+  }
+
+  return { ok: true }
+}
+
 /** Advance a reservation through its lifecycle (confirm → … → complete / cancel). */
-export async function advanceReservation(id: string, stage: Stage): Promise<ActionResult> {
+export async function advanceReservation(
+  id: string,
+  stage: Stage,
+  opts?: AdvanceReservationOpts,
+): Promise<ActionResult> {
   try {
     await assertStaff() // layer 2 — re-verify on this independent entry point
     if (!VALID_STAGES.includes(stage)) return { ok: false, error: 'Invalid stage' }
@@ -67,21 +139,41 @@ export async function advanceReservation(id: string, stage: Stage): Promise<Acti
       }
     }
 
-    // Charge the balance BEFORE the ride is marked complete. A missing card or a
-    // failed Stripe charge must not complete the ride or mark it paid.
+    // Settle the balance BEFORE the ride is marked complete. Completing requires an
+    // explicit card or cash choice from the manager popup.
+    let completePaymentMethod: 'Cash' | 'Card on file' | null = null
     if (stage === 'complete') {
-      if (!isStripeConfigured()) {
+      const settlement = opts?.settlement
+      if (settlement !== 'card' && settlement !== 'cash') {
         return {
           ok: false,
-          error: 'Ride was not marked complete. Stripe is not configured, so the balance cannot be charged.',
+          error: 'Choose how to collect the balance: charge the saved card, or cash received.',
         }
       }
-      const charge = await chargeBalance(id)
-      if (!charge.ok) {
-        return {
-          ok: false,
-          error: `Ride was not marked complete. Balance was not charged: ${charge.reason ?? 'the card charge did not succeed'}.`,
+      if (settlement === 'cash') {
+        const cash = await recordCashBalance(id)
+        if (!cash.ok) {
+          return {
+            ok: false,
+            error: `Ride was not marked complete. Cash was not recorded: ${cash.error}`,
+          }
         }
+        completePaymentMethod = 'Cash'
+      } else {
+        if (!isStripeConfigured()) {
+          return {
+            ok: false,
+            error: 'Ride was not marked complete. Stripe is not configured, so the balance cannot be charged.',
+          }
+        }
+        const charge = await chargeBalance(id)
+        if (!charge.ok) {
+          return {
+            ok: false,
+            error: `Ride was not marked complete. Balance was not charged: ${charge.reason ?? 'the card charge did not succeed'}.`,
+          }
+        }
+        completePaymentMethod = 'Card on file'
       }
     }
 
@@ -92,11 +184,10 @@ export async function advanceReservation(id: string, stage: Stage): Promise<Acti
     })
     if (error) return { ok: false, error: error.message }
 
-    // We need `res` (the reservation row returned by the RPC) for emails. Important
-    // ordering note for `complete`: chargeBalance() runs FIRST so the ride-complete
-    // email reflects the FINAL paid state (transaction id of the balance charge,
-    // 'Card on file' payment method, fresh payment_status). We then re-fetch the
-    // reservation so the email isn't stale.
+    // We need `res` (the reservation row returned by the RPC) for emails. For
+    // `complete`, settlement runs FIRST so the ride-complete email reflects the
+    // paid state. Card → 'Card on file' after a successful charge; cash → 'Cash'.
+    // We then re-fetch the reservation so the email isn't stale.
     let res = Array.isArray(data) ? data[0] : data
 
     if (stage === 'complete') {
@@ -167,6 +258,7 @@ export async function advanceReservation(id: string, stage: Stage): Promise<Acti
           chauffeurContact,
           depositPayUrl: depositUrl,
           refundInfo,
+          completePaymentMethod,
         })
         if (!emailResult.sent) {
           const detail = emailResult.reason ?? 'unknown error'

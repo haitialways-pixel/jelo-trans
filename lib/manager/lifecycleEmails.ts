@@ -28,6 +28,8 @@ type SendInput = {
   chauffeurContact: Chauffeur | null
   depositPayUrl?: string | null
   refundInfo?: string | null
+  /** Set on complete: 'Cash' or 'Card on file'. Card is only used after a successful charge. */
+  completePaymentMethod?: 'Cash' | 'Card on file' | null
 }
 
 export type LifecycleEmailResult = { sent: boolean; reason?: string }
@@ -45,6 +47,7 @@ export async function sendLifecycleEmails({
   chauffeurContact,
   depositPayUrl,
   refundInfo,
+  completePaymentMethod,
 }: SendInput): Promise<LifecycleEmailResult> {
   if (!res.customer_email?.trim()) {
     console.warn('[lifecycleEmails] no customer email', { bookingNumber: res.booking_number, stage })
@@ -120,8 +123,11 @@ export async function sendLifecycleEmails({
         dropoffAddress: res.dropoff_address,
         pickupTime: res.pickup_time,
         totalAmount: res.total_price != null ? Number(res.total_price) : null,
-        transactionId: res.balance_intent_id ?? res.deposit_intent_id ?? null,
-        paymentMethod: res.payment_status === 'paid' ? 'Card on file' : null,
+        transactionId:
+          completePaymentMethod === 'Cash'
+            ? null
+            : res.balance_intent_id ?? res.deposit_intent_id ?? null,
+        paymentMethod: completePaymentMethod ?? null,
         completedAt: res.completed_at ?? new Date().toISOString(),
       })
     case 'cancel':
