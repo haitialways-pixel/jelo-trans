@@ -3,16 +3,17 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#d4af37" />
+    <meta name="theme-color" content="#ffffff" />
     <title>Offline · VIP Manager</title>
     <style>
       :root {
         color-scheme: light;
-        --bg: #fdfbf7;
-        --fg: #2b2625;
-        --muted: #6b6563;
-        --gold: #d4af37;
-        --card: #f5efeb;
+        --bg: #ffffff;
+        --fg: #1e4fc7;
+        --muted: #163a96;
+        --gold: #c9a84c;
+        --card: #ffffff;
+        --btn: #c62828;
       }
       * {
         box-sizing: border-box;
@@ -32,9 +33,10 @@
         max-width: 420px;
         width: 100%;
         background: var(--card);
+        border: 1px solid var(--gold);
         border-radius: 20px;
         padding: 28px 24px;
-        box-shadow: 0 18px 50px -28px rgba(43, 38, 37, 0.35);
+        box-shadow: none;
       }
       h1 {
         margin: 0 0 8px;
@@ -52,13 +54,16 @@
         appearance: none;
         border: 0;
         border-radius: 999px;
-        background: var(--gold);
-        color: #2b2625;
+        background: var(--btn);
+        color: #ffffff;
         font-weight: 600;
         letter-spacing: 0.04em;
         padding: 12px 20px;
         font-size: 0.9rem;
         cursor: pointer;
+      }
+      button:hover {
+        background: #a31f1f;
       }
       .brand {
         font-size: 0.75rem;

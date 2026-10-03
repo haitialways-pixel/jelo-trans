@@ -1,0 +1,244 @@
+/* Manager-only light theme. Public :root tokens stay unchanged. */
+
+html:has(.manager-app),
+body:has(.manager-app) {
+  color-scheme: light;
+  background: #ffffff;
+  color: #1e4fc7;
+}
+
+.manager-app {
+  color-scheme: light;
+  min-height: 100vh;
+  background: #ffffff;
+  color: #1e4fc7;
+
+  --background: #ffffff;
+  --foreground: #1e4fc7;
+  --card: #ffffff;
+  --card-elevated: #ffffff;
+  --muted: #163a96;
+
+  --color-background: #ffffff;
+  --color-card: #ffffff;
+  --color-on-surface: #1e4fc7;
+  --color-on-surface-variant: #163a96;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #ffffff;
+  --color-surface-container: #ffffff;
+  --color-surface-container-high: #ffffff;
+  --color-outline-variant: #c9a84c;
+  --color-secondary: #ffffff;
+  --color-secondary-dim: #ffffff;
+  --color-secondary-dark: #ffffff;
+}
+
+.manager-app h1,
+.manager-app h2,
+.manager-app h3,
+.manager-app h4,
+.manager-app .display,
+.manager-app .font-display {
+  color: #1e4fc7;
+}
+
+.manager-app .gold,
+.manager-app .text-gold,
+.manager-app .text-gold-soft,
+.manager-app .text-gold-dark,
+.manager-app .text-gold-dim,
+.manager-app .text-gold-gradient {
+  color: #1e4fc7;
+  background: none;
+  -webkit-text-fill-color: unset;
+}
+
+.manager-app .card,
+.manager-app .float-card,
+.manager-app .luxe-card,
+.manager-app .glass-dark {
+  background: #ffffff;
+  border: 1px solid #c9a84c;
+  box-shadow: none;
+}
+
+.manager-app .card:hover,
+.manager-app .float-card:hover {
+  transform: none;
+  border-color: #c9a84c;
+  box-shadow: none;
+}
+
+.manager-app .gold-hairline {
+  border-color: #c9a84c;
+}
+
+.manager-app header {
+  background: #ffffff;
+  border-bottom: 1px solid #c9a84c;
+}
+
+.manager-app [class*="border-outline-variant"] {
+  border-color: #c9a84c;
+}
+
+.manager-app .divide-y > :not([hidden]) ~ :not([hidden]) {
+  border-color: #c9a84c;
+}
+
+.manager-app table {
+  background: #ffffff;
+  color: #1e4fc7;
+  border: 1px solid #c9a84c;
+}
+
+.manager-app th,
+.manager-app td {
+  color: #1e4fc7;
+  border-color: #c9a84c;
+}
+
+.manager-app input,
+.manager-app textarea,
+.manager-app select {
+  background: #ffffff;
+  border: 1px solid #c9a84c;
+  color: #1e4fc7;
+  box-shadow: none;
+}
+
+.manager-app input:focus,
+.manager-app textarea:focus,
+.manager-app select:focus {
+  border-color: #c62828;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(198, 40, 40, 0.28);
+}
+
+.manager-app input::placeholder,
+.manager-app textarea::placeholder {
+  color: #163a96;
+  opacity: 0.85;
+}
+
+.manager-app option {
+  background: #ffffff;
+  color: #1e4fc7;
+}
+
+.manager-app input:-webkit-autofill,
+.manager-app textarea:-webkit-autofill,
+.manager-app select:-webkit-autofill {
+  -webkit-text-fill-color: #1e4fc7;
+  caret-color: #1e4fc7;
+  box-shadow: 0 0 0 1000px #ffffff inset;
+  transition: background-color 9999s ease-out;
+}
+
+.manager-app .btn-gold,
+.manager-app .btn-cta,
+.manager-app .gold-shimmer,
+.manager-app button.bg-primary,
+.manager-app a.bg-primary {
+  background: #c62828;
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.manager-app .btn-gold:hover,
+.manager-app .btn-cta:hover,
+.manager-app .gold-shimmer:hover,
+.manager-app button.bg-primary:hover,
+.manager-app a.bg-primary:hover,
+.manager-app .hover\:bg-primary-dark:hover {
+  background: #a31f1f;
+  color: #ffffff;
+  box-shadow: none;
+  transform: none;
+}
+
+.manager-app .btn-outline-gold {
+  border: 1px solid #c9a84c;
+  color: #1e4fc7;
+  background: #ffffff;
+}
+
+.manager-app .btn-outline-gold:hover {
+  border-color: #c9a84c;
+  background: #ffffff;
+  color: #1e4fc7;
+}
+
+.manager-app .badge-pending,
+.manager-app .badge-confirmed,
+.manager-app .badge-completed,
+.manager-app .badge-cancelled {
+  background: #ffffff;
+  border: 1px solid #c9a84c;
+  color: #1e4fc7;
+}
+
+.manager-app .badge-cancelled {
+  border-color: #c62828;
+  color: #c62828;
+}
+
+.manager-app .bg-background,
+.manager-app .bg-card,
+.manager-app .bg-secondary,
+.manager-app .bg-secondary-dim,
+.manager-app .bg-secondary-dark,
+.manager-app .bg-surface-container,
+.manager-app .bg-surface-container-low,
+.manager-app .bg-surface-container-high,
+.manager-app .bg-surface-container-lowest {
+  background-color: #ffffff;
+}
+
+.manager-app .text-on-surface,
+.manager-app .text-secondary,
+.manager-app .text-secondary-dim,
+.manager-app .text-secondary-dark {
+  color: #1e4fc7;
+}
+
+.manager-app .text-on-surface-variant {
+  color: #163a96;
+}
+
+.manager-app article.text-black,
+.manager-app article.text-black h1,
+.manager-app article.text-black h2,
+.manager-app article.text-black h3,
+.manager-app article.text-black h4,
+.manager-app article.text-black p,
+.manager-app article.text-black th,
+.manager-app article.text-black td {
+  color: #111111;
+}
+
+.manager-app article.text-black table {
+  border-color: #d4d4d4;
+}
+
+.manager-app article.text-black .text-red-700 {
+  color: #b91c1c;
+}
+
+.manager-app article.text-black .text-neutral-500 {
+  color: #737373;
+}
+
+.manager-app article.text-black .text-neutral-600 {
+  color: #525252;
+}
+
+@media (prefers-color-scheme: dark) {
+  html:has(.manager-app),
+  body:has(.manager-app),
+  .manager-app {
+    color-scheme: light;
+    background: #ffffff;
+    color: #1e4fc7;
+  }
+}

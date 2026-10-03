@@ -225,7 +225,7 @@ export function AssignForm({
       <button
         onClick={save}
         disabled={pending || disabled}
-        className="flex items-center justify-center gap-2 w-full rounded-xl border border-primary/40 text-primary hover:bg-primary/10 text-sm font-medium py-2.5 transition disabled:opacity-50"
+        className="btn-cta w-full flex items-center justify-center gap-2 text-sm font-medium py-2.5 rounded-xl disabled:opacity-50"
       >
         {pending ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserCog className="w-4 h-4" />}
         Save assignment

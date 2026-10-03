@@ -12,7 +12,7 @@ export default async function ManagerDashLayout({ children }: { children: React.
   const initialNotifications = await getRecentNotifications(30)
 
   return (
-    <div className="min-h-screen bg-background text-on-surface">
+    <div className="manager-app min-h-screen bg-background text-on-surface">
       <ManagerNav staff={staff} initialNotifications={initialNotifications} />
       <main className="max-w-7xl mx-auto px-4 md:px-6 py-8">{children}</main>
     </div>

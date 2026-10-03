@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { ManagerPwaRegister } from '@/components/manager/ManagerPwaRegister'
+import './manager.css'
 
 /**
  * Shared shell for the entire /manager tree (login + authenticated dash).
@@ -33,10 +34,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#d4af37' },
-    { media: '(prefers-color-scheme: dark)', color: '#2b2625' },
-  ],
+  themeColor: '#ffffff',
   colorScheme: 'light',
   width: 'device-width',
   initialScale: 1,
@@ -45,9 +43,9 @@ export const viewport: Viewport = {
 
 export default function ManagerRootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <>
+    <div className="manager-app">
       {children}
       <ManagerPwaRegister />
-    </>
+    </div>
   )
 }

@@ -5,7 +5,7 @@ export function PrintButton({ label = 'Print / Save as PDF' }: { label?: string 
     <button
       type="button"
       onClick={() => window.print()}
-      className="rounded-lg bg-primary text-black text-sm font-semibold px-4 py-2 print:hidden"
+      className="rounded-lg btn-cta text-sm font-semibold px-4 py-2 print:hidden"
     >
       {label}
     </button>

@@ -297,7 +297,7 @@ export function ChauffeurManager({ chauffeurs, isAdmin }: Props) {
           <button
             type="button"
             onClick={save}
-            className="flex items-center gap-1.5 px-4 py-2 text-xs rounded-lg bg-primary hover:bg-primary-dark text-black font-semibold"
+            className="btn-cta flex items-center gap-1.5 px-4 py-2 text-xs rounded-lg font-semibold"
             disabled={pending}
           >
             {pending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : editing ? <Save className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}

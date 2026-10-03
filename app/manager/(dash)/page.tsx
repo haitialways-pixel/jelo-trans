@@ -20,7 +20,7 @@ export default async function ManagerDashboard() {
   const cards = [
     { label: 'To confirm', value: stats.pending, icon: Clock, tint: 'text-primary-dark' },
     { label: "Today's rides", value: stats.todayCount, icon: CarFront, tint: 'text-gold' },
-    { label: 'In progress', value: stats.inProgress, icon: CheckCircle2, tint: 'text-secondary-dark' },
+    { label: 'In progress', value: stats.inProgress, icon: CheckCircle2, tint: 'text-primary-dark' },
     { label: 'Open escalations', value: stats.openEscalations, icon: MessageSquareWarning, tint: 'text-gold-dark' },
   ]
 
