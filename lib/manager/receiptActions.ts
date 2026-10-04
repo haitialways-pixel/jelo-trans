@@ -18,7 +18,8 @@ import {
   type VendorInvoiceEmailProps,
 } from '@/lib/email/sendVendorInvoiceEmail'
 import { sendSms } from '@/lib/sms/notify'
-import { formatCustomerVehicleName } from '@/lib/fleet/unitDisplay'
+import { formatCustomerVehicleName, type PhysicalUnitFields } from '@/lib/fleet/unitDisplay'
+import { shouldRetryUnitSelect, UNIT_EMBED_CORE, UNIT_EMBED_FULL } from '@/lib/manager/unitColumns'
 import { fmtDate, fmtDateTime, fmtMoney } from '@/lib/email/format'
 import { isMailConfigured, getMailSetupHint } from '@/lib/email/mailer'
 import {
@@ -210,13 +211,43 @@ export async function sendCustomerReceipt(
     }
 
     const admin = await staffDb()
-    const { data: res, error } = await admin
-      .from('reservations')
-      .select(
-        'id, booking_number, customer_name, customer_email, customer_phone, pickup_address, dropoff_address, pickup_time, status, payment_status, total_price, chauffeur_name, vehicle_id, assigned_unit_id, completed_at, deposit_intent_id, balance_intent_id, fleet:vehicle_id (name), assigned_unit:assigned_unit_id (make, model_name, license_plate, year, label)',
-      )
-      .eq('id', id)
-      .maybeSingle()
+    const receiptBase =
+      'id, booking_number, customer_name, customer_email, customer_phone, pickup_address, dropoff_address, pickup_time, status, payment_status, total_price, chauffeur_name, vehicle_id, assigned_unit_id, completed_at, deposit_intent_id, balance_intent_id, fleet:vehicle_id (name)'
+    const receiptSelects = [
+      `${receiptBase}, ${UNIT_EMBED_FULL}`,
+      `${receiptBase}, ${UNIT_EMBED_CORE}`,
+      receiptBase,
+    ]
+    type ReceiptRow = {
+      status?: string | null
+      customer_name?: string | null
+      customer_email?: string | null
+      customer_phone?: string | null
+      booking_number?: string | null
+      pickup_address?: string | null
+      dropoff_address?: string | null
+      pickup_time?: string | null
+      chauffeur_name?: string | null
+      total_price?: number | null
+      payment_status?: string | null
+      completed_at?: string | null
+      deposit_intent_id?: string | null
+      balance_intent_id?: string | null
+      fleet?: { name?: string } | { name?: string }[] | null
+      assigned_unit?: PhysicalUnitFields | PhysicalUnitFields[] | null
+    }
+    let res: ReceiptRow | null = null
+    let error: { message: string } | null = null
+    for (const select of receiptSelects) {
+      const result = await admin.from('reservations').select(select).eq('id', id).maybeSingle()
+      if (!result.error) {
+        res = (result.data as ReceiptRow | null) ?? null
+        error = null
+        break
+      }
+      error = result.error
+      if (!shouldRetryUnitSelect(result.error.message)) break
+    }
 
     if (error) {
       console.error('[receipt] reservation lookup failed:', error.message)
@@ -232,10 +263,7 @@ export async function sendCustomerReceipt(
     const className = Array.isArray(fleet)
       ? fleet[0]?.name ?? null
       : fleet?.name ?? null
-    const assignedUnit = res.assigned_unit as
-      | { make?: string | null; model_name?: string | null; license_plate?: string | null }
-      | { make?: string | null; model_name?: string | null; license_plate?: string | null }[]
-      | null
+    const assignedUnit = res.assigned_unit as PhysicalUnitFields | PhysicalUnitFields[] | null
     const unit = Array.isArray(assignedUnit) ? assignedUnit[0] ?? null : assignedUnit
     const vehicleName = formatCustomerVehicleName(unit, className) || className
 
@@ -257,8 +285,8 @@ export async function sendCustomerReceipt(
       } else {
         const emailResult = await sendReservationReceiptEmail({
           to: toEmail,
-          customerName: res.customer_name,
-          bookingNumber: res.booking_number,
+          customerName: res.customer_name ?? '',
+          bookingNumber: res.booking_number ?? '',
           pickupAddress: res.pickup_address,
           dropoffAddress: res.dropoff_address,
           pickupTimeLabel: res.pickup_time ? fmtDate(res.pickup_time) : null,
@@ -301,7 +329,7 @@ export async function sendCustomerReceipt(
 
     const result = channelSummary(wantEmail, wantSms, emailChannel, smsChannel)
     if (!result.ok) return result
-    return { ...result, reference: res.booking_number }
+    return { ...result, reference: res.booking_number ?? undefined }
   } catch (e) {
     console.error('[receipt] sendCustomerReceipt error:', e)
     return { ok: false, error: e instanceof Error ? e.message : 'Send receipt failed' }

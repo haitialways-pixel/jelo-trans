@@ -65,8 +65,8 @@ export function formatManagerAssignOption(unit: PhysicalUnitFields | null | unde
 
 /**
  * Customer email/SMS vehicle line.
- * Assigned unit: "Chevrolet Suburban LT, tag FK12U" (make, model, tag only).
- * No unit, or missing make/model/tag: the booked class name. Never invent a tag.
+ * Assigned unit with stored make/model/tag: "Chevrolet Suburban LT, tag FK12U".
+ * Otherwise the unit label and license plate. Never invent make, model, or a tag.
  */
 export function formatCustomerVehicleName(
   unit: PhysicalUnitFields | null | undefined,
@@ -76,6 +76,13 @@ export function formatCustomerVehicleName(
   const model = trim(unit?.model_name)
   const tag = trim(unit?.license_plate)
   if (make && model && tag) return `${make} ${model}, tag ${tag}`
+  const label = trim(unit?.label)
+  if (label && tag) {
+    const labelHasTag = label.toLowerCase().includes(tag.toLowerCase())
+    return labelHasTag ? label : `${label}, tag ${tag}`
+  }
+  if (label) return label
+  if (tag) return `tag ${tag}`
   return trim(className)
 }
 

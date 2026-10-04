@@ -1,7 +1,6 @@
 import { formatCustomerVehicleName, type PhysicalUnitFields } from '@/lib/fleet/unitDisplay'
+import { isMissingUnitColumnError, UNIT_FIELDS_CORE, UNIT_FIELDS_FULL } from '@/lib/manager/unitColumns'
 import type { SupabaseClient } from '@supabase/supabase-js'
-
-const UNIT_FIELDS = 'make, model_name, license_plate, year, vin, label, registration_expires'
 
 type ReservationVehicleSource = {
   vehicle_id?: string | null
@@ -22,15 +21,26 @@ export async function loadCustomerVehicleName(
 
   let unit: PhysicalUnitFields | null = res.assigned_unit ?? null
   if (res.assigned_unit_id) {
-    const complete =
-      Boolean(unit?.make?.trim()) && Boolean(unit?.model_name?.trim()) && Boolean(unit?.license_plate?.trim())
-    if (!complete) {
-      const { data } = await admin
+    const hasCustomerFields =
+      (Boolean(unit?.make?.trim()) && Boolean(unit?.model_name?.trim()) && Boolean(unit?.license_plate?.trim())) ||
+      Boolean(unit?.label?.trim()) ||
+      Boolean(unit?.license_plate?.trim())
+    if (!hasCustomerFields) {
+      const full = await admin
         .from('vehicle_units')
-        .select(UNIT_FIELDS)
+        .select(UNIT_FIELDS_FULL)
         .eq('id', res.assigned_unit_id)
         .maybeSingle()
-      if (data) unit = data as PhysicalUnitFields
+      if (!full.error && full.data) {
+        unit = full.data as unknown as PhysicalUnitFields
+      } else if (full.error && isMissingUnitColumnError(full.error.message)) {
+        const retry = await admin
+          .from('vehicle_units')
+          .select(UNIT_FIELDS_CORE)
+          .eq('id', res.assigned_unit_id)
+          .maybeSingle()
+        if (!retry.error && retry.data) unit = retry.data as unknown as PhysicalUnitFields
+      }
     }
   }
 

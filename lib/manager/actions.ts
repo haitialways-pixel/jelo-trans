@@ -12,18 +12,25 @@ import type { Chauffeur, ManagerReservation } from '@/lib/manager/data'
 import { loadCustomerVehicleName } from '@/lib/manager/vehicleName'
 import { formatManagerUnitLabel } from '@/lib/fleet/unitDisplay'
 import { isStripeConfigured } from '@/lib/stripe/server'
-import { chargeBalance, createDepositForBooking, refundCollectedDeposit } from '@/lib/stripe/payments'
+import {
+  chargeBalance,
+  chargeDeposit,
+  refundCollectedDeposit,
+  scheduleDepositAmounts,
+} from '@/lib/stripe/payments'
+import { UNIT_EMBED_CORE, UNIT_EMBED_FULL, shouldRetryUnitSelect } from '@/lib/manager/unitColumns'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { summarizePayment } from '@/lib/payments/summary'
-import { notifyManagement } from '@/lib/chatbot/notify'
-import { getSiteUrl } from '@/lib/site'
 
 export type ActionResult = { ok: true; warning?: string; depositUrl?: string } | { ok: false; error: string }
 export type CompleteSettlement = 'card' | 'cash'
+export type ConfirmDepositChoice = 'charge_now' | 'process_later'
 
 export type AdvanceReservationOpts = {
   /** Required when stage is `complete`. Card charges Stripe; cash records paid without Stripe. */
   settlement?: CompleteSettlement
+  /** Required when stage is `confirm`. Charge the 25% deposit now, or confirm and charge later. */
+  confirmDeposit?: ConfirmDepositChoice
 }
 
 
@@ -139,6 +146,25 @@ export async function advanceReservation(
       }
     }
 
+    if (stage === 'confirm') {
+      const choice = opts?.confirmDeposit
+      if (choice !== 'charge_now' && choice !== 'process_later') {
+        return {
+          ok: false,
+          error: 'Choose Charge now or Process later for the 25% deposit before confirming.',
+        }
+      }
+      if (choice === 'charge_now') {
+        const charge = await chargeDeposit(id)
+        if (!charge.ok) {
+          return {
+            ok: false,
+            error: `Reservation was not confirmed. Deposit was not charged: ${charge.reason ?? 'the card charge did not succeed'}.`,
+          }
+        }
+      }
+    }
+
     // Settle the balance BEFORE the ride is marked complete. Completing requires an
     // explicit card or cash choice from the manager popup.
     let completePaymentMethod: 'Cash' | 'Card on file' | null = null
@@ -184,108 +210,114 @@ export async function advanceReservation(
     })
     if (error) return { ok: false, error: error.message }
 
-    // We need `res` (the reservation row returned by the RPC) for emails. For
-    // `complete`, settlement runs FIRST so the ride-complete email reflects the
-    // paid state. Card → 'Card on file' after a successful charge; cash → 'Cash'.
-    // We then re-fetch the reservation so the email isn't stale.
-    let res = Array.isArray(data) ? data[0] : data
-
-    if (stage === 'complete') {
-      const { data: fresh } = await admin.from('reservations').select('*').eq('id', id).maybeSingle()
-      if (fresh) res = fresh
-    }
-
-    // Best-effort notifications — one email per lifecycle stage.
-    // Must NEVER block or fail the action.
-    const { customerVehicleName, fleetClassName } = res
-      ? await loadCustomerVehicleName(admin, res)
-      : { customerVehicleName: null, fleetClassName: null }
-    const vehicleName = customerVehicleName
-
-    let chauffeurContact: Chauffeur | null = null
-    if (res?.chauffeur_id) {
-      const { data: c } = await admin.from('chauffeurs').select('*').eq('id', res.chauffeur_id).maybeSingle()
-      chauffeurContact = c as Chauffeur | null
-    } else if (res?.chauffeur_name) {
-      const { data: c } = await admin
-        .from('chauffeurs')
-        .select('*')
-        .eq('name', res.chauffeur_name)
-        .maybeSingle()
-      chauffeurContact = c as Chauffeur | null
-    }
-
+    // Status is saved. Email, deposit scheduling, and a missing service-role key
+    // must not report this confirm as failed.
     revalidatePath('/manager')
     revalidatePath('/manager/reservations')
     revalidatePath(`/manager/reservations/${id}`)
 
     let warning: string | undefined
-    let depositUrl: string | undefined
-    let refundInfo: string | undefined
+    try {
+      let res = Array.isArray(data) ? data[0] : data
 
-    if (stage === 'confirm' && res?.booking_number && !res.deposit_paid_at) {
-      if (!isStripeConfigured()) {
-        warning = 'Stripe is not configured, so the 25% deposit link was not created and no card was saved.'
-      } else {
+      if (stage === 'complete' || stage === 'confirm') {
+        const { data: fresh } = await admin.from('reservations').select('*').eq('id', id).maybeSingle()
+        if (fresh) res = fresh
+      }
+
+      if (stage === 'confirm' && opts?.confirmDeposit === 'process_later') {
         try {
-          await createDepositForBooking(res.booking_number)
-          depositUrl = `${getSiteUrl()}/pay/${res.booking_number}`
+          await scheduleDepositAmounts(id)
           const { data: fresh } = await admin.from('reservations').select('*').eq('id', id).maybeSingle()
           if (fresh) res = fresh
         } catch (e) {
-          warning = `The 25% deposit link was not created: ${e instanceof Error ? e.message : 'Stripe error'}.`
+          warning = `Trip is confirmed. The 25% deposit amount could not be stored yet: ${
+            e instanceof Error ? e.message : 'database error'
+          }. Charge it later from this reservation.`
         }
       }
-    }
 
-    if (stage === 'cancel' && res?.id) {
-      try {
-        const refund = await refundCollectedDeposit(res.id, { depositPaidAt: res.deposit_paid_at })
-        if (refund.outcome === 'refunded' || refund.outcome === 'kept') refundInfo = refund.message
-        if (refund.outcome === 'error') warning = refund.message
-      } catch (e) {
-        warning = `Reservation cancelled, but the deposit was NOT refunded: ${e instanceof Error ? e.message : 'refund failed'}.`
+      const { customerVehicleName, fleetClassName } = res
+        ? await loadCustomerVehicleName(admin, res)
+        : { customerVehicleName: null, fleetClassName: null }
+      const vehicleName = customerVehicleName
+
+      let chauffeurContact: Chauffeur | null = null
+      if (res?.chauffeur_id) {
+        const { data: c } = await admin.from('chauffeurs').select('*').eq('id', res.chauffeur_id).maybeSingle()
+        chauffeurContact = c as Chauffeur | null
+      } else if (res?.chauffeur_name) {
+        const { data: c } = await admin
+          .from('chauffeurs')
+          .select('*')
+          .eq('name', res.chauffeur_name)
+          .maybeSingle()
+        chauffeurContact = c as Chauffeur | null
       }
-    }
 
-    if (res) {
-      try {
+      let refundInfo: string | undefined
+      if (stage === 'cancel' && res?.id) {
+        try {
+          const refund = await refundCollectedDeposit(res.id, { depositPaidAt: res.deposit_paid_at })
+          if (refund.outcome === 'refunded' || refund.outcome === 'kept') refundInfo = refund.message
+          if (refund.outcome === 'error') warning = refund.message
+        } catch (e) {
+          warning = `Reservation cancelled, but the deposit was NOT refunded: ${e instanceof Error ? e.message : 'refund failed'}.`
+        }
+      }
+
+      if (res) {
         const emailResult = await sendLifecycleEmails({
           stage,
           res: res as ManagerReservation,
           vehicleName,
           fleetClassName,
           chauffeurContact,
-          depositPayUrl: depositUrl,
           refundInfo,
           completePaymentMethod,
         })
         if (!emailResult.sent) {
           const detail = emailResult.reason ?? 'unknown error'
           if (stage === 'confirm') {
-            const link = depositUrl ? ` Deposit link: ${depositUrl}.` : ''
-            warning = `Reservation confirmed, but email was not sent (${detail}).${link}`
+            warning = `Trip is confirmed. Confirmation email was not sent: ${detail}.`
           } else {
             console.warn('[advanceReservation] lifecycle email not sent:', { stage, detail })
           }
         }
-      } catch (e) {
-        console.error('[advanceReservation] lifecycle email failed:', e)
-        if (stage === 'confirm') {
-          const link = depositUrl ? ` Deposit link: ${depositUrl}.` : ''
-          warning = `Reservation confirmed, but email was not sent.${link}`
-        }
+      }
+    } catch (e) {
+      console.error('[advanceReservation] follow-up failed after status save:', e)
+      if (stage === 'confirm') {
+        const detail = e instanceof Error ? e.message : 'unknown error'
+        warning = `Trip is confirmed. Confirmation email was not sent: ${detail}.`
       }
     }
 
-    if (depositUrl && !(warning && warning.includes(depositUrl))) {
-      warning = warning ? `${warning} Deposit link: ${depositUrl}` : `Deposit link: ${depositUrl}`
-    }
-
-    return warning ? { ok: true, warning, depositUrl } : { ok: true, depositUrl }
+    return warning ? { ok: true, warning } : { ok: true }
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'Action failed' }
   }
+}
+
+async function loadReservationWithUnit(
+  admin: Awaited<ReturnType<typeof staffDb>>,
+  id: string,
+): Promise<{ data: ManagerReservation | null; error: { message: string } | null }> {
+  const selects = [
+    `*, fleet:vehicle_id (name, type), ${UNIT_EMBED_FULL}`,
+    `*, fleet:vehicle_id (name, type), ${UNIT_EMBED_CORE}`,
+    '*, fleet:vehicle_id (name, type)',
+  ]
+  let error: { message: string } | null = null
+  for (const select of selects) {
+    const result = await admin.from('reservations').select(select).eq('id', id).maybeSingle()
+    if (!result.error) {
+      return { data: (result.data as unknown as ManagerReservation | null) ?? null, error: null }
+    }
+    error = result.error
+    if (!shouldRetryUnitSelect(result.error.message)) break
+  }
+  return { data: null, error }
 }
 
 /** Re-send the customer confirmation email without changing reservation status. */
@@ -294,14 +326,15 @@ export async function resendConfirmationEmail(id: string): Promise<ActionResult>
     await assertStaff()
     const admin = await staffDb()
 
-    const { data: res, error } = await admin
-      .from('reservations')
-      .select(
-        '*, fleet:vehicle_id (name, type), assigned_unit:assigned_unit_id (label, year, make, model_name, vin, license_plate, registration_expires)',
-      )
-      .eq('id', id)
-      .maybeSingle()
-    if (error || !res) return { ok: false, error: 'Reservation not found' }
+    const { data: res, error } = await loadReservationWithUnit(admin, id)
+    if (error || !res) {
+      return {
+        ok: false,
+        error: error
+          ? `Confirmation email failed: could not load the reservation (${error.message}).`
+          : 'Reservation not found',
+      }
+    }
 
     if (res.status === 'pending') {
       return { ok: false, error: 'Use Confirm reservation first — that sends the initial confirmation email.' }
@@ -346,7 +379,42 @@ export async function resendConfirmationEmail(id: string): Promise<ActionResult>
 
     return { ok: true }
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : 'Resend failed' }
+    return { ok: false, error: e instanceof Error ? e.message : 'Confirmation email failed' }
+  }
+}
+
+/** Charge the scheduled 25% deposit on a confirmed reservation. Does not confirm the trip. */
+export async function chargeReservationDeposit(id: string): Promise<ActionResult> {
+  try {
+    await assertStaff()
+    const admin = await staffDb()
+    const { data: res, error } = await admin
+      .from('reservations')
+      .select('id, status, deposit_paid_at')
+      .eq('id', id)
+      .maybeSingle()
+    if (error || !res) return { ok: false, error: 'Reservation not found' }
+    if (res.status === 'pending') {
+      return { ok: false, error: 'Confirm the reservation first, or use Charge now on the confirm popup.' }
+    }
+    if (res.status === 'cancelled') {
+      return { ok: false, error: 'Cannot charge a deposit on a cancelled reservation.' }
+    }
+    if (res.deposit_paid_at) {
+      return { ok: true, warning: 'The 25% deposit is already collected.' }
+    }
+
+    const charge = await chargeDeposit(id)
+    if (!charge.ok) {
+      return { ok: false, error: charge.reason ?? 'Deposit was not charged.' }
+    }
+
+    revalidatePath('/manager')
+    revalidatePath('/manager/reservations')
+    revalidatePath(`/manager/reservations/${id}`)
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Deposit charge failed' }
   }
 }
 
@@ -373,13 +441,7 @@ export async function assignReservation(
 
     if (sendDispatch) {
       const admin = await staffDb()
-      const { data: res, error: loadError } = await admin
-        .from('reservations')
-        .select(
-          '*, fleet:vehicle_id (name), assigned_unit:assigned_unit_id (label, year, make, model_name, vin, license_plate)',
-        )
-        .eq('id', id)
-        .maybeSingle()
+      const { data: res, error: loadError } = await loadReservationWithUnit(admin, id)
       if (loadError || !res) return { ok: false, error: 'Assignment saved, but reservation could not be reloaded for email' }
 
       let chauffeur: Chauffeur | null = null
@@ -762,13 +824,7 @@ export async function sendDriverDispatchNotification(
       if (assignError) return { ok: false, error: assignError.message }
     }
 
-    const { data: res, error } = await admin
-      .from('reservations')
-      .select(
-        '*, fleet:vehicle_id (name), assigned_unit:assigned_unit_id (label, year, make, model_name, vin, license_plate)',
-      )
-      .eq('id', id)
-      .maybeSingle()
+    const { data: res, error } = await loadReservationWithUnit(admin, id)
     if (error || !res) return { ok: false, error: 'Reservation not found' }
 
     let chauffeur: Chauffeur | null = null

@@ -1,5 +1,12 @@
 /** Shared collected / due math for manager UI and customer emails. */
 
+/** Staff confirmation processes this fraction of the fare. Do not change the rate here. */
+export const DEPOSIT_RATE = 0.25
+
+export function computeDepositAmount(totalPrice: number | null | undefined): number {
+  return money(Math.max(0, Number(totalPrice ?? 0)) * DEPOSIT_RATE)
+}
+
 export type PaymentInputs = {
   totalPrice: number | null | undefined
   fareSubtotal?: number | null

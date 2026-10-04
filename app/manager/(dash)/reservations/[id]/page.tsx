@@ -17,7 +17,7 @@ import { LifecycleControls } from '@/components/manager/LifecycleControls'
 import { AssignForm } from '@/components/manager/AssignForm'
 import { formatDateTime, formatMoney, formatMoneyExact, PAYMENT_LABELS, SOURCE_LABELS, auditLabel } from '@/lib/manager/format'
 import { formatManagerUnitLabel, formatRegistrationExpires } from '@/lib/fleet/unitDisplay'
-import { summarizePayment } from '@/lib/payments/summary'
+import { computeDepositAmount, summarizePayment } from '@/lib/payments/summary'
 import { getSiteUrl } from '@/lib/site'
 
 export const dynamic = 'force-dynamic'
@@ -305,6 +305,12 @@ function PaymentPanel({ r }: { r: ManagerReservation }) {
         <PayRow
           label="Deposit (25%)"
           value={formatMoneyExact(p.depositAmount)}
+          note="not collected"
+        />
+      ) : r.status !== 'pending' && r.status !== 'cancelled' ? (
+        <PayRow
+          label="Deposit (25%)"
+          value={formatMoneyExact(computeDepositAmount(r.total_price))}
           note="not collected"
         />
       ) : (

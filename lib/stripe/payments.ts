@@ -10,8 +10,9 @@ import { getStripe, isStripeConfigured } from './server'
 import { createAdminClient, isAdminConfigured } from '@/lib/supabase/admin'
 import { recordOpsNotification } from '@/lib/manager/notifyOps'
 import { BRAND_NAME, CANCEL_REFUND_HOURS } from '@/lib/site'
+import { DEPOSIT_RATE } from '@/lib/payments/summary'
 
-export const DEPOSIT_RATE = 0.25
+export { DEPOSIT_RATE }
 
 function round2(n: number): number {
   return Math.round(n * 100) / 100
@@ -100,6 +101,126 @@ export async function createDepositForBooking(bookingNumber: string): Promise<De
 }
 
 export type BalanceResult = { ok: boolean; reason?: string }
+
+function expectedDeposit(totalPrice: number): { depositAmount: number; balanceAmount: number } {
+  const total = round2(Number(totalPrice) || 0)
+  const depositAmount = round2(total * DEPOSIT_RATE)
+  const balanceAmount = round2(total - depositAmount)
+  return { depositAmount, balanceAmount }
+}
+
+/**
+ * Store the 25% deposit amount without collecting it. Does not mark the deposit paid.
+ */
+export async function scheduleDepositAmounts(reservationId: string): Promise<void> {
+  if (!isAdminConfigured()) return
+  const admin = createAdminClient()
+  const { data: r } = await admin
+    .from('reservations')
+    .select('id, total_price, deposit_amount, deposit_paid_at')
+    .eq('id', reservationId)
+    .maybeSingle()
+  if (!r || r.deposit_paid_at) return
+  if (Number(r.deposit_amount ?? 0) > 0) return
+  const { depositAmount, balanceAmount } = expectedDeposit(Number(r.total_price))
+  if (depositAmount < 0.5) return
+  await admin
+    .from('reservations')
+    .update({
+      deposit_amount: depositAmount,
+      balance_amount: balanceAmount,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', r.id)
+}
+
+/**
+ * Charges the 25% deposit off-session on the saved card (same flow as chargeBalance).
+ * Does not mark the deposit paid unless Stripe reports success.
+ */
+export async function chargeDeposit(reservationId: string): Promise<BalanceResult> {
+  try {
+    if (!isStripeConfigured()) {
+      return { ok: false, reason: 'Stripe is not configured, so the 25% deposit cannot be charged.' }
+    }
+    if (!isAdminConfigured()) {
+      return {
+        ok: false,
+        reason: 'Database service role is not available, so the 25% deposit cannot be charged.',
+      }
+    }
+
+    const stripe = getStripe()
+    const admin = createAdminClient()
+    const { data: r, error } = await admin
+      .from('reservations')
+      .select(
+        'id, booking_number, customer_email, total_price, stripe_customer_id, stripe_payment_method_id, deposit_amount, deposit_paid_at, payment_status',
+      )
+      .eq('id', reservationId)
+      .single()
+    if (error || !r) return { ok: false, reason: 'reservation not found' }
+    if (r.deposit_paid_at) return { ok: true }
+
+    const { depositAmount, balanceAmount } = expectedDeposit(Number(r.total_price))
+    if (depositAmount < 0.5) {
+      return {
+        ok: false,
+        reason: `Computed deposit (25%) is too small ($${depositAmount.toFixed(2)}).`,
+      }
+    }
+
+    if (!r.stripe_customer_id || !r.stripe_payment_method_id) {
+      return {
+        ok: false,
+        reason:
+          'No card on file. Charge now needs a saved card. Use Process later, then charge the 25% deposit from the reservation after a card is saved.',
+      }
+    }
+
+    const intent = await stripe.paymentIntents.create({
+      amount: Math.round(depositAmount * 100),
+      currency: 'usd',
+      customer: r.stripe_customer_id as string,
+      payment_method: r.stripe_payment_method_id as string,
+      off_session: true,
+      confirm: true,
+      receipt_email: r.customer_email as string,
+      description: `${BRAND_NAME} deposit — ${r.booking_number}`,
+      metadata: { kind: 'deposit', reservation_id: r.id, booking_number: r.booking_number },
+    })
+
+    const patch: Record<string, unknown> = {
+      deposit_intent_id: intent.id,
+      deposit_amount: depositAmount,
+      balance_amount: balanceAmount,
+      updated_at: new Date().toISOString(),
+    }
+    if (intent.status === 'succeeded') {
+      patch.deposit_paid_at = new Date().toISOString()
+      patch.payment_status = 'partial'
+    }
+    await admin.from('reservations').update(patch).eq('id', r.id)
+
+    if (intent.status !== 'succeeded') {
+      return {
+        ok: false,
+        reason: `Deposit charge did not succeed (Stripe status: ${intent.status}). The deposit was not marked paid.`,
+      }
+    }
+
+    await recordOpsNotification({
+      kind: 'deposit_paid',
+      title: '✅ Deposit collected · ' + r.booking_number,
+      body: '$' + depositAmount.toFixed(2) + ' charged on file',
+      reservationId: r.id,
+      severity: 'info',
+    })
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, reason: e instanceof Error ? e.message : 'deposit charge failed' }
+  }
+}
 
 /**
  * Charges the remaining balance off-session on the card saved at booking.

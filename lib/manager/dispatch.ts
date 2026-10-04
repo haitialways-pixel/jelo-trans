@@ -6,6 +6,7 @@ import { staffDb } from '@/lib/manager/db'
 import { createClient } from '@/lib/supabase/server'
 import type { Chauffeur, ManagerReservation } from '@/lib/manager/data'
 import { BRAND_CONCIERGE_EMAIL, BRAND_NAME } from '@/lib/site'
+import { UNIT_EMBED_CORE } from '@/lib/manager/unitColumns'
 
 export type ChauffeurContact = {
   id: string
@@ -187,7 +188,7 @@ export async function sendDriverDispatchNotification(
     const { data: res, error } = await admin
       .from('reservations')
       .select(
-        '*, fleet:vehicle_id (name), assigned_unit:assigned_unit_id (label, year, make, model_name, vin, license_plate)',
+        `*, fleet:vehicle_id (name), ${UNIT_EMBED_CORE}`,
       )
       .eq('id', id)
       .maybeSingle()

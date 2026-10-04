@@ -6,12 +6,14 @@ import { toast } from 'sonner'
 import { Check, Loader2, ChevronRight, Ban, CheckCircle2, Mail, X } from 'lucide-react'
 import {
   advanceReservation,
+  chargeReservationDeposit,
   resendConfirmationEmail,
   type CompleteSettlement,
+  type ConfirmDepositChoice,
   type Stage,
 } from '@/lib/manager/actions'
 import { formatDateTime, formatMoneyExact } from '@/lib/manager/format'
-import { summarizePayment } from '@/lib/payments/summary'
+import { computeDepositAmount, summarizePayment } from '@/lib/payments/summary'
 import type { ManagerReservation } from '@/lib/manager/data'
 
 const STEPS: { stage: Stage; label: string; field: keyof ManagerReservation }[] = [
@@ -25,10 +27,13 @@ const STEPS: { stage: Stage; label: string; field: keyof ManagerReservation }[] 
 export function LifecycleControls({ r }: { r: ManagerReservation }) {
   const [pending, start] = useTransition()
   const [payOpen, setPayOpen] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
   const router = useRouter()
   const terminal = r.status === 'cancelled' || r.status === 'completed'
 
   const canResendConfirmation = r.status === 'confirmed' || r.status === 'in_progress'
+  const canChargeDeposit =
+    !terminal && r.status !== 'pending' && !Boolean(r.deposit_paid_at)
   const pay = summarizePayment({
     totalPrice: r.total_price,
     fareSubtotal: r.fare_subtotal,
@@ -41,15 +46,19 @@ export function LifecycleControls({ r }: { r: ManagerReservation }) {
     depositPaidAt: r.deposit_paid_at,
     balancePaidAt: r.balance_paid_at,
   })
+  const depositDue = pay.depositAmount > 0 ? pay.depositAmount : computeDepositAmount(r.total_price)
 
   useEffect(() => {
-    if (!payOpen) return
+    if (!payOpen && !confirmOpen) return
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape' && !pending) setPayOpen(false)
+      if (e.key === 'Escape' && !pending) {
+        setPayOpen(false)
+        setConfirmOpen(false)
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [payOpen, pending])
+  }, [payOpen, confirmOpen, pending])
 
   function run(stage: Stage, confirmMsg?: string, settlement?: CompleteSettlement) {
     if (confirmMsg && !window.confirm(confirmMsg)) return
@@ -64,6 +73,41 @@ export function LifecycleControls({ r }: { r: ManagerReservation }) {
           setPayOpen(false)
           if (res.warning) toast.warning(res.warning)
           else toast.success('Reservation updated')
+          router.refresh()
+        } else {
+          toast.error(res.error)
+        }
+      } catch {
+        toast.error('Request failed — try refreshing the page.')
+      }
+    })
+  }
+
+  function runConfirm(choice: ConfirmDepositChoice) {
+    start(async () => {
+      try {
+        const res = await advanceReservation(r.id, 'confirm', { confirmDeposit: choice })
+        if (res.ok) {
+          setConfirmOpen(false)
+          if (res.warning) toast.warning(res.warning)
+          else toast.success('Trip is confirmed')
+          router.refresh()
+        } else {
+          toast.error(res.error)
+        }
+      } catch {
+        toast.error('Request failed — try refreshing the page.')
+      }
+    })
+  }
+
+  function chargeDepositNow() {
+    start(async () => {
+      try {
+        const res = await chargeReservationDeposit(r.id)
+        if (res.ok) {
+          if (res.warning) toast.warning(res.warning)
+          else toast.success('25% deposit charged')
           router.refresh()
         } else {
           toast.error(res.error)
@@ -113,7 +157,7 @@ export function LifecycleControls({ r }: { r: ManagerReservation }) {
       {/* Confirm step (pending → confirmed) */}
       {r.status === 'pending' && (
         <button
-          onClick={() => run('confirm')}
+          onClick={() => setConfirmOpen(true)}
           disabled={pending}
           className="gold-shimmer w-full flex items-center justify-center gap-2 font-semibold tracking-wide text-sm py-3 rounded-xl disabled:opacity-60"
         >
@@ -130,6 +174,17 @@ export function LifecycleControls({ r }: { r: ManagerReservation }) {
         >
           {pending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
           Resend confirmation email
+        </button>
+      )}
+
+      {canChargeDeposit && (
+        <button
+          onClick={chargeDepositNow}
+          disabled={pending}
+          className="w-full flex items-center justify-center gap-2 rounded-xl border border-primary/30 text-primary hover:bg-primary/10 text-sm font-medium py-2.5 transition disabled:opacity-50"
+        >
+          {pending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+          Charge {formatMoneyExact(depositDue)} deposit
         </button>
       )}
 
@@ -192,6 +247,76 @@ export function LifecycleControls({ r }: { r: ManagerReservation }) {
           <Ban className="w-3.5 h-3.5" /> Cancel reservation
         </button>
       )}
+
+      {confirmOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="confirm-deposit-title"
+          onClick={() => !pending && setConfirmOpen(false)}
+        >
+          <div
+            className="float-card w-full max-w-sm p-6 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 id="confirm-deposit-title" className="display text-xl font-semibold">
+                  Confirm reservation
+                </h2>
+                <p className="text-sm text-on-surface-variant mt-1">
+                  Choose how to handle the 25% deposit. Nothing is charged until you pick Charge now.
+                  The deposit stays refundable until 24 hours before pickup.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setConfirmOpen(false)}
+                disabled={pending}
+                className="text-on-surface-variant hover:text-on-surface p-1 rounded-lg disabled:opacity-50"
+                aria-label="Cancel"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="rounded-xl border border-outline-variant px-4 py-3 text-center">
+              <p className="text-xs text-on-surface-variant">25% deposit</p>
+              <p className="display text-2xl font-semibold mt-1">{formatMoneyExact(depositDue)}</p>
+            </div>
+
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => runConfirm('charge_now')}
+                disabled={pending}
+                className="btn-cta w-full flex items-center justify-center gap-2 text-sm font-semibold py-3 rounded-xl disabled:opacity-60"
+              >
+                {pending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                Charge now
+              </button>
+              <button
+                type="button"
+                onClick={() => runConfirm('process_later')}
+                disabled={pending}
+                className="btn-cta w-full flex items-center justify-center gap-2 text-sm font-semibold py-3 rounded-xl disabled:opacity-60"
+              >
+                {pending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                Process later
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmOpen(false)}
+                disabled={pending}
+                className="w-full text-sm text-on-surface-variant py-2 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {payOpen ? (
         <div
