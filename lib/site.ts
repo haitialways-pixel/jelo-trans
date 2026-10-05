@@ -52,7 +52,7 @@ export const PAYMENT_POLICY =
   "Submitting a reservation doesn't charge you anything. A staff member reviews every request and confirms it with you. Once your reservation is confirmed, we process a deposit of 25% of the fare. The deposit is fully refundable if you cancel at least 24 hours before your scheduled pickup time; cancellations within 24 hours are non-refundable."
 
 export const FLEET_SUMMARY =
-  '12 full-size SUVs (2021–2024 Chevrolet Suburban, GMC Yukon XL SLT, and 2024 Ford Expedition MAX Limited) plus a 2023 Tesla Model Y. Luxury sedans are available through contracted chauffeur partners.'
+  '12 full-size SUVs (Chevrolet Suburban, GMC Yukon XL SLT, and Ford Expedition MAX Limited) plus a Tesla Model Y. Luxury sedans are available through contracted chauffeur partners.'
 
 export const OG_IMAGE = '/images/hero-lineup.webp'
 

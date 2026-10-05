@@ -8,16 +8,9 @@ const FALLBACK_IMAGE = '/images/fleet-suv.webp'
 export function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
   const basePrice = Math.round(Number(vehicle.base_price))
   const img = vehicle.image_url ?? FALLBACK_IMAGE
-  const isNew = /\b(2024|2025|2026)\b/.test(vehicle.name)
 
   return (
     <article className="float-card overflow-hidden group relative flex flex-col md:flex-row md:min-h-[340px]">
-      {isNew && (
-        <div className="absolute top-6 left-6 z-20 bg-background/90 backdrop-blur-sm text-[10px] tracking-widest uppercase text-on-surface-variant px-3 py-1 rounded-full">
-          New units
-        </div>
-      )}
-
       <div className="w-full md:w-1/2 h-64 md:h-auto relative spotlight-glow flex items-center justify-center p-8 bg-surface-container-lowest">
         <OptimizedImage
           src={img}

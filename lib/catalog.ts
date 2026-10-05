@@ -91,9 +91,28 @@ export function withPublicCatalog(fleet: Vehicle[]): Vehicle[] {
   return filterPublicFleet(fleet)
 }
 
+/**
+ * Public display only: drop model years from a vehicle/class name or description.
+ * "2023 Tesla Model Y" → "Tesla Model Y". Does not change stored fleet rows.
+ */
+export function formatPublicVehicleName(name: string | null | undefined): string {
+  if (!name) return ''
+  return name
+    .replace(/\bmodel years?\s+(?:19|20)\d{2}(?:\s*[–-]\s*(?:19|20)\d{2})?\b/gi, '')
+    .replace(/(^|\s)(?:19|20)\d{2}(?:\s*[–-]\s*(?:19|20)\d{2})?(?=\s|[.,;:!?)]|$)/g, '$1')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\s+([.,;:!?])/g, '$1')
+    .replace(/,\s+\(/g, ' (')
+    .replace(/\(\s+/g, '(')
+    .replace(/\s+\)/g, ')')
+    .trim()
+}
+
 export function decorateVehicle(v: Vehicle): Vehicle {
   return {
     ...v,
+    name: formatPublicVehicleName(v.name),
+    description: v.description ? formatPublicVehicleName(v.description) : v.description,
     image_url: sanitizeImageUrl(v.image_url, v.name, v.type),
   }
 }
@@ -104,6 +123,7 @@ export function decorateBookable(v: BookableVehicle & { type?: string | null }):
   return {
     ...v,
     type: v.type ?? '',
+    name: formatPublicVehicleName(v.name),
     image_url: sanitizeImageUrl(v.image_url, v.name, v.type),
   }
 }

@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getFleet, type Vehicle } from '@/lib/fleet'
 import { calculatePrice } from '@/app/book/actions'
+import { formatPublicVehicleName } from '@/lib/catalog'
 import { HUMAN_PHONE, type ChatAction, type ChatContext } from './knowledge'
 import { notifyManagement } from './notify'
 import { checkRateLimit } from '@/lib/security/rateLimit'
@@ -13,16 +14,20 @@ type ActionResult = { text: string; link?: { href: string; label: string }; cont
 // Map common ways a customer names a vehicle to its exact fleet name. Compared on a compacted
 // string (no spaces/punctuation) so "s-class", "s class" and "sclass" all match.
 const VEHICLE_ALIASES: Record<string, string> = {
-  suburban: '2023 Chevrolet Suburban',
-  chevrolet: '2023 Chevrolet Suburban',
-  chevy: '2023 Chevrolet Suburban',
-  yukon: '2023 GMC Yukon XL',
-  gmc: '2023 GMC Yukon XL',
-  expedition: '2024 Ford Expedition',
-  ford: '2024 Ford Expedition',
-  tesla: '2023 Tesla Model Y',
-  modely: '2023 Tesla Model Y',
+  suburban: 'Chevrolet Suburban',
+  chevrolet: 'Chevrolet Suburban',
+  chevy: 'Chevrolet Suburban',
+  yukon: 'GMC Yukon XL',
+  gmc: 'GMC Yukon XL',
+  expedition: 'Ford Expedition',
+  ford: 'Ford Expedition',
+  tesla: 'Tesla Model Y',
+  modely: 'Tesla Model Y',
   sedan: 'Luxury Sedan',
+}
+
+function publicNamesMatch(a: string, b: string): boolean {
+  return formatPublicVehicleName(a).toLowerCase() === formatPublicVehicleName(b).toLowerCase()
 }
 
 function matchVehicle(text: string, fleet: Vehicle[]): Vehicle | undefined {
@@ -35,7 +40,9 @@ function matchVehicle(text: string, fleet: Vehicle[]): Vehicle | undefined {
       bestLen = alias.length
     }
   }
-  return bestName ? fleet.find((v) => v.name === bestName) : undefined
+  if (!bestName) return undefined
+  const canonical = bestName
+  return fleet.find((v) => publicNamesMatch(v.name, canonical))
 }
 
 function extractHours(text: string): number | undefined {

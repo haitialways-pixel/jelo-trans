@@ -22,7 +22,7 @@ import {
   type TripType,
 } from '@/lib/pricing'
 import { matchFlatRate } from '@/lib/flatRates'
-import { groupPublicFleet, rateClassFor } from '@/lib/catalog'
+import { formatPublicVehicleName, groupPublicFleet, rateClassFor } from '@/lib/catalog'
 import { PAYMENT_POLICY } from '@/lib/site'
 import {
   isPickupTimeValid,
@@ -349,7 +349,9 @@ export function BookingWizard({ vehicles }: { vehicles: Vehicle[] }) {
           <SummaryRow label="Pickup Time" value={formatPickup(formData.pickupTime)} />
           <SummaryRow label="Pickup" value={formData.pickupAddress} />
           <SummaryRow label="Dropoff" value={formData.dropoffAddress} />
-          {price?.vehicleName && <SummaryRow label="Vehicle" value={price.vehicleName} />}
+          {price?.vehicleName && (
+            <SummaryRow label="Vehicle" value={formatPublicVehicleName(price.vehicleName)} />
+          )}
           {isCharter ? (
             <SummaryRow label="Charter hours" value={`${formData.charterHours} hours`} />
           ) : (
