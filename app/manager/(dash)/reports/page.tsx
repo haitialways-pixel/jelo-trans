@@ -9,11 +9,13 @@ import {
   resolveReportRange,
   toCsv,
   type ReportPreset,
+  type ReportReservation,
   type ReportStatus,
 } from '@/lib/manager/reports'
 import { StatusBadge } from '@/components/manager/StatusBadge'
 import { formatDateTime, formatMoneyExact, PAYMENT_LABELS } from '@/lib/manager/format'
 import { ExportCsvButton } from '@/components/manager/ExportCsvButton'
+import { logManagerRender } from '@/lib/manager/timing'
 
 export const dynamic = 'force-dynamic'
 
@@ -37,6 +39,7 @@ export default async function ReportsPage({
     year?: string
   }>
 }) {
+  const startedAt = Date.now()
   const staff = await requireStaff()
   const admin = isAdminRole(staff.role)
   const sp = await searchParams
@@ -48,7 +51,11 @@ export default async function ReportsPage({
   const range = resolveReportRange({ preset, from: sp.from, to: sp.to })
   const year = Number(sp.year) || new Date().getFullYear()
 
-  const [rows, companyRevenueRows, chauffeurs] = await Promise.all([
+  const yearFrom = `${year}-01-01`
+  const yearTo = `${year}-12-31`
+  const yearRange = resolveReportRange({ preset: 'custom', from: yearFrom, to: yearTo })
+
+  const [rows, companyRevenueRows, chauffeurs, yearRows] = await Promise.all([
     getReportReservations({
       fromIso: range.fromIso,
       toIso: range.toIso,
@@ -61,6 +68,13 @@ export default async function ReportsPage({
       status: 'completed',
     }),
     getChauffeurs(),
+    admin
+      ? getReportReservations({
+          fromIso: yearRange.fromIso,
+          toIso: yearRange.toIso,
+          status: 'completed',
+        })
+      : Promise.resolve([] as ReportReservation[]),
   ])
 
   const kpis = reportKpis(rows)
@@ -113,16 +127,6 @@ export default async function ReportsPage({
     ]),
   )
 
-  const yearFrom = `${year}-01-01`
-  const yearTo = `${year}-12-31`
-  const yearRange = resolveReportRange({ preset: 'custom', from: yearFrom, to: yearTo })
-  const yearRows = admin
-    ? await getReportReservations({
-        fromIso: yearRange.fromIso,
-        toIso: yearRange.toIso,
-        status: 'completed',
-      })
-    : []
   const yearPay = driverPayRows(yearRows, chauffeur1099)
   const necRows = admin
     ? chauffeurs
@@ -135,6 +139,7 @@ export default async function ReportsPage({
         })
         .filter((r) => r.box1 > 0)
     : []
+  logManagerRender('/manager/reports', startedAt)
 
   return (
     <div className="space-y-8">

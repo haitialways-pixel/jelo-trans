@@ -19,10 +19,12 @@ import { formatDateTime, formatMoney, formatMoneyExact, PAYMENT_LABELS, SOURCE_L
 import { formatManagerUnitLabel, formatRegistrationExpires } from '@/lib/fleet/unitDisplay'
 import { computeDepositAmount, summarizePayment } from '@/lib/payments/summary'
 import { getSiteUrl } from '@/lib/site'
+import { logManagerRender } from '@/lib/manager/timing'
 
 export const dynamic = 'force-dynamic'
 
 export default async function ReservationDetail({ params }: { params: Promise<{ id: string }> }) {
+  const startedAt = Date.now()
   const { id } = await params
   const [r, units, audit, chauffeurs] = await Promise.all([
     getReservation(id),
@@ -32,6 +34,7 @@ export default async function ReservationDetail({ params }: { params: Promise<{ 
   ])
 
   if (!r) notFound()
+  logManagerRender('/manager/reservations/[id]', startedAt)
 
   return (
     <div className="space-y-6">

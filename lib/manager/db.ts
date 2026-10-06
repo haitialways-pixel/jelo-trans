@@ -12,6 +12,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
  * fallback the dashboard crashes immediately after a successful login.
  */
 export async function staffDb(): Promise<SupabaseClient> {
+  // assertStaff → cached resolveStaffSession for this render (see lib/manager/auth.ts).
   await assertStaff()
   if (isAdminConfigured()) {
     try {

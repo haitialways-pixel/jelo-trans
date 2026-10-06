@@ -21,3 +21,27 @@ export function shouldRetryUnitSelect(message: string | undefined): boolean {
   if (!message) return false
   return isMissingUnitColumnError(message) || /does not exist|vehicle_units/i.test(message)
 }
+
+/** Worker-isolate cache: skip the failing full select after the first 42703. */
+const UNIT_COLUMN_RECHECK_MS = 5 * 60 * 1000
+let legacyUntil = 0
+
+export function preferLegacyUnitColumns(): boolean {
+  return legacyUntil > Date.now()
+}
+
+export function markUnitColumnsMissing(): void {
+  legacyUntil = Date.now() + UNIT_COLUMN_RECHECK_MS
+}
+
+export function markUnitColumnsPresent(): void {
+  legacyUntil = 0
+}
+
+export function reservationUnitEmbed(): string {
+  return preferLegacyUnitColumns() ? UNIT_EMBED_CORE : UNIT_EMBED_FULL
+}
+
+export function unitFieldsSelect(): string {
+  return preferLegacyUnitColumns() ? UNIT_FIELDS_CORE : UNIT_FIELDS_FULL
+}

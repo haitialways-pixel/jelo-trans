@@ -1,6 +1,13 @@
 import { staffDb } from '@/lib/manager/db'
 import { isBookingNumber, normalizeBookingNumber } from '@/lib/bookingNumber'
-import { isMissingUnitColumnError, UNIT_EMBED_CORE, UNIT_EMBED_FULL } from '@/lib/manager/unitColumns'
+import {
+  isMissingUnitColumnError,
+  markUnitColumnsMissing,
+  markUnitColumnsPresent,
+  preferLegacyUnitColumns,
+  UNIT_EMBED_CORE,
+  UNIT_EMBED_FULL,
+} from '@/lib/manager/unitColumns'
 
 /** A reservation as seen by staff (full row + embedded vehicle name). */
 export type ManagerReservation = {
@@ -56,8 +63,39 @@ export type ManagerReservation = {
 const RES_COLUMNS_BASE =
   'id, booking_number, customer_name, customer_email, customer_phone, pickup_address, dropoff_address, pickup_time, status, payment_status, deposit_amount, balance_amount, deposit_paid_at, balance_paid_at, total_price, driver_pay, fare_subtotal, gratuity_percent, gratuity_amount, passengers, luggage, duration_hours, chauffeur_name, chauffeur_id, source, vehicle_id, assigned_unit_id, dispatched_at, arrived_pickup_at, onboard_at, arrived_dropoff_at, completed_at, special_requests, created_at, distance_miles, deposit_intent_id, balance_intent_id, fleet:vehicle_id (name, type)'
 
-const RES_COLUMNS = `${RES_COLUMNS_BASE}, ${UNIT_EMBED_FULL}`
+const RES_COLUMNS_FULL = `${RES_COLUMNS_BASE}, ${UNIT_EMBED_FULL}`
 const RES_COLUMNS_LEGACY = `${RES_COLUMNS_BASE}, ${UNIT_EMBED_CORE}`
+
+type QueryError = { message: string } | null
+
+async function withUnitColumnFallback<T>(
+  execute: (select: string) => PromiseLike<{ data: T; error: QueryError }>,
+  fullSelect: string,
+  legacySelect: string,
+): Promise<{ data: T; error: QueryError }> {
+  const useLegacy = preferLegacyUnitColumns()
+  const select = useLegacy ? legacySelect : fullSelect
+  const result = await execute(select)
+  if (!result.error) {
+    if (!useLegacy) markUnitColumnsPresent()
+    return result
+  }
+  if (!useLegacy && isMissingUnitColumnError(result.error.message)) {
+    markUnitColumnsMissing()
+    return execute(legacySelect)
+  }
+  return result
+}
+
+function applyPaging<Q extends { limit: (n: number) => Q; range: (from: number, to: number) => Q }>(
+  q: Q,
+  opts?: { limit?: number; offset?: number },
+): Q {
+  if (opts?.limit == null) return q
+  const offset = opts.offset ?? 0
+  if (offset > 0) return q.range(offset, offset + opts.limit - 1)
+  return q.limit(opts.limit)
+}
 
 function escapeIlike(term: string): string {
   return term.replace(/[%_\\]/g, '')
@@ -70,7 +108,7 @@ function normalizePhoneSearch(term: string): string {
 /** Search by last name (customer name), phone, or booking number. */
 export async function searchReservations(
   query: string,
-  opts?: { status?: string; limit?: number },
+  opts?: { status?: string; limit?: number; offset?: number },
 ): Promise<ManagerReservation[]> {
   const raw = query.trim()
   if (!raw) return getReservations(opts)
@@ -97,28 +135,19 @@ export async function searchReservations(
     orParts.push(`customer_phone.ilike.%${phone}%`)
   }
 
-  let q = supabase
-    .from('reservations')
-    .select(RES_COLUMNS)
-    .or(orParts.join(','))
-    .order('pickup_time', { ascending: true })
-
-  if (opts?.status) q = q.eq('status', opts.status)
-  if (opts?.limit) q = q.limit(opts.limit)
-
-  let { data, error } = await q
-  if (error && isMissingUnitColumnError(error.message)) {
-    let fallback = supabase
-      .from('reservations')
-      .select(RES_COLUMNS_LEGACY)
-      .or(orParts.join(','))
-      .order('pickup_time', { ascending: true })
-    if (opts?.status) fallback = fallback.eq('status', opts.status)
-    if (opts?.limit) fallback = fallback.limit(opts.limit)
-    const retry = await fallback
-    data = retry.data as typeof data
-    error = retry.error
-  }
+  const { data, error } = await withUnitColumnFallback(
+    (select) => {
+      let q = supabase
+        .from('reservations')
+        .select(select)
+        .or(orParts.join(','))
+        .order('pickup_time', { ascending: true })
+      if (opts?.status) q = q.eq('status', opts.status)
+      return applyPaging(q, opts)
+    },
+    RES_COLUMNS_FULL,
+    RES_COLUMNS_LEGACY,
+  )
   if (error) {
     console.error('[manager] searchReservations:', error.message)
     return []
@@ -130,28 +159,18 @@ export async function searchReservations(
 export async function getReservations(opts?: {
   status?: string
   limit?: number
+  offset?: number
 }): Promise<ManagerReservation[]> {
   const supabase = await staffDb()
-  let q = supabase
-    .from('reservations')
-    .select(RES_COLUMNS)
-    .order('pickup_time', { ascending: true })
-
-  if (opts?.status) q = q.eq('status', opts.status)
-  if (opts?.limit) q = q.limit(opts.limit)
-
-  let { data, error } = await q
-  if (error && isMissingUnitColumnError(error.message)) {
-    let fallback = supabase
-      .from('reservations')
-      .select(RES_COLUMNS_LEGACY)
-      .order('pickup_time', { ascending: true })
-    if (opts?.status) fallback = fallback.eq('status', opts.status)
-    if (opts?.limit) fallback = fallback.limit(opts.limit)
-    const retry = await fallback
-    data = retry.data as typeof data
-    error = retry.error
-  }
+  const { data, error } = await withUnitColumnFallback(
+    (select) => {
+      let q = supabase.from('reservations').select(select).order('pickup_time', { ascending: true })
+      if (opts?.status) q = q.eq('status', opts.status)
+      return applyPaging(q, opts)
+    },
+    RES_COLUMNS_FULL,
+    RES_COLUMNS_LEGACY,
+  )
   if (error) {
     console.error('[manager] getReservations:', error.message)
     return []
@@ -162,20 +181,11 @@ export async function getReservations(opts?: {
 /** A single reservation by id, or null if not found. */
 export async function getReservation(id: string): Promise<ManagerReservation | null> {
   const supabase = await staffDb()
-  let { data, error } = await supabase
-    .from('reservations')
-    .select(RES_COLUMNS)
-    .eq('id', id)
-    .maybeSingle()
-  if (error && isMissingUnitColumnError(error.message)) {
-    const retry = await supabase
-      .from('reservations')
-      .select(RES_COLUMNS_LEGACY)
-      .eq('id', id)
-      .maybeSingle()
-    data = retry.data as typeof data
-    error = retry.error
-  }
+  const { data, error } = await withUnitColumnFallback(
+    (select) => supabase.from('reservations').select(select).eq('id', id).maybeSingle(),
+    RES_COLUMNS_FULL,
+    RES_COLUMNS_LEGACY,
+  )
   if (error) {
     console.error('[manager] getReservation:', error.message)
     return null
@@ -215,18 +225,11 @@ const UNIT_SELECT_LEGACY =
 /** Every physical unit (all statuses), grouped-ready, ordered by model then label. */
 export async function getVehicleUnits(): Promise<VehicleUnit[]> {
   const supabase = await staffDb()
-  let { data, error } = await supabase
-    .from('vehicle_units')
-    .select(UNIT_SELECT)
-    .order('label', { ascending: true })
-  if (error && isMissingUnitColumnError(error.message)) {
-    const retry = await supabase
-      .from('vehicle_units')
-      .select(UNIT_SELECT_LEGACY)
-      .order('label', { ascending: true })
-    data = retry.data as typeof data
-    error = retry.error
-  }
+  const { data, error } = await withUnitColumnFallback(
+    (select) => supabase.from('vehicle_units').select(select).order('label', { ascending: true }),
+    UNIT_SELECT,
+    UNIT_SELECT_LEGACY,
+  )
   if (error) {
     console.error('[manager] getVehicleUnits:', error.message)
     return []
@@ -677,24 +680,18 @@ export async function getSentInvoiceById(id: string): Promise<StoredInvoice | nu
 export async function getTodayReservations(now = new Date()): Promise<ManagerReservation[]> {
   const { start, end } = orlandoDayBounds(now)
   const supabase = await staffDb()
-  let { data, error } = await supabase
-    .from('reservations')
-    .select(RES_COLUMNS)
-    .gte('pickup_time', start)
-    .lt('pickup_time', end)
-    .neq('status', 'cancelled')
-    .order('pickup_time', { ascending: true })
-  if (error && isMissingUnitColumnError(error.message)) {
-    const retry = await supabase
-      .from('reservations')
-      .select(RES_COLUMNS_LEGACY)
-      .gte('pickup_time', start)
-      .lt('pickup_time', end)
-      .neq('status', 'cancelled')
-      .order('pickup_time', { ascending: true })
-    data = retry.data as typeof data
-    error = retry.error
-  }
+  const { data, error } = await withUnitColumnFallback(
+    (select) =>
+      supabase
+        .from('reservations')
+        .select(select)
+        .gte('pickup_time', start)
+        .lt('pickup_time', end)
+        .neq('status', 'cancelled')
+        .order('pickup_time', { ascending: true }),
+    RES_COLUMNS_FULL,
+    RES_COLUMNS_LEGACY,
+  )
   if (error) {
     console.error('[manager] getTodayReservations:', error.message)
     return []

@@ -4,6 +4,7 @@ import type { ManagerReservation } from "@/lib/manager/data"
 import { StatusBadge } from "@/components/manager/StatusBadge"
 import { formatDateTime, formatMoney } from "@/lib/manager/format"
 import { formatManagerUnitLabel } from "@/lib/fleet/unitDisplay"
+import { logManagerRender } from "@/lib/manager/timing"
 
 export const dynamic = "force-dynamic"
 
@@ -42,9 +43,11 @@ function overlappingIds(trips: ManagerReservation[]): Set<string> {
 }
 
 export default async function TodayBoardPage() {
+  const startedAt = Date.now()
   const trips = await getTodayReservations()
   const conflicts = overlappingIds(trips)
   const conflictTrips = trips.filter((t) => conflicts.has(t.id))
+  logManagerRender("/manager/today", startedAt)
 
   return (
     <div className="space-y-6">

@@ -3,12 +3,14 @@ import { Clock, CarFront, CheckCircle2, MessageSquareWarning, ChevronRight } fro
 import { getDashboardStats, getReservations, getSupportRequests } from '@/lib/manager/data'
 import { StatusBadge } from '@/components/manager/StatusBadge'
 import { formatDateTime, formatMoney } from '@/lib/manager/format'
+import { logManagerRender } from '@/lib/manager/timing'
 
 export const dynamic = 'force-dynamic'
 
 const ACTIVE = ['pending', 'confirmed', 'in_progress']
 
 export default async function ManagerDashboard() {
+  const startedAt = Date.now()
   const [stats, all, escalations] = await Promise.all([
     getDashboardStats(),
     getReservations({ limit: 50 }),
@@ -16,6 +18,7 @@ export default async function ManagerDashboard() {
   ])
 
   const upcoming = all.filter((r) => ACTIVE.includes(r.status)).slice(0, 8)
+  logManagerRender('/manager', startedAt)
 
   const cards = [
     { label: 'To confirm', value: stats.pending, icon: Clock, tint: 'text-primary-dark' },

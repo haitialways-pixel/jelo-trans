@@ -4,9 +4,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { LayoutDashboard, CalendarRange, CalendarClock, Car, Receipt, BarChart3, LogOut } from 'lucide-react'
+import type { ReactNode } from 'react'
 import type { StaffSession } from '@/lib/manager/auth'
-import type { ManagerNotification } from '@/lib/manager/notifications'
-import { NotificationBell } from './NotificationBell'
 
 const LINKS = [
   { href: '/manager', label: 'Dashboard', icon: LayoutDashboard, exact: true },
@@ -19,10 +18,10 @@ const LINKS = [
 
 export function ManagerNav({
   staff,
-  initialNotifications,
+  notifications,
 }: {
   staff: StaffSession
-  initialNotifications: ManagerNotification[]
+  notifications: ReactNode
 }) {
   const pathname = usePathname()
 
@@ -61,7 +60,7 @@ export function ManagerNav({
         </div>
 
         <div className="flex items-center gap-3">
-          <NotificationBell initial={initialNotifications} />
+          {notifications}
           <div className="text-right hidden sm:block">
             <p className="text-sm leading-tight">{staff.fullName ?? staff.email}</p>
             <p className="text-[11px] text-on-surface-variant capitalize">{staff.role}</p>

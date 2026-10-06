@@ -6,8 +6,11 @@ import { CreateReservationForm } from '@/components/manager/CreateReservationFor
 import { ReservationSearch } from '@/components/manager/ReservationSearch'
 import { formatDateTime, formatMoney, STATUS_LABELS } from '@/lib/manager/format'
 import { formatManagerUnitLabel } from '@/lib/fleet/unitDisplay'
+import { logManagerRender } from '@/lib/manager/timing'
 
 export const dynamic = 'force-dynamic'
+
+const PAGE_SIZE = 50
 
 const FILTERS = [
   { key: '', label: 'All' },
@@ -18,10 +21,11 @@ const FILTERS = [
   { key: 'cancelled', label: 'Cancelled' },
 ]
 
-function filterHref(status: string, query: string) {
+function listHref(status: string, query: string, page?: number) {
   const params = new URLSearchParams()
   if (status) params.set('status', status)
   if (query.trim()) params.set('q', query.trim())
+  if (page && page > 1) params.set('page', String(page))
   const qs = params.toString()
   return qs ? `/manager/reservations?${qs}` : '/manager/reservations'
 }
@@ -29,18 +33,23 @@ function filterHref(status: string, query: string) {
 export default async function ReservationsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; q?: string }>
+  searchParams: Promise<{ status?: string; q?: string; page?: string }>
 }) {
-  const { status, q } = await searchParams
+  const startedAt = Date.now()
+  const { status, q, page: pageRaw } = await searchParams
   const active = status && STATUS_LABELS[status] ? status : ''
   const query = (q ?? '').trim()
+  const page = Math.max(1, Number.parseInt(pageRaw ?? '1', 10) || 1)
+  const offset = (page - 1) * PAGE_SIZE
+  const paging = { limit: PAGE_SIZE + 1, offset, ...(active ? { status: active } : {}) }
 
-  const [reservations, fleet] = await Promise.all([
-    query
-      ? searchReservations(query, active ? { status: active } : undefined)
-      : getReservations(active ? { status: active } : undefined),
+  const [fetched, fleet] = await Promise.all([
+    query ? searchReservations(query, paging) : getReservations(paging),
     getFleetModels(),
   ])
+  const hasMore = fetched.length > PAGE_SIZE
+  const reservations = hasMore ? fetched.slice(0, PAGE_SIZE) : fetched
+  logManagerRender('/manager/reservations', startedAt)
 
   return (
     <div className="space-y-6">
@@ -64,7 +73,7 @@ export default async function ReservationsPage({
           return (
             <Link
               key={f.key}
-              href={filterHref(f.key, query)}
+              href={listHref(f.key, query)}
               className={`whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs transition ${
                 isActive
                   ? 'bg-gold/25 text-on-surface font-medium border border-gold/40'
@@ -113,6 +122,26 @@ export default async function ReservationsPage({
               <ChevronRight className="w-4 h-4 text-on-surface-variant shrink-0" />
             </Link>
           ))}
+        </div>
+      )}
+
+      {(page > 1 || hasMore) && (
+        <div className="flex items-center justify-between pt-2">
+          {page > 1 ? (
+            <Link href={listHref(active, query, page - 1)} className="text-sm text-primary hover:underline">
+              Previous
+            </Link>
+          ) : (
+            <span />
+          )}
+          <span className="text-xs text-on-surface-variant">Page {page}</span>
+          {hasMore ? (
+            <Link href={listHref(active, query, page + 1)} className="text-sm text-primary hover:underline">
+              Next
+            </Link>
+          ) : (
+            <span />
+          )}
         </div>
       )}
     </div>

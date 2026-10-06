@@ -1,5 +1,12 @@
 import { formatCustomerVehicleName, type PhysicalUnitFields } from '@/lib/fleet/unitDisplay'
-import { isMissingUnitColumnError, UNIT_FIELDS_CORE, UNIT_FIELDS_FULL } from '@/lib/manager/unitColumns'
+import {
+  isMissingUnitColumnError,
+  markUnitColumnsMissing,
+  markUnitColumnsPresent,
+  preferLegacyUnitColumns,
+  UNIT_FIELDS_CORE,
+  UNIT_FIELDS_FULL,
+} from '@/lib/manager/unitColumns'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 type ReservationVehicleSource = {
@@ -26,14 +33,17 @@ export async function loadCustomerVehicleName(
       Boolean(unit?.label?.trim()) ||
       Boolean(unit?.license_plate?.trim())
     if (!hasCustomerFields) {
+      const fields = preferLegacyUnitColumns() ? UNIT_FIELDS_CORE : UNIT_FIELDS_FULL
       const full = await admin
         .from('vehicle_units')
-        .select(UNIT_FIELDS_FULL)
+        .select(fields)
         .eq('id', res.assigned_unit_id)
         .maybeSingle()
       if (!full.error && full.data) {
+        if (fields === UNIT_FIELDS_FULL) markUnitColumnsPresent()
         unit = full.data as unknown as PhysicalUnitFields
       } else if (full.error && isMissingUnitColumnError(full.error.message)) {
+        markUnitColumnsMissing()
         const retry = await admin
           .from('vehicle_units')
           .select(UNIT_FIELDS_CORE)

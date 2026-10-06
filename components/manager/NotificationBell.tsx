@@ -14,7 +14,7 @@ import {
   type ManagerNotification,
 } from '@/lib/manager/notifications'
 
-type Props = { initial: ManagerNotification[] }
+type Props = { initial?: ManagerNotification[] }
 
 const SEVERITY_DOT: Record<string, string> = {
   info: 'bg-[#1805db]',
@@ -33,7 +33,7 @@ function timeAgo(iso: string): string {
   return `${d}d ago`
 }
 
-export function NotificationBell({ initial }: Props) {
+export function NotificationBell({ initial = [] }: Props) {
   const router = useRouter()
   const [items, setItems] = useState<ManagerNotification[]>(initial)
   const [open, setOpen] = useState(false)

@@ -13,6 +13,7 @@ import { SentInvoicesList } from '@/components/manager/SentInvoicesList'
 import { isSmsConfigured } from '@/lib/sms/notify'
 import { isMailConfigured, getMailSetupHint } from '@/lib/email/mailer'
 import { STATUS_LABELS } from '@/lib/manager/format'
+import { logManagerRender } from '@/lib/manager/timing'
 
 export const dynamic = 'force-dynamic'
 
@@ -36,6 +37,7 @@ export default async function ReceiptsPage({
 }: {
   searchParams: Promise<{ status?: string; q?: string }>
 }) {
+  const startedAt = Date.now()
   const { status, q } = await searchParams
   // Default to completed — most receipt sends are post-ride.
   const active =
@@ -49,26 +51,25 @@ export default async function ReceiptsPage({
   const mailConfigured = isMailConfigured()
   const mailHint = getMailSetupHint()
 
-  let reservations: Awaited<ReturnType<typeof getReservations>> = []
-  let vendors: Awaited<ReturnType<typeof getVendors>> = []
-  let invoices: Awaited<ReturnType<typeof getSentInvoices>> = []
-  try {
-    reservations = query
-      ? await searchReservations(query, active ? { status: active, limit: 40 } : { limit: 40 })
-      : await getReservations(active ? { status: active, limit: 40 } : { limit: 40 })
-  } catch (e) {
-    console.error('[receipts page] failed to load reservations:', e)
+  const [reservationsResult, vendorsResult, invoicesResult] = await Promise.allSettled([
+    query
+      ? searchReservations(query, active ? { status: active, limit: 40 } : { limit: 40 })
+      : getReservations(active ? { status: active, limit: 40 } : { limit: 40 }),
+    getVendors(),
+    getSentInvoices({ limit: 50 }),
+  ])
+  if (reservationsResult.status === 'rejected') {
+    console.error('[receipts page] failed to load reservations:', reservationsResult.reason)
   }
-  try {
-    vendors = await getVendors()
-  } catch (e) {
-    console.error('[receipts page] failed to load vendors:', e)
+  if (vendorsResult.status === 'rejected') {
+    console.error('[receipts page] failed to load vendors:', vendorsResult.reason)
   }
-  try {
-    invoices = await getSentInvoices({ limit: 50 })
-  } catch (e) {
-    console.error('[receipts page] failed to load invoices:', e)
+  if (invoicesResult.status === 'rejected') {
+    console.error('[receipts page] failed to load invoices:', invoicesResult.reason)
   }
+  const reservations = reservationsResult.status === 'fulfilled' ? reservationsResult.value : []
+  const vendors = vendorsResult.status === 'fulfilled' ? vendorsResult.value : []
+  const invoices = invoicesResult.status === 'fulfilled' ? invoicesResult.value : []
 
   // Receipts are most relevant for non-cancelled bookings; newest trips first.
   const list = reservations
@@ -78,6 +79,7 @@ export default async function ReceiptsPage({
       const tb = new Date(b.completed_at ?? b.pickup_time).getTime()
       return tb - ta
     })
+  logManagerRender('/manager/receipts', startedAt)
 
   return (
     <div className="space-y-6">

@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient, isAdminConfigured } from '@/lib/supabase/admin'
@@ -9,18 +10,23 @@ export type StaffSession = {
   role: string
 }
 
-async function resolveStaffSession(): Promise<StaffSession | null> {
+/**
+ * One staff lookup per server render. requireStaff, assertStaff, and staffDb
+ * share this result. getClaims verifies the ES256 JWT locally (no Auth round trip);
+ * middleware.ts still uses getUser() for the request gate.
+ */
+const resolveStaffSession = cache(async (): Promise<StaffSession | null> => {
   const supabase = await createClient()
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser()
+  const { data: claimsData, error: claimsError } = await supabase.auth.getClaims()
 
-  if (userError) {
-    console.warn('[auth] getUser failed:', userError.message)
+  if (claimsError) {
+    console.warn('[auth] getClaims failed:', claimsError.message)
     return null
   }
-  if (!user) return null
+  const claims = claimsData?.claims
+  const userId = typeof claims?.sub === 'string' ? claims.sub : ''
+  if (!userId) return null
+  const email = typeof claims?.email === 'string' ? claims.email : null
 
   // Prefer SECURITY DEFINER RPC — avoids circular RLS on staff table and does not
   // require the service role key for the auth gate itself.
@@ -29,8 +35,8 @@ async function resolveStaffSession(): Promise<StaffSession | null> {
 
   if (!profileError && profile) {
     return {
-      userId: user.id,
-      email: user.email ?? null,
+      userId,
+      email,
       fullName: profile.full_name,
       role: profile.role,
     }
@@ -52,13 +58,13 @@ async function resolveStaffSession(): Promise<StaffSession | null> {
       const { data: staffRow, error } = await admin
         .from('staff')
         .select('full_name, role')
-        .eq('id', user.id)
+        .eq('id', userId)
         .maybeSingle()
 
       if (!error && staffRow) {
         return {
-          userId: user.id,
-          email: user.email ?? null,
+          userId,
+          email,
           fullName: staffRow.full_name,
           role: staffRow.role,
         }
@@ -70,7 +76,7 @@ async function resolveStaffSession(): Promise<StaffSession | null> {
   }
 
   return null
-}
+})
 
 /**
  * Server-side guard for the manager area.
@@ -80,10 +86,9 @@ export async function requireStaff(): Promise<StaffSession> {
   const session = await resolveStaffSession()
   if (!session) {
     const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    redirect(user ? '/manager/login?error=not_staff' : '/manager/login')
+    const { data } = await supabase.auth.getClaims()
+    const hasUser = Boolean(data?.claims?.sub)
+    redirect(hasUser ? '/manager/login?error=not_staff' : '/manager/login')
   }
   return session
 }

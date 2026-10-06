@@ -18,7 +18,14 @@ import {
   refundCollectedDeposit,
   scheduleDepositAmounts,
 } from '@/lib/stripe/payments'
-import { UNIT_EMBED_CORE, UNIT_EMBED_FULL, shouldRetryUnitSelect } from '@/lib/manager/unitColumns'
+import {
+  UNIT_EMBED_CORE,
+  UNIT_EMBED_FULL,
+  markUnitColumnsMissing,
+  markUnitColumnsPresent,
+  preferLegacyUnitColumns,
+  shouldRetryUnitSelect,
+} from '@/lib/manager/unitColumns'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { summarizePayment } from '@/lib/payments/summary'
 
@@ -303,18 +310,24 @@ async function loadReservationWithUnit(
   admin: Awaited<ReturnType<typeof staffDb>>,
   id: string,
 ): Promise<{ data: ManagerReservation | null; error: { message: string } | null }> {
-  const selects = [
-    `*, fleet:vehicle_id (name, type), ${UNIT_EMBED_FULL}`,
-    `*, fleet:vehicle_id (name, type), ${UNIT_EMBED_CORE}`,
-    '*, fleet:vehicle_id (name, type)',
-  ]
+  const selects = preferLegacyUnitColumns()
+    ? [`*, fleet:vehicle_id (name, type), ${UNIT_EMBED_CORE}`, '*, fleet:vehicle_id (name, type)']
+    : [
+        `*, fleet:vehicle_id (name, type), ${UNIT_EMBED_FULL}`,
+        `*, fleet:vehicle_id (name, type), ${UNIT_EMBED_CORE}`,
+        '*, fleet:vehicle_id (name, type)',
+      ]
   let error: { message: string } | null = null
   for (const select of selects) {
     const result = await admin.from('reservations').select(select).eq('id', id).maybeSingle()
     if (!result.error) {
+      if (select.includes('make')) markUnitColumnsPresent()
       return { data: (result.data as unknown as ManagerReservation | null) ?? null, error: null }
     }
     error = result.error
+    if (shouldRetryUnitSelect(result.error.message) && select.includes('make')) {
+      markUnitColumnsMissing()
+    }
     if (!shouldRetryUnitSelect(result.error.message)) break
   }
   return { data: null, error }
