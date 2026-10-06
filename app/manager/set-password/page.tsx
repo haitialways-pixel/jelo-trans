@@ -151,7 +151,7 @@ export default function SetPasswordPage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-10">
           <div className="accent-line mx-auto mb-8" />
-          <div className="mx-auto mb-6 w-12 h-12 rounded-full bg-card flex items-center justify-center shadow-[0_12px_40px_-12px_rgba(43,38,37,0.1)]">
+          <div className="mx-auto mb-6 w-12 h-12 rounded-full bg-card flex items-center justify-center shadow-[0_12px_40px_-12px_rgba(24,5,219,0.12)]">
             <Lock className="w-5 h-5 text-gold" strokeWidth={1.5} />
           </div>
           <h1 className="font-display text-3xl font-medium">Create your password</h1>

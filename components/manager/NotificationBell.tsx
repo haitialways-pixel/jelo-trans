@@ -17,7 +17,7 @@ import {
 type Props = { initial: ManagerNotification[] }
 
 const SEVERITY_DOT: Record<string, string> = {
-  info: 'bg-[#1e4fc7]',
+  info: 'bg-[#1805db]',
   warning: 'bg-gold',
   critical: 'bg-red-500',
 }
