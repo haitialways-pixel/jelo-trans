@@ -1,44 +1,44 @@
-/* Manager-only smoke theme. Public :root tokens stay unchanged. */
+/* Manager-only deeper smoke theme. Public :root tokens stay unchanged. */
 
 html:has(.manager-app),
 body:has(.manager-app) {
-  color-scheme: light;
-  background: #738276;
-  color: #0a1aa8;
+  color-scheme: dark;
+  background: #5a665d;
+  color: #f4efe6;
 }
 
 .manager-app {
-  color-scheme: light;
+  color-scheme: dark;
   min-height: 100vh;
-  background: #738276;
-  color: #0a1aa8;
+  background: #5a665d;
+  color: #f4efe6;
 
-  --background: #738276;
-  --foreground: #0a1aa8;
-  --card: #a3ada5;
-  --card-elevated: #a3ada5;
-  --muted: #1528b0;
+  --background: #5a665d;
+  --foreground: #f4efe6;
+  --card: #4b564e;
+  --card-elevated: #4b564e;
+  --muted: #e8e1d4;
   --gold: #e6cf8a;
   --gold-soft: #e6cf8a;
-  --royal: #0a1aa8;
-  --royal-bright: #1528b0;
-  --royal-deep: #050878;
+  --royal: #f4efe6;
+  --royal-bright: #e8e1d4;
+  --royal-deep: #e6cf8a;
 
-  --color-background: #738276;
-  --color-card: #a3ada5;
-  --color-on-surface: #0a1aa8;
-  --color-on-surface-variant: #1528b0;
-  --color-surface-container-lowest: #a3ada5;
-  --color-surface-container-low: #a3ada5;
-  --color-surface-container: #a3ada5;
-  --color-surface-container-high: #8d998f;
+  --color-background: #5a665d;
+  --color-card: #4b564e;
+  --color-on-surface: #f4efe6;
+  --color-on-surface-variant: #e8e1d4;
+  --color-surface-container-lowest: #4b564e;
+  --color-surface-container-low: #4b564e;
+  --color-surface-container: #4b564e;
+  --color-surface-container-high: #445049;
   --color-outline-variant: #e6cf8a;
-  --color-secondary: #a3ada5;
-  --color-secondary-dim: #8d998f;
-  --color-secondary-dark: #8d998f;
-  --color-primary: #0a1aa8;
-  --color-primary-dim: #1528b0;
-  --color-primary-dark: #050878;
+  --color-secondary: #4b564e;
+  --color-secondary-dim: #445049;
+  --color-secondary-dark: #445049;
+  --color-primary: #e6cf8a;
+  --color-primary-dim: #e8e1d4;
+  --color-primary-dark: #e6cf8a;
   --color-gold: #e6cf8a;
   --color-gold-dim: #e6cf8a;
   --color-gold-dark: #e6cf8a;
@@ -50,7 +50,7 @@ body:has(.manager-app) {
 .manager-app h4,
 .manager-app .display,
 .manager-app .font-display {
-  color: #0a1aa8;
+  color: #f4efe6;
 }
 
 .manager-app .gold,
@@ -63,27 +63,27 @@ body:has(.manager-app) {
 .manager-app .text-primary-dim,
 .manager-app .text-primary-dark,
 .manager-app .text-primary-light {
-  color: #0a1aa8;
+  color: #e6cf8a;
   background: none;
   -webkit-text-fill-color: unset;
 }
 
 .manager-app a {
-  color: #0a1aa8;
+  color: #e6cf8a;
 }
 
 .manager-app a:hover,
 .manager-app .hover\:text-primary:hover,
 .manager-app .hover\:text-on-surface:hover,
 .manager-app .hover\:text-gold:hover {
-  color: #050878;
+  color: #f4efe6;
 }
 
 .manager-app .card,
 .manager-app .float-card,
 .manager-app .luxe-card,
 .manager-app .glass-dark {
-  background: #a3ada5;
+  background: #4b564e;
   border: 1px solid #e6cf8a;
   box-shadow: none;
 }
@@ -100,7 +100,7 @@ body:has(.manager-app) {
 }
 
 .manager-app header {
-  background: #a3ada5;
+  background: #4b564e;
   border-bottom: 1px solid #e6cf8a;
 }
 
@@ -113,14 +113,14 @@ body:has(.manager-app) {
 }
 
 .manager-app table {
-  background: #a3ada5;
-  color: #0a1aa8;
+  background: #4b564e;
+  color: #f4efe6;
   border: 1px solid #e6cf8a;
 }
 
 .manager-app th,
 .manager-app td {
-  color: #0a1aa8;
+  color: #f4efe6;
   border-color: #e6cf8a;
 }
 
@@ -128,11 +128,11 @@ body:has(.manager-app) {
 .manager-app textarea,
 .manager-app select {
   appearance: none;
-  background: #a3ada5;
+  background: #4b564e;
   border-width: 1px;
   border-style: solid;
   border-color: #e6cf8a;
-  color: #0a1aa8;
+  color: #f4efe6;
   box-shadow: none;
 }
 
@@ -155,21 +155,21 @@ body:has(.manager-app) {
 
 .manager-app input::placeholder,
 .manager-app textarea::placeholder {
-  color: #1528b0;
+  color: #e8e1d4;
   opacity: 0.85;
 }
 
 .manager-app option {
-  background: #a3ada5;
-  color: #0a1aa8;
+  background: #4b564e;
+  color: #f4efe6;
 }
 
 .manager-app input:-webkit-autofill,
 .manager-app textarea:-webkit-autofill,
 .manager-app select:-webkit-autofill {
-  -webkit-text-fill-color: #0a1aa8;
-  caret-color: #0a1aa8;
-  box-shadow: 0 0 0 1000px #a3ada5 inset;
+  -webkit-text-fill-color: #f4efe6;
+  caret-color: #f4efe6;
+  box-shadow: 0 0 0 1000px #4b564e inset;
   transition: background-color 9999s ease-out;
 }
 
@@ -211,32 +211,33 @@ body:has(.manager-app) {
 
 .manager-app .btn-outline-gold {
   border: 1px solid #e6cf8a;
-  color: #0a1aa8;
-  background: #a3ada5;
+  color: #f4efe6;
+  background: #4b564e;
 }
 
 .manager-app .btn-outline-gold:hover {
   border-color: #e6cf8a;
-  background: #8d998f;
-  color: #050878;
+  background: #445049;
+  color: #e6cf8a;
 }
 
 .manager-app .badge-pending,
 .manager-app .badge-confirmed,
 .manager-app .badge-completed,
 .manager-app .badge-cancelled {
-  background: #a3ada5;
+  background: #445049;
   border: 1px solid #e6cf8a;
-  color: #0a1aa8;
+  color: #f4efe6;
 }
 
 .manager-app .badge-cancelled {
   border-color: #c62828;
-  color: #c62828;
+  color: #ffffff;
+  background: #c62828;
 }
 
 .manager-app .bg-background {
-  background-color: #738276;
+  background-color: #5a665d;
 }
 
 .manager-app .bg-card,
@@ -244,25 +245,25 @@ body:has(.manager-app) {
 .manager-app .bg-surface-container,
 .manager-app .bg-surface-container-low,
 .manager-app .bg-surface-container-lowest {
-  background-color: #a3ada5;
+  background-color: #4b564e;
 }
 
 .manager-app .bg-secondary-dim,
 .manager-app .bg-secondary-dark,
 .manager-app .bg-surface-container-high {
-  background-color: #8d998f;
+  background-color: #445049;
 }
 
 .manager-app .text-on-surface,
 .manager-app .text-secondary,
 .manager-app .text-secondary-dim,
 .manager-app .text-secondary-dark {
-  color: #0a1aa8;
+  color: #f4efe6;
 }
 
 .manager-app .text-on-surface-variant,
 .manager-app [class*="text-on-surface-variant"] {
-  color: #1528b0;
+  color: #e8e1d4;
 }
 
 .manager-app .accent-line {
@@ -271,7 +272,7 @@ body:has(.manager-app) {
 
 .manager-app [class*="text-emerald"],
 .manager-app [class*="text-amber"] {
-  color: #0a1aa8;
+  color: #e6cf8a;
 }
 
 .manager-app [class*="border-emerald"],
@@ -282,11 +283,11 @@ body:has(.manager-app) {
 .manager-app .bg-amber-500\/10,
 .manager-app .bg-emerald-500\/10,
 .manager-app .bg-emerald-500\/20 {
-  background-color: rgba(10, 26, 168, 0.10);
+  background-color: rgba(230, 207, 138, 0.12);
 }
 
 .manager-app .hover\:bg-emerald-50:hover {
-  background-color: rgba(10, 26, 168, 0.10);
+  background-color: rgba(230, 207, 138, 0.12);
 }
 
 /* 1099 print forms stay black-on-white for paper copies. */
@@ -317,12 +318,12 @@ body:has(.manager-app) {
   color: #525252;
 }
 
-@media (prefers-color-scheme: dark) {
+@media (prefers-color-scheme: light) {
   html:has(.manager-app),
   body:has(.manager-app),
   .manager-app {
-    color-scheme: light;
-    background: #738276;
-    color: #0a1aa8;
+    color-scheme: dark;
+    background: #5a665d;
+    color: #f4efe6;
   }
 }
