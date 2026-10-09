@@ -1,47 +1,85 @@
-/* Manager-only deeper smoke theme. Public :root tokens stay unchanged. */
+/* Manager theme. Public :root tokens stay unchanged.
+ *
+ * Active: navy text on light smoke (.manager-app).
+ * Alternate (inactive): ivory on deeper smoke — add class "theme-ivory"
+ *   to the .manager-app wrapper to restore commit 16c8a6a look quickly.
+ */
 
+/* ---- Active: navy on light smoke ---- */
 html:has(.manager-app),
 body:has(.manager-app) {
-  color-scheme: dark;
-  background: #5a665d;
-  color: #f4efe6;
+  color-scheme: light;
+  background: #738276;
+  color: #061028;
 }
 
 .manager-app {
-  color-scheme: dark;
+  color-scheme: light;
   min-height: 100vh;
+  background: #738276;
+  color: #061028;
+
+  --mgr-page: #738276;
+  --mgr-card: #a3ada5;
+  --mgr-card-dim: #8d998f;
+  --mgr-text: #061028;
+  --mgr-muted: #091228;
+  --mgr-link: #061028;
+  --mgr-border: #e6cf8a;
+  --mgr-btn: #c62828;
+  --mgr-btn-hover: #a31f1f;
+
+  --background: var(--mgr-page);
+  --foreground: var(--mgr-text);
+  --card: var(--mgr-card);
+  --card-elevated: var(--mgr-card);
+  --muted: var(--mgr-muted);
+  --gold: var(--mgr-border);
+  --gold-soft: var(--mgr-border);
+  --royal: var(--mgr-text);
+  --royal-bright: var(--mgr-muted);
+  --royal-deep: var(--mgr-link);
+
+  --color-background: var(--mgr-page);
+  --color-card: var(--mgr-card);
+  --color-on-surface: var(--mgr-text);
+  --color-on-surface-variant: var(--mgr-muted);
+  --color-surface-container-lowest: var(--mgr-card);
+  --color-surface-container-low: var(--mgr-card);
+  --color-surface-container: var(--mgr-card);
+  --color-surface-container-high: var(--mgr-card-dim);
+  --color-outline-variant: var(--mgr-border);
+  --color-secondary: var(--mgr-card);
+  --color-secondary-dim: var(--mgr-card-dim);
+  --color-secondary-dark: var(--mgr-card-dim);
+  --color-primary: var(--mgr-link);
+  --color-primary-dim: var(--mgr-muted);
+  --color-primary-dark: var(--mgr-link);
+  --color-gold: var(--mgr-border);
+  --color-gold-dim: var(--mgr-border);
+  --color-gold-dark: var(--mgr-border);
+}
+
+/* ---- Alternate: ivory on deeper smoke (16c8a6a) — inactive until .theme-ivory ---- */
+.manager-app.theme-ivory {
+  color-scheme: dark;
   background: #5a665d;
   color: #f4efe6;
 
-  --background: #5a665d;
-  --foreground: #f4efe6;
-  --card: #4b564e;
-  --card-elevated: #4b564e;
-  --muted: #e8e1d4;
-  --gold: #e6cf8a;
-  --gold-soft: #e6cf8a;
-  --royal: #f4efe6;
-  --royal-bright: #e8e1d4;
-  --royal-deep: #e6cf8a;
+  --mgr-page: #5a665d;
+  --mgr-card: #4b564e;
+  --mgr-card-dim: #445049;
+  --mgr-text: #f4efe6;
+  --mgr-muted: #e8e1d4;
+  --mgr-link: #e6cf8a;
+  --mgr-border: #e6cf8a;
+}
 
-  --color-background: #5a665d;
-  --color-card: #4b564e;
-  --color-on-surface: #f4efe6;
-  --color-on-surface-variant: #e8e1d4;
-  --color-surface-container-lowest: #4b564e;
-  --color-surface-container-low: #4b564e;
-  --color-surface-container: #4b564e;
-  --color-surface-container-high: #445049;
-  --color-outline-variant: #e6cf8a;
-  --color-secondary: #4b564e;
-  --color-secondary-dim: #445049;
-  --color-secondary-dark: #445049;
-  --color-primary: #e6cf8a;
-  --color-primary-dim: #e8e1d4;
-  --color-primary-dark: #e6cf8a;
-  --color-gold: #e6cf8a;
-  --color-gold-dim: #e6cf8a;
-  --color-gold-dark: #e6cf8a;
+html:has(.manager-app.theme-ivory),
+body:has(.manager-app.theme-ivory) {
+  color-scheme: dark;
+  background: #5a665d;
+  color: #f4efe6;
 }
 
 .manager-app h1,
@@ -50,7 +88,7 @@ body:has(.manager-app) {
 .manager-app h4,
 .manager-app .display,
 .manager-app .font-display {
-  color: #f4efe6;
+  color: var(--mgr-text);
 }
 
 .manager-app .gold,
@@ -63,77 +101,86 @@ body:has(.manager-app) {
 .manager-app .text-primary-dim,
 .manager-app .text-primary-dark,
 .manager-app .text-primary-light {
-  color: #e6cf8a;
+  color: var(--mgr-link);
   background: none;
   -webkit-text-fill-color: unset;
 }
 
 .manager-app a {
-  color: #e6cf8a;
+  color: var(--mgr-link);
 }
 
 .manager-app a:hover,
 .manager-app .hover\:text-primary:hover,
 .manager-app .hover\:text-on-surface:hover,
 .manager-app .hover\:text-gold:hover {
-  color: #f4efe6;
+  color: var(--mgr-text);
 }
 
 .manager-app .card,
 .manager-app .float-card,
 .manager-app .luxe-card,
 .manager-app .glass-dark {
-  background: #4b564e;
-  border: 1px solid #e6cf8a;
+  background: var(--mgr-card);
+  border: 1px solid var(--mgr-border);
   box-shadow: none;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .manager-app .card:hover,
 .manager-app .float-card:hover {
   transform: none;
-  border-color: #e6cf8a;
+  border-color: var(--mgr-border);
   box-shadow: none;
 }
 
 .manager-app .gold-hairline {
-  border-color: #e6cf8a;
+  border-color: var(--mgr-border);
 }
 
 .manager-app header {
-  background: #4b564e;
-  border-bottom: 1px solid #e6cf8a;
+  background: var(--mgr-card);
+  border-bottom: 1px solid var(--mgr-border);
 }
 
 .manager-app [class*="border-outline-variant"] {
-  border-color: #e6cf8a;
+  border-color: var(--mgr-border);
 }
 
 .manager-app .divide-y > :not([hidden]) ~ :not([hidden]) {
-  border-color: #e6cf8a;
+  border-color: var(--mgr-border);
 }
 
 .manager-app table {
-  background: #4b564e;
-  color: #f4efe6;
-  border: 1px solid #e6cf8a;
+  background: var(--mgr-card);
+  color: var(--mgr-text);
+  border: 1px solid var(--mgr-border);
+  max-width: 100%;
 }
 
 .manager-app th,
 .manager-app td {
-  color: #f4efe6;
-  border-color: #e6cf8a;
+  color: var(--mgr-text);
+  border-color: var(--mgr-border);
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .manager-app input,
 .manager-app textarea,
 .manager-app select {
   appearance: none;
-  background: #4b564e;
+  background: var(--mgr-card);
   border-width: 1px;
   border-style: solid;
-  border-color: #e6cf8a;
-  color: #f4efe6;
+  border-color: var(--mgr-border);
+  color: var(--mgr-text);
   box-shadow: none;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .manager-app input:focus,
@@ -142,34 +189,34 @@ body:has(.manager-app) {
 .manager-app input:focus-visible,
 .manager-app textarea:focus-visible,
 .manager-app select:focus-visible {
-  border-color: #e6cf8a;
-  outline: 2px solid #e6cf8a;
+  border-color: var(--mgr-border);
+  outline: 2px solid var(--mgr-border);
   outline-offset: 2px;
 }
 
 .manager-app button:focus-visible,
 .manager-app a:focus-visible {
-  outline: 2px solid #e6cf8a;
+  outline: 2px solid var(--mgr-border);
   outline-offset: 2px;
 }
 
 .manager-app input::placeholder,
 .manager-app textarea::placeholder {
-  color: #e8e1d4;
+  color: var(--mgr-muted);
   opacity: 0.85;
 }
 
 .manager-app option {
-  background: #4b564e;
-  color: #f4efe6;
+  background: var(--mgr-card);
+  color: var(--mgr-text);
 }
 
 .manager-app input:-webkit-autofill,
 .manager-app textarea:-webkit-autofill,
 .manager-app select:-webkit-autofill {
-  -webkit-text-fill-color: #f4efe6;
-  caret-color: #f4efe6;
-  box-shadow: 0 0 0 1000px #4b564e inset;
+  -webkit-text-fill-color: var(--mgr-text);
+  caret-color: var(--mgr-text);
+  box-shadow: 0 0 0 1000px var(--mgr-card) inset;
   transition: background-color 9999s ease-out;
 }
 
@@ -178,7 +225,7 @@ body:has(.manager-app) {
 .manager-app .gold-shimmer,
 .manager-app button.bg-primary,
 .manager-app a.bg-primary {
-  background: #c62828;
+  background: var(--mgr-btn);
   color: #ffffff;
   box-shadow: none;
 }
@@ -189,7 +236,7 @@ body:has(.manager-app) {
 .manager-app button.bg-primary:hover,
 .manager-app a.bg-primary:hover,
 .manager-app .hover\:bg-primary-dark:hover {
-  background: #a31f1f;
+  background: var(--mgr-btn-hover);
   color: #ffffff;
   box-shadow: none;
   transform: none;
@@ -210,34 +257,34 @@ body:has(.manager-app) {
 }
 
 .manager-app .btn-outline-gold {
-  border: 1px solid #e6cf8a;
-  color: #f4efe6;
-  background: #4b564e;
+  border: 1px solid var(--mgr-border);
+  color: var(--mgr-text);
+  background: var(--mgr-card);
 }
 
 .manager-app .btn-outline-gold:hover {
-  border-color: #e6cf8a;
-  background: #445049;
-  color: #e6cf8a;
+  border-color: var(--mgr-border);
+  background: var(--mgr-card-dim);
+  color: var(--mgr-link);
 }
 
 .manager-app .badge-pending,
 .manager-app .badge-confirmed,
 .manager-app .badge-completed,
 .manager-app .badge-cancelled {
-  background: #445049;
-  border: 1px solid #e6cf8a;
-  color: #f4efe6;
+  background: var(--mgr-card-dim);
+  border: 1px solid var(--mgr-border);
+  color: var(--mgr-text);
 }
 
 .manager-app .badge-cancelled {
-  border-color: #c62828;
+  border-color: var(--mgr-btn);
   color: #ffffff;
-  background: #c62828;
+  background: var(--mgr-btn);
 }
 
 .manager-app .bg-background {
-  background-color: #5a665d;
+  background-color: var(--mgr-page);
 }
 
 .manager-app .bg-card,
@@ -245,49 +292,70 @@ body:has(.manager-app) {
 .manager-app .bg-surface-container,
 .manager-app .bg-surface-container-low,
 .manager-app .bg-surface-container-lowest {
-  background-color: #4b564e;
+  background-color: var(--mgr-card);
 }
 
 .manager-app .bg-secondary-dim,
 .manager-app .bg-secondary-dark,
 .manager-app .bg-surface-container-high {
-  background-color: #445049;
+  background-color: var(--mgr-card-dim);
 }
 
 .manager-app .text-on-surface,
 .manager-app .text-secondary,
 .manager-app .text-secondary-dim,
 .manager-app .text-secondary-dark {
-  color: #f4efe6;
+  color: var(--mgr-text);
 }
 
 .manager-app .text-on-surface-variant,
 .manager-app [class*="text-on-surface-variant"] {
-  color: #e8e1d4;
+  color: var(--mgr-muted);
 }
 
 .manager-app .accent-line {
-  background: #e6cf8a;
+  background: var(--mgr-border);
 }
 
 .manager-app [class*="text-emerald"],
 .manager-app [class*="text-amber"] {
-  color: #e6cf8a;
+  color: var(--mgr-link);
 }
 
 .manager-app [class*="border-emerald"],
 .manager-app [class*="border-amber"] {
-  border-color: #e6cf8a;
+  border-color: var(--mgr-border);
 }
 
 .manager-app .bg-amber-500\/10,
 .manager-app .bg-emerald-500\/10,
 .manager-app .bg-emerald-500\/20 {
-  background-color: rgba(230, 207, 138, 0.12);
+  background-color: color-mix(in srgb, var(--mgr-border) 14%, transparent);
 }
 
 .manager-app .hover\:bg-emerald-50:hover {
-  background-color: rgba(230, 207, 138, 0.12);
+  background-color: color-mix(in srgb, var(--mgr-border) 14%, transparent);
+}
+
+/* Contain flex/grid children so long emails/IDs cannot blow out cards. */
+.manager-app main,
+.manager-app article,
+.manager-app section {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.manager-app .min-w-0 {
+  min-width: 0;
+}
+
+.manager-app [class*="grid-cols-"] > * {
+  min-width: 0;
+}
+
+.manager-app .break-anywhere {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 /* 1099 print forms stay black-on-white for paper copies. */
@@ -318,12 +386,12 @@ body:has(.manager-app) {
   color: #525252;
 }
 
-@media (prefers-color-scheme: light) {
-  html:has(.manager-app),
-  body:has(.manager-app),
-  .manager-app {
-    color-scheme: dark;
-    background: #5a665d;
-    color: #f4efe6;
+@media (prefers-color-scheme: dark) {
+  html:has(.manager-app):not(:has(.manager-app.theme-ivory)),
+  body:has(.manager-app):not(:has(.manager-app.theme-ivory)),
+  .manager-app:not(.theme-ivory) {
+    color-scheme: light;
+    background: #738276;
+    color: #061028;
   }
 }

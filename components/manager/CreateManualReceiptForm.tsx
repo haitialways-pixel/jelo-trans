@@ -283,7 +283,7 @@ export function CreateManualReceiptForm({ smsConfigured }: { smsConfigured: bool
   }
 
   return (
-    <div className="w-full basis-full glass-dark gold-hairline rounded-2xl p-6 space-y-6">
+    <div className="w-full basis-full max-w-full min-w-0 glass-dark gold-hairline rounded-2xl p-6 space-y-6 overflow-x-auto">
       <div className="flex items-center justify-between gap-3">
         <div>
           <h2 className="flex items-center gap-2 text-sm tracking-widest text-on-surface-variant uppercase">
@@ -454,9 +454,9 @@ export function CreateManualReceiptForm({ smsConfigured }: { smsConfigured: bool
             return (
               <div
                 key={row.key}
-                className="grid grid-cols-12 gap-2 items-end rounded-xl border border-outline-variant/20 bg-surface-container/30 p-3"
+                className="grid grid-cols-12 gap-2 items-end rounded-xl border border-outline-variant/20 bg-surface-container/30 p-3 min-w-0 max-w-full"
               >
-                <div className="col-span-12 sm:col-span-5">
+                <div className="col-span-12 sm:col-span-5 min-w-0">
                   <Field
                     label={idx === 0 ? 'Description' : ''}
                     value={row.description}
@@ -468,7 +468,7 @@ export function CreateManualReceiptForm({ smsConfigured }: { smsConfigured: bool
                     placeholder="e.g. Airport transfer — MCO to hotel"
                   />
                 </div>
-                <div className="col-span-4 sm:col-span-2">
+                <div className="col-span-4 sm:col-span-2 min-w-0">
                   <Field
                     label={idx === 0 ? 'Qty' : ''}
                     type="number"
@@ -482,7 +482,7 @@ export function CreateManualReceiptForm({ smsConfigured }: { smsConfigured: bool
                     step="1"
                   />
                 </div>
-                <div className="col-span-5 sm:col-span-2">
+                <div className="col-span-5 sm:col-span-2 min-w-0">
                   <Field
                     label={idx === 0 ? 'Unit price ($)' : ''}
                     type="number"
@@ -496,7 +496,7 @@ export function CreateManualReceiptForm({ smsConfigured }: { smsConfigured: bool
                     step="0.01"
                   />
                 </div>
-                <div className="col-span-2 sm:col-span-2 flex flex-col justify-end pb-2">
+                <div className="col-span-2 sm:col-span-2 min-w-0 flex flex-col justify-end pb-2">
                   <span className="text-[11px] text-on-surface-variant hidden sm:block mb-1">
                     {idx === 0 ? 'Line total' : '\u00a0'}
                   </span>
@@ -504,7 +504,7 @@ export function CreateManualReceiptForm({ smsConfigured }: { smsConfigured: bool
                     {line != null ? money(line) : '—'}
                   </span>
                 </div>
-                <div className="col-span-1 flex justify-end pb-1.5">
+                <div className="col-span-1 min-w-0 flex justify-end pb-1.5">
                   <button
                     type="button"
                     onClick={() =>

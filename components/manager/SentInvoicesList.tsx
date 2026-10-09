@@ -114,7 +114,7 @@ export function SentInvoicesList({ invoices }: { invoices: StoredInvoice[] }) {
           return (
             <article
               key={inv.id}
-              className="glass-dark gold-hairline rounded-2xl overflow-hidden"
+              className="glass-dark gold-hairline rounded-2xl overflow-hidden max-w-full min-w-0"
             >
               <button
                 type="button"
@@ -136,8 +136,8 @@ export function SentInvoicesList({ invoices }: { invoices: StoredInvoice[] }) {
                     </span>
                   </div>
                   <p className="text-sm font-medium mt-1 truncate">{billTo || inv.vendor_name}</p>
-                  <p className="text-xs text-on-surface-variant mt-0.5">
-                    To {inv.sent_to}
+                  <p className="text-xs text-on-surface-variant mt-0.5 break-words">
+                    To <span className="break-all">{inv.sent_to}</span>
                     {' · '}
                     Sent {formatDateTime(inv.sent_at)}
                   </p>
@@ -232,7 +232,7 @@ export function SentInvoicesList({ invoices }: { invoices: StoredInvoice[] }) {
                               key={`${inv.id}-item-${i}`}
                               className="border-b border-outline-variant/10 last:border-0"
                             >
-                              <td className="px-3 py-2">{item.description}</td>
+                              <td className="px-3 py-2 break-words max-w-[14rem] sm:max-w-none">{item.description}</td>
                               <td className="px-3 py-2 text-right tabular-nums">{item.quantity}</td>
                               <td className="px-3 py-2 text-right tabular-nums">
                                 {money(item.unitPrice)}

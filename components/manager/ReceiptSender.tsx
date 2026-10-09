@@ -53,7 +53,7 @@ export function ReceiptSender({
   }
 
   return (
-    <article className="glass-dark gold-hairline rounded-2xl p-5 space-y-4">
+    <article className="glass-dark gold-hairline rounded-2xl p-5 space-y-4 max-w-full min-w-0 overflow-hidden">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
@@ -61,7 +61,7 @@ export function ReceiptSender({
             <StatusBadge status={r.status} />
           </div>
           <p className="text-xs text-on-surface-variant mt-1">
-            <span className="font-mono">{r.booking_number}</span>
+            <span className="font-mono break-all">{r.booking_number}</span>
             {' · '}
             {formatDateTime(r.pickup_time)}
             {' · '}
@@ -79,13 +79,13 @@ export function ReceiptSender({
       <div className="grid sm:grid-cols-2 gap-3 text-sm">
         <div className="rounded-xl bg-surface-container/40 border border-outline-variant/15 px-3 py-2">
           <p className="text-[11px] text-on-surface-variant mb-0.5">Pickup</p>
-          <p className="truncate" title={r.pickup_address}>
+          <p className="break-words" title={r.pickup_address}>
             {r.pickup_address}
           </p>
         </div>
         <div className="rounded-xl bg-surface-container/40 border border-outline-variant/15 px-3 py-2">
           <p className="text-[11px] text-on-surface-variant mb-0.5">Drop-off</p>
-          <p className="truncate" title={r.dropoff_address}>
+          <p className="break-words" title={r.dropoff_address}>
             {r.dropoff_address}
           </p>
         </div>
