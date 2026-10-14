@@ -5,23 +5,37 @@
  *   to the .manager-app wrapper to restore commit 16c8a6a look quickly.
  */
 
-/* ---- Active: ivory on deeper smoke ---- */
+/* ---- Background palettes (ivory text, gold borders, red buttons stay) ----
+ * To switch, copy one set into the three ACTIVE lines below, then set the
+ * same page color in app/manager/layout.tsx (themeColor) and
+ * public/manager/manifest.webmanifest (background_color, theme_color).
+ *
+ *   1. Charcoal smoke   page #3a3f3c  card #2e3330  secondary #282c2a
+ *   2. Midnight navy    page #0f1a33  card #16233f  secondary #1c2b4d
+ *   3. Warm graphite    page #3b3633  card #2f2b28  secondary #282422
+ *   4. Slate blue-gray  page #3d4a5a  card #33404e  secondary #2b3744
+ *   (previous) Deeper smoke  page #5a665d  card #4b564e  secondary #445049
+ */
+html:has(.manager-app) {
+  /* ACTIVE PALETTE: 1. Charcoal smoke */
+  --mgr-page: #3a3f3c;
+  --mgr-card: #2e3330;
+  --mgr-card-dim: #282c2a;
+}
+
 html:has(.manager-app),
 body:has(.manager-app) {
   color-scheme: dark;
-  background: #5a665d;
+  background: var(--mgr-page);
   color: #f4efe6;
 }
 
 .manager-app {
   color-scheme: dark;
   min-height: 100vh;
-  background: #5a665d;
+  background: var(--mgr-page);
   color: #f4efe6;
 
-  --mgr-page: #5a665d;
-  --mgr-card: #4b564e;
-  --mgr-card-dim: #445049;
   --mgr-text: #f4efe6;
   --mgr-muted: #e8e1d4;
   --mgr-link: #e6cf8a;
@@ -391,7 +405,7 @@ body:has(.manager-app.theme-ivory) {
   body:has(.manager-app):not(:has(.manager-app.theme-ivory)),
   .manager-app:not(.theme-ivory) {
     color-scheme: dark;
-    background: #5a665d;
+    background: var(--mgr-page);
     color: #f4efe6;
   }
 }
