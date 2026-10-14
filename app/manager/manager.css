@@ -10,21 +10,21 @@ html:has(.manager-app),
 body:has(.manager-app) {
   color-scheme: light;
   background: #738276;
-  color: #061028;
+  color: #00BFFF;
 }
 
 .manager-app {
   color-scheme: light;
   min-height: 100vh;
   background: #738276;
-  color: #061028;
+  color: #00BFFF;
 
   --mgr-page: #738276;
   --mgr-card: #a3ada5;
   --mgr-card-dim: #8d998f;
-  --mgr-text: #061028;
-  --mgr-muted: #091228;
-  --mgr-link: #061028;
+  --mgr-text: #00BFFF;
+  --mgr-muted: #00BFFF;
+  --mgr-link: #00BFFF;
   --mgr-border: #e6cf8a;
   --mgr-btn: #c62828;
   --mgr-btn-hover: #a31f1f;
@@ -392,6 +392,6 @@ body:has(.manager-app.theme-ivory) {
   .manager-app:not(.theme-ivory) {
     color-scheme: light;
     background: #738276;
-    color: #061028;
+    color: #00BFFF;
   }
 }
