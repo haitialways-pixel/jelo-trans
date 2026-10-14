@@ -1,30 +1,30 @@
 /* Manager theme. Public :root tokens stay unchanged.
  *
- * Active: navy text on light smoke (.manager-app).
+ * Active: ivory text on deeper smoke (.manager-app).
  * Alternate (inactive): ivory on deeper smoke — add class "theme-ivory"
  *   to the .manager-app wrapper to restore commit 16c8a6a look quickly.
  */
 
-/* ---- Active: navy on light smoke ---- */
+/* ---- Active: ivory on deeper smoke ---- */
 html:has(.manager-app),
 body:has(.manager-app) {
-  color-scheme: light;
-  background: #738276;
-  color: #00BFFF;
+  color-scheme: dark;
+  background: #5a665d;
+  color: #f4efe6;
 }
 
 .manager-app {
-  color-scheme: light;
+  color-scheme: dark;
   min-height: 100vh;
-  background: #738276;
-  color: #00BFFF;
+  background: #5a665d;
+  color: #f4efe6;
 
-  --mgr-page: #738276;
-  --mgr-card: #a3ada5;
-  --mgr-card-dim: #8d998f;
-  --mgr-text: #00BFFF;
-  --mgr-muted: #00BFFF;
-  --mgr-link: #00BFFF;
+  --mgr-page: #5a665d;
+  --mgr-card: #4b564e;
+  --mgr-card-dim: #445049;
+  --mgr-text: #f4efe6;
+  --mgr-muted: #e8e1d4;
+  --mgr-link: #e6cf8a;
   --mgr-border: #e6cf8a;
   --mgr-btn: #c62828;
   --mgr-btn-hover: #a31f1f;
@@ -390,8 +390,8 @@ body:has(.manager-app.theme-ivory) {
   html:has(.manager-app):not(:has(.manager-app.theme-ivory)),
   body:has(.manager-app):not(:has(.manager-app.theme-ivory)),
   .manager-app:not(.theme-ivory) {
-    color-scheme: light;
-    background: #738276;
-    color: #00BFFF;
+    color-scheme: dark;
+    background: #5a665d;
+    color: #f4efe6;
   }
 }
