@@ -17,10 +17,10 @@
  *   (previous) Deeper smoke  page #5a665d  card #4b564e  secondary #445049
  */
 html:has(.manager-app) {
-  /* ACTIVE PALETTE: 1. Charcoal smoke */
-  --mgr-page: #3a3f3c;
-  --mgr-card: #2e3330;
-  --mgr-card-dim: #282c2a;
+  /* ACTIVE PALETTE: 2. Midnight navy */
+  --mgr-page: #0f1a33;
+  --mgr-card: #16233f;
+  --mgr-card-dim: #1c2b4d;
 }
 
 html:has(.manager-app),
